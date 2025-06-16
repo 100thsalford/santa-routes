@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Santa Route Finder</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/tabletop.js/1.5.1/tabletop.min.js"></script>
+  <style>
+    body { font-family: sans-serif; padding: 20px; }
+    input { padding: 10px; width: 300px; }
+    #result { margin-top: 20px; font-weight: bold; }
+  </style>
+</head>
+<body>
+
+<h2>Find Your Santa Route</h2>
+<p>Enter your street name below:</p>
+<input type="text" id="searchInput" placeholder="e.g. Acacia Avenue" />
+<div id="result"></div>
+
+<script>
+    const publicSpreadsheetURL = 'https://docs.google.com/spreadsheets/d/1MauiqhZcdGRH6EJdn4ygots0PMQDHvanPNxNPcxe2Gg/pubhtml';
+
+  function init() {
+    Tabletop.init({
+      key: publicSpreadsheetURL,
+      callback: showInfo,
+      simpleSheet: true
+    });
+  }
+
+  let data = [];
+
+  function showInfo(sheetData) {
+    data = sheetData;
+    document.getElementById('searchInput').addEventListener('input', function () {
+      const query = this.value.toLowerCase().trim();
+      const match = data.find(row => row['Street Name'].toLowerCase().includes(query));
+      const resultDiv = document.getElementById('result');
+      if (match) {
+        resultDiv.innerText = `🎅 Route ${match['Route Letter']} will visit on ${match['Route Date']}`;
+      } else {
+        resultDiv.innerText = query ? "No match found." : "";
+      }
+    });
+  }
+
+  window.addEventListener('DOMContentLoaded', init);
+</script>
+
+</body>
+</html>
