@@ -7,39 +7,75 @@
   <style>
     body {
       font-family: Arial, sans-serif;
-      padding: 20px;
-      max-width: 800px;
-      margin: auto;
+      margin: 0;
       background: #f8f8f8;
     }
 
-    img.logo {
-      max-width: 200px;
-      height: auto;
-      display: block;
-      margin: 0 auto 20px auto;
+    header {
+      background-color: #c30000;
+      color: white;
+      padding: 15px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
     }
 
-    h2 {
-      color: #c30000;
-      text-align: center;
+    .logo {
+      max-height: 40px;
     }
 
-    input, select {
-      padding: 10px;
-      width: 100%;
-      font-size: 16px;
-      margin-top: 10px;
-      box-sizing: border-box;
+    nav {
+      display: none;
+      flex-direction: column;
+      background-color: #c30000;
     }
 
-    #result, #streetList {
-      margin-top: 20px;
-      font-size: 18px;
+    nav a {
+      color: white;
+      text-decoration: none;
+      padding: 10px 15px;
+      border-top: 1px solid rgba(255,255,255,0.2);
     }
 
-    ul {
-      padding-left: 20px;
+    nav a:hover {
+      background-color: #a00000;
+    }
+
+    .menu-toggle {
+      background: none;
+      border: none;
+      color: white;
+      font-size: 24px;
+      cursor: pointer;
+    }
+
+    .menu-open nav {
+      display: flex;
+    }
+
+    @media (min-width: 600px) {
+      nav {
+        display: flex !important;
+        flex-direction: row;
+        gap: 20px;
+        justify-content: flex-end;
+        background: none;
+      }
+
+      nav a {
+        border: none;
+        padding: 0;
+      }
+
+      .menu-toggle {
+        display: none;
+      }
+    }
+
+    .content {
+      padding: 20px;
+      max-width: 800px;
+      margin: auto;
     }
 
     .footer {
@@ -48,22 +84,17 @@
       color: #999;
       text-align: center;
     }
-
-    iframe {
-      width: 100%;
-      border: none;
-      height: 500px;
-      margin-top: 30px;
-    }
-
-    @media (max-width: 600px) {
-      h2 { font-size: 20px; }
-      input, select { font-size: 14px; }
-    }
   </style>
 </head>
 <body>
-
+<header>
+  <img src="100thlogo.jpg" alt="Logo" class="logo">
+  <button class="menu-toggle" onclick="document.body.classList.toggle('menu-open')">☰</button>
+  <nav>
+    <a href="index.html">Home</a>
+    <a href="map.html">Map</a>
+  </nav>
+</header>
 <img src="100thlogo.jpg" alt="Santa Sleigh Logo" class="logo" />
   <nav>
   <a href="index.html">Home</a>
