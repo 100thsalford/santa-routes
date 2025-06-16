@@ -136,7 +136,7 @@
       );
 
       if (match) {
-          resultDiv.innerText = `🎄 Santa will be on Route ${match['Route Letter']} for ${match['Street Name']}, visiting on ${match['Route Date']}`;
+          resultDiv.innerText = `🎄 Santa will be on Route ${match['Route Letter']} for ${match['Street Name']}, visiting on ${match['Route Date']} (${match['Day']})`;
       } else {
           resultDiv.innerText = "No match found - please check your spelling, or your street might be outside our coverage area. Check the Map page for a rough guide to our coverage area";
       }
