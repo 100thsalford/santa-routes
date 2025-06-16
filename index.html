@@ -19,6 +19,7 @@
 
 <script>
     const publicSpreadsheetURL = 'https://docs.google.com/spreadsheets/d/1MauiqhZcdGRH6EJdn4ygots0PMQDHvanPNxNPcxe2Gg/pubhtml';
+	
 
   function init() {
     Tabletop.init({
@@ -30,7 +31,7 @@
 
   let data = [];
 
-  function showInfo(sheetData) {
+  function showInfo(console.log("Data loaded: ",sheetData) {
     data = sheetData;
     document.getElementById('searchInput').addEventListener('input', function () {
       const query = this.value.toLowerCase().trim();
