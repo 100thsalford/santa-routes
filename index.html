@@ -1,47 +1,91 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <meta charset="utf-8">
+  <meta charset="utf-8" />
   <title>Find Your Santa Route</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     body {
       font-family: Arial, sans-serif;
-      padding: 40px;
-      max-width: 600px;
+      padding: 20px;
+      max-width: 800px;
       margin: auto;
       background: #f8f8f8;
     }
 
-    h2 {
-      color: #c30000;
+    img.logo {
+      max-width: 200px;
+      height: auto;
+      display: block;
+      margin: 0 auto 20px auto;
     }
 
-    input {
+    h2 {
+      color: #c30000;
+      text-align: center;
+    }
+
+    input, select {
       padding: 10px;
       width: 100%;
       font-size: 16px;
       margin-top: 10px;
+      box-sizing: border-box;
     }
 
-    #result {
+    #result, #streetList {
       margin-top: 20px;
       font-size: 18px;
-      font-weight: bold;
+    }
+
+    ul {
+      padding-left: 20px;
     }
 
     .footer {
       margin-top: 40px;
       font-size: 12px;
       color: #999;
+      text-align: center;
+    }
+
+    iframe {
+      width: 100%;
+      border: none;
+      height: 500px;
+      margin-top: 30px;
+    }
+
+    @media (max-width: 600px) {
+      h2 { font-size: 20px; }
+      input, select { font-size: 14px; }
     }
   </style>
 </head>
 <body>
 
+<img src="100thlogo.jpg" alt="Santa Sleigh Logo" class="logo" />
+
 <h2>🎅 Find Out When Santa Visits Your Street</h2>
-<p>Start typing your street name below:</p>
+
+<p><strong>Search your street name:</strong></p>
 <input type="text" id="searchInput" placeholder="e.g. Acacia Avenue" />
 <div id="result"></div>
+
+<hr />
+
+<p><strong>Select a date to view the streets on that route:</strong></p>
+<select id="dateDropdown">
+  <option value="">-- Select a date --</option>
+</select>
+<div id="streetList"></div>
+
+<iframe 
+  src="https://www.facebook.com/plugins/page.php?href=https%3A%2F%2Fwww.facebook.com%2FSuperSleighSalford&tabs=timeline&width=500&height=500&small_header=true&adapt_container_width=true&hide_cover=false&show_facepile=false&appId"
+  allowfullscreen="true"
+  loading="lazy"
+  title="Facebook Feed"
+></iframe>
 
 <div class="footer">Powered by 100th Salford Scouts</div>
 
@@ -54,32 +98,77 @@
     .then(response => response.json())
     .then(json => {
       data = json;
-      console.log("Data loaded:", data);
-
-      document.getElementById('searchInput').addEventListener('input', function () {
-        const query = this.value.toLowerCase().trim();
-        const resultDiv = document.getElementById('result');
-
-        if (!query) {
-          resultDiv.innerText = '';
-          return;
-        }
-
-        const match = data.find(row =>
-          row['Street Name'] && row['Street Name'].toLowerCase().includes(query)
-        );
-
-        if (match) {
-          resultDiv.innerText = `🎄 Santa will be on Route ${match['Route Letter']} for ${match['Street Name']}, visiting on ${match['Route Date']}`;
-        } else {
-          resultDiv.innerText = "No match found - please check your spelling, or your street might be outside our coverage area. Check the Map page for a rough guide to our coverage area";
-        }
-      });
+      populateDateDropdown(data);
+      setupSearch(data);
+      setupDateSelect(data);
     })
     .catch(err => {
       console.error("Failed to load sheet data:", err);
       document.getElementById('result').innerText = "Error loading data. Try again later.";
     });
+
+  function populateDateDropdown(data) {
+    const dateDropdown = document.getElementById('dateDropdown');
+    const dates = [...new Set(data.map(row => row['Route Date']))].sort();
+
+    dates.forEach(date => {
+      const option = document.createElement('option');
+      option.value = date;
+      option.textContent = date;
+      dateDropdown.appendChild(option);
+    });
+  }
+
+  function setupSearch(data) {
+    const searchInput = document.getElementById('searchInput');
+    const resultDiv = document.getElementById('result');
+
+    searchInput.addEventListener('input', function () {
+      const query = this.value.toLowerCase().trim();
+
+      if (!query) {
+        resultDiv.innerText = '';
+        return;
+      }
+
+      const match = data.find(row =>
+        row['Street Name'] && row['Street Name'].toLowerCase().includes(query)
+      );
+
+      if (match) {
+          resultDiv.innerText = `🎄 Santa will be on Route ${match['Route Letter']} for ${match['Street Name']}, visiting on ${match['Route Date']}`;
+      } else {
+          resultDiv.innerText = "No match found - please check your spelling, or your street might be outside our coverage area. Check the Map page for a rough guide to our coverage area";
+      }
+    });
+  }
+
+  function setupDateSelect(data) {
+    const dateDropdown = document.getElementById('dateDropdown');
+    const listDiv = document.getElementById('streetList');
+
+    dateDropdown.addEventListener('change', function () {
+      const selectedDate = this.value;
+      if (!selectedDate) {
+        listDiv.innerHTML = '';
+        return;
+      }
+
+      const streets = data
+        .filter(row => row['Route Date'] === selectedDate)
+        .map(row => row['Street Name'])
+        .filter(name => name)
+        .sort();
+
+      if (streets.length === 0) {
+        listDiv.innerHTML = "<p>No streets found for this date.</p>";
+      } else {
+        listDiv.innerHTML = `<p>Streets on ${selectedDate}:</p><ul>` +
+          streets.map(s => `<li>${s}</li>`).join('') +
+          '</ul>';
+      }
+    });
+  }
 </script>
 
 </body>
