@@ -3,7 +3,6 @@
 <head>
   <meta charset="utf-8">
   <title>Find Your Santa Route</title>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/tabletop.js/1.5.1/tabletop.min.js"></script>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -47,42 +46,40 @@
 <div class="footer">Powered by 100th Salford Scouts</div>
 
 <script>
-  const publicSpreadsheetURL = 'https://docs.google.com/spreadsheets/d/1MauiqhZcdGRH6EJdn4ygots0PMQDHvanPNxNPcxe2Gg/pubhtml';
+  const sheetURL = 'https://opensheet.vercel.app/1MauiqhZcdGRH6EJdn4ygots0PMQDHvanPNxNPcxe2Gg/Sheet1';
 
   let data = [];
 
-  function init() {
-    Tabletop.init({
-      key: publicSpreadsheetURL,
-      callback: function(sheetData) {
-        data = sheetData;
-        console.log("Data loaded:", data);
+  fetch(sheetURL)
+    .then(response => response.json())
+    .then(json => {
+      data = json;
+      console.log("Data loaded:", data);
 
-        document.getElementById('searchInput').addEventListener('input', function () {
-          const query = this.value.toLowerCase().trim();
-          const resultDiv = document.getElementById('result');
+      document.getElementById('searchInput').addEventListener('input', function () {
+        const query = this.value.toLowerCase().trim();
+        const resultDiv = document.getElementById('result');
 
-          if (!query) {
-            resultDiv.innerText = '';
-            return;
-          }
+        if (!query) {
+          resultDiv.innerText = '';
+          return;
+        }
 
-          const match = data.find(row =>
-            row['Street Name'] && row['Street Name'].toLowerCase().includes(query)
-          );
+        const match = data.find(row =>
+          row['Street Name'] && row['Street Name'].toLowerCase().includes(query)
+        );
 
-          if (match) {
-            resultDiv.innerText = `🎄 Route ${match['Route Letter']} will visit on ${match['Route Date']}`;
-          } else {
-            resultDiv.innerText = "No match found.";
-          }
-        });
-      },
-      simpleSheet: true
+        if (match) {
+          resultDiv.innerText = `🎄 Route ${match['Route Letter']} will visit on ${match['Route Date']}`;
+        } else {
+          resultDiv.innerText = "No match found.";
+        }
+      });
+    })
+    .catch(err => {
+      console.error("Failed to load sheet data:", err);
+      document.getElementById('result').innerText = "Error loading data. Try again later.";
     });
-  }
-
-  window.addEventListener('DOMContentLoaded', init);
 </script>
 
 </body>
