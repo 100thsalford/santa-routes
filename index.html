@@ -113,12 +113,7 @@
 <br><br>
   <hr />
 
-<iframe 
-  src="https://www.facebook.com/plugins/page.php?href=https%3A%2F%2Fwww.facebook.com%2FSuperSleighSalford&tabs=timeline&width=900&height=800&small_header=true&adapt_container_width=true&hide_cover=false&show_facepile=false&appId"
-  allowfullscreen="true"
-  loading="lazy"
-  title="Facebook Feed"
-></iframe>
+
 
 <div class="footer">Powered by 100th Salford Scouts</div>
 
@@ -168,9 +163,16 @@
         row['Street Name'] && row['Street Name'].toLowerCase().includes(query)
       );
 
-      if (match) {
-          resultDiv.innerText = `🎄 Santa will be on Route ${match['Route Letter']} for ${match['Street Name']}, visiting on ${match['Route Date']} (${match['Day']})`;
-      } else {
+      if (match) 
+        resultDiv.innerHTML = `
+          <div class="match-card">
+            <p><strong>🎅 Santa will be visiting:</strong> ${match['Street Name']}</p>
+            <p><strong>🎄 Street: </strong> ${match['Street Name']}</p>
+            <p><strong>🅁 on route: </strong> ${match['Route Letter']}</p>
+            <p><strong>📅 on: </strong> ${match['Route Date']} (${match['Day']})</p>
+          </div>
+        `;
+       else {
           resultDiv.innerText = "No match found - please check your spelling, or your street might be outside our coverage area. Check the Map page for a rough guide to our coverage area";
       }
     });
