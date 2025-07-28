@@ -46,7 +46,7 @@
 							<div class="col-5 col-12-medium">
 								<ul>
 									<li><a href="#street-lookup" class="button large icon solid fa-arrow-circle-right">Lookup my street</a></li>
-									<li><a href="#" class="button alt large icon solid fa-question-circle">More info</a></li>
+									<li><a href="#date-lookup" class="button alt large icon solid fa-question-circle">View by Date</a></li>
 								</ul>
 							</div>
 						</div>
@@ -115,13 +115,11 @@
 								<!-- Sidebar -->
 									<div id="sidebar">
 										<section class="widget thumbnails">
-											<h3>Interesting stuff</h3>
+											<h3>-</h3>
 											<div class="grid">
 												<div class="row gtr-50">
-													<div class="col-6"><a href="#" class="image fit"><img src="images/pic04.jpg" alt="" /></a></div>
-													<div class="col-6"><a href="#" class="image fit"><img src="images/pic05.jpg" alt="" /></a></div>
-													<div class="col-6"><a href="#" class="image fit"><img src="images/pic06.jpg" alt="" /></a></div>
-													<div class="col-6"><a href="#" class="image fit"><img src="images/pic07.jpg" alt="" /></a></div>
+													<div class="col-10">												<div id="result"></div>
+</div>
 												</div>
 											</div>
 											<a href="#" class="button icon fa-file-alt">More</a>
@@ -231,6 +229,107 @@
 												</script></p>
 											</p>
 										</section>
+										<section>
+											<section class="datelookup">
+												<h2 id=date-lookup>Search by Date</h2>
+												<p>Pick a <strong>date </strong>to instantly streets Santa will visit.
+												</p>
+											
+												<p>
+												<select id="dateDropdown">
+												  <option value="">-- Select a date --</option>
+												</select>
+												<div id="streetList"></div>
+													<script>
+													  const sheetURL = 'https://opensheet.vercel.app/1MauiqhZcdGRH6EJdn4ygots0PMQDHvanPNxNPcxe2Gg/Sheet1';
+
+													  let data = [];
+
+													  fetch(sheetURL)
+													    .then(response => response.json())
+													    .then(json => {
+													      data = json;
+													      populateDateDropdown(data);
+													      setupSearch(data);
+													      setupDateSelect(data);
+													    })
+													    .catch(err => {
+													      console.error("Failed to load sheet data:", err);
+													      document.getElementById('result').innerText = "Error loading data. Try again later.";
+													    });
+
+													  function populateDateDropdown(data) {
+													    const dateDropdown = document.getElementById('dateDropdown');
+													    const dates = [...new Set(data.map(row => row['Route Date']))].sort();
+
+													    dates.forEach(date => {
+													      const option = document.createElement('option');
+													      option.value = date;
+													      option.textContent = date;
+													      dateDropdown.appendChild(option);
+													    });
+													  }
+
+													  function setupSearch(data) {
+													    const searchInput = document.getElementById('searchInput');
+													    const resultDiv = document.getElementById('result');
+
+													    searchInput.addEventListener('input', function () {
+													      const query = this.value.toLowerCase().trim();
+
+													      if (!query) {
+													        resultDiv.innerText = '';
+													        return;
+													      }
+
+													      const match = data.find(row =>
+													        row['Street Name'] && row['Street Name'].toLowerCase().includes(query)
+													      );
+
+													      if (match) 
+													        resultDiv.innerHTML = `
+													          <div class="match-card">
+													            <p><strong>🎅 Santa will be visiting:</strong></p>
+													            <p><strong>🏘️ Street: </strong> ${match['Street Name']}</p>
+													            <p><strong>📍 on route: </strong> ${match['Route Letter']}</p>
+													            <p><strong>📅 on: </strong> ${match['Route Date']} (${match['Day']})</p>
+													          </div>
+													        `;
+													       else {
+													          resultDiv.innerText = "No match found - please check your spelling, or your street might be outside our coverage area. Check the Map page for a rough guide to our coverage area";
+													      }
+													    });
+													  }
+
+													  function setupDateSelect(data) {
+													    const dateDropdown = document.getElementById('dateDropdown');
+													    const listDiv = document.getElementById('streetList');
+
+													    dateDropdown.addEventListener('change', function () {
+													      const selectedDate = this.value;
+													      if (!selectedDate) {
+													        listDiv.innerHTML = '';
+													        return;
+													      }
+
+													      const streets = data
+													        .filter(row => row['Route Date'] === selectedDate)
+													        .map(row => row['Street Name'])
+													        .filter(name => name)
+													        .sort();
+
+													      if (streets.length === 0) {
+													        listDiv.innerHTML = "<p>No streets found for this date.</p>";
+													      } else {
+													        listDiv.innerHTML = `<p>Streets on ${selectedDate}:</p><ul>` +
+													          streets.map(s => `<li>${s}</li>`).join('') +
+													          '</ul>';
+													      }
+													    });
+													  }
+													</script></p>
+												</p>
+											</section>
 									</div>
 
 							</div>
@@ -315,7 +414,7 @@
 								</div>
 							</div>
 						</div>
-					</footer>
+					</footer><
 				</div>
 
 			</div>
