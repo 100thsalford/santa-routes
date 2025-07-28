@@ -1,220 +1,341 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <title>Find Your Santa Route</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 0;
-      background: #f8f8f8;
-    }
+<!DOCTYPE HTML>
+<!--
+	Verti by HTML5 UP
+	html5up.net | @ajlkn
+	Free for personal and commercial use under the CCA 3.0 license (html5up.net/license)
+-->
+<html>
+	<head>
+		<title>Santa Super Sleigh Salford</title>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+		<link rel="stylesheet" href="assets/css/main.css" />
+	</head>
+	<body class="is-preload homepage">
+		<div id="page-wrapper">
 
-    header {
-      background-color: #7413dc;
-      color: white;
-      padding: 15px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
+			<!-- Header -->
+				<div id="header-wrapper">
+					<header id="header" class="container">
 
-    .logo {
-      max-height: 70px;
-    }
+						<!-- Logo -->
+						<img src="https://100thsalford.github.io/santa-routes/100thlogo_png.png" alt="Logo" class="logo" width="100">
+								<h1><a href="index.html">Santa Super Sleigh Salford</a></h1>
+							</div>
 
-    nav {
-      display: none;
-      flex-direction: column;
-      background-color: #7413dc;
-    }
+						<!-- Nav -->
+							<nav id="nav">
+								<ul>
+									<li class="current"><a href="index.html">Home</a></li>
+									<li><a href="map.html">Map</a></li>
+									<li><a href="https://square.link/u/jedRL3V5">Make a Donation</a></li>
+								</ul>
+							</nav>
 
-    nav a {
-      color: white;
-      text-decoration: none;
-      padding: 10px 15px;
-      border-top: 1px solid rgba(255,255,255,0.2);
-    }
+					</header>
+				</div>
 
-    nav a:hover {
-      background-color: #7413dc;
-    }
+			<!-- Banner -->
+				<div id="banner-wrapper">
+					<div id="banner" class="box container">
+						<div class="row">
+							<div class="col-7 col-12-medium">
+								<h3>Season's Greetings! Welcome to the Santa Super Sleigh Salford website.</h2>
+								<p>Find out when Santa is in your area!</p>
+							</div>
+							<div class="col-5 col-12-medium">
+								<ul>
+									<li><a href="#street-lookup" class="button large icon solid fa-arrow-circle-right">Lookup my street</a></li>
+									<li><a href="#" class="button alt large icon solid fa-question-circle">More info</a></li>
+								</ul>
+							</div>
+						</div>
+					</div>
+				</div>
 
-    .menu-toggle {
-      background: none;
-      border: none;
-      color: white;
-      font-size: 24px;
-      cursor: pointer;
-    }
+			<!-- Features -->
+				<div id="features-wrapper">
+					<div class="container">
+						<div class="row">
+							<div class="col-4 col-12-medium">
 
-    .menu-open nav {
-      display: flex;
-    }
+								<!-- Box -->
+									<section class="box feature">
+										<a href="#" class="image featured"><img src="images/pic01.jpg" alt="" /></a>
+										<div class="inner">
+											<header>
+												<h2>Put something here</h2>
+												<p>Maybe here as well I think</p>
+											</header>
+											<p>Phasellus quam turpis, feugiat sit amet in, hendrerit in lectus. Praesent sed semper amet bibendum tristique fringilla.</p>
+										</div>
+									</section>
 
-    @media (min-width: 600px) {
-      nav {
-        display: flex !important;
-        flex-direction: row;
-        gap: 20px;
-        justify-content: flex-end;
-        background: none;
-      }
+							</div>
+							<div class="col-4 col-12-medium">
 
-      nav a {
-        border: none;
-        padding: 0;
-      }
+								<!-- Box -->
+									<section class="box feature">
+										<a href="#" class="image featured"><img src="images/pic02.jpg" alt="" /></a>
+										<div class="inner">
+											<header>
+												<h2>An interesting title</h2>
+												<p>This is also an interesting subtitle</p>
+											</header>
+											<p>Phasellus quam turpis, feugiat sit amet in, hendrerit in lectus. Praesent sed semper amet bibendum tristique fringilla.</p>
+										</div>
+									</section>
 
-      .menu-toggle {
-        display: none;
-      }
-    }
+							</div>
+							<div class="col-4 col-12-medium">
 
-    .content {
-      padding: 20px;
-      max-width: 1000px;
-      margin: auto;
-    }
+								<!-- Box -->
+									<section class="box feature">
+										<a href="#" class="image featured"><img src="images/pic03.jpg" alt="" /></a>
+										<div class="inner">
+											<header>
+												<h2>Oh, and finally ...</h2>
+												<p>Here's another intriguing subtitle</p>
+											</header>
+											<p>Phasellus quam turpis, feugiat sit amet in, hendrerit in lectus. Praesent sed semper amet bibendum tristique fringilla.</p>
+										</div>
+									</section>
 
-    .footer {
-      margin-top: 40px;
-      font-size: 12px;
-      color: #999;
-      text-align: center;
-    }
-  </style>
-</head>
-<body>
-<header>
-  <img src="100thlogo.jpg" alt="Logo" class="logo">
-  <button class="menu-toggle" onclick="document.body.classList.toggle('menu-open')">☰</button>
-  <nav>
-    <a href="index.html">Home</a>
-    <a href="map.html">Map</a>
-    <a href="https://square.link/u/jedRL3V5">Make a Donation</a>
-  </nav>
-</header>
-<div class="content">
-  <h1>🎅 Welcome to the Santa Route Finder</h1>
-  <p><h3>Find Out When Santa Visits Your Street</h1>
+							</div>
+						</div>
+					</div>
+				</div>
 
-<p><strong>Search your street name:</strong></p>
-<input type="text" id="searchInput" placeholder="e.g. Acacia Avenue" />
-<div id="result"></div>
+			<!-- Main -->
+				<div id="main-wrapper">
+					<div class="container">
+						<div class="row gtr-200">
+							<div class="col-4 col-12-medium">
 
-<hr />
+								<!-- Sidebar -->
+									<div id="sidebar">
+										<section class="widget thumbnails">
+											<h3>Interesting stuff</h3>
+											<div class="grid">
+												<div class="row gtr-50">
+													<div class="col-6"><a href="#" class="image fit"><img src="images/pic04.jpg" alt="" /></a></div>
+													<div class="col-6"><a href="#" class="image fit"><img src="images/pic05.jpg" alt="" /></a></div>
+													<div class="col-6"><a href="#" class="image fit"><img src="images/pic06.jpg" alt="" /></a></div>
+													<div class="col-6"><a href="#" class="image fit"><img src="images/pic07.jpg" alt="" /></a></div>
+												</div>
+											</div>
+											<a href="#" class="button icon fa-file-alt">More</a>
+										</section>
+									</div>
 
-<p><strong>Select a date to view the streets on that route:</strong></p>
-<select id="dateDropdown">
-  <option value="">-- Select a date --</option>
-</select>
-<div id="streetList"></div>
-<br><br>
-  <hr />
+							</div>
+							<div class="col-8 col-12-medium imp-medium">
 
+								<!-- Content -->
+									<div id="content">
+										<section class="last">
+											<h2 id=street-lookup>Search by Street</h2>
+											<p>Start typing your <strong>street name </strong>to instantly search and find the date Santa will visit.
+											</p>
+											
+											<p>
+												<input type="text" id="searchInput" placeholder="e.g. Acacia Avenue" />
+												<div id="result"></div>
+												<script>
+												  const sheetURL = 'https://opensheet.vercel.app/1MauiqhZcdGRH6EJdn4ygots0PMQDHvanPNxNPcxe2Gg/Sheet1';
 
+												  let data = [];
 
-<div class="footer">Powered by 100th Salford Scouts</div>
+												  fetch(sheetURL)
+												    .then(response => response.json())
+												    .then(json => {
+												      data = json;
+												      populateDateDropdown(data);
+												      setupSearch(data);
+												      setupDateSelect(data);
+												    })
+												    .catch(err => {
+												      console.error("Failed to load sheet data:", err);
+												      document.getElementById('result').innerText = "Error loading data. Try again later.";
+												    });
 
-<script>
-  const sheetURL = 'https://opensheet.vercel.app/1MauiqhZcdGRH6EJdn4ygots0PMQDHvanPNxNPcxe2Gg/Sheet1';
+												  function populateDateDropdown(data) {
+												    const dateDropdown = document.getElementById('dateDropdown');
+												    const dates = [...new Set(data.map(row => row['Route Date']))].sort();
 
-  let data = [];
+												    dates.forEach(date => {
+												      const option = document.createElement('option');
+												      option.value = date;
+												      option.textContent = date;
+												      dateDropdown.appendChild(option);
+												    });
+												  }
 
-  fetch(sheetURL)
-    .then(response => response.json())
-    .then(json => {
-      data = json;
-      populateDateDropdown(data);
-      setupSearch(data);
-      setupDateSelect(data);
-    })
-    .catch(err => {
-      console.error("Failed to load sheet data:", err);
-      document.getElementById('result').innerText = "Error loading data. Try again later.";
-    });
+												  function setupSearch(data) {
+												    const searchInput = document.getElementById('searchInput');
+												    const resultDiv = document.getElementById('result');
 
-  function populateDateDropdown(data) {
-    const dateDropdown = document.getElementById('dateDropdown');
-    const dates = [...new Set(data.map(row => row['Route Date']))].sort();
+												    searchInput.addEventListener('input', function () {
+												      const query = this.value.toLowerCase().trim();
 
-    dates.forEach(date => {
-      const option = document.createElement('option');
-      option.value = date;
-      option.textContent = date;
-      dateDropdown.appendChild(option);
-    });
-  }
+												      if (!query) {
+												        resultDiv.innerText = '';
+												        return;
+												      }
 
-  function setupSearch(data) {
-    const searchInput = document.getElementById('searchInput');
-    const resultDiv = document.getElementById('result');
+												      const match = data.find(row =>
+												        row['Street Name'] && row['Street Name'].toLowerCase().includes(query)
+												      );
 
-    searchInput.addEventListener('input', function () {
-      const query = this.value.toLowerCase().trim();
+												      if (match) 
+												        resultDiv.innerHTML = `
+												          <div class="match-card">
+												            <p><strong>🎅 Santa will be visiting:</strong></p>
+												            <p><strong>🏘️ Street: </strong> ${match['Street Name']}</p>
+												            <p><strong>📍 on route: </strong> ${match['Route Letter']}</p>
+												            <p><strong>📅 on: </strong> ${match['Route Date']} (${match['Day']})</p>
+												          </div>
+												        `;
+												       else {
+												          resultDiv.innerText = "No match found - please check your spelling, or your street might be outside our coverage area. Check the Map page for a rough guide to our coverage area";
+												      }
+												    });
+												  }
 
-      if (!query) {
-        resultDiv.innerText = '';
-        return;
-      }
+												  function setupDateSelect(data) {
+												    const dateDropdown = document.getElementById('dateDropdown');
+												    const listDiv = document.getElementById('streetList');
 
-      const match = data.find(row =>
-        row['Street Name'] && row['Street Name'].toLowerCase().includes(query)
-      );
+												    dateDropdown.addEventListener('change', function () {
+												      const selectedDate = this.value;
+												      if (!selectedDate) {
+												        listDiv.innerHTML = '';
+												        return;
+												      }
 
-      if (match) 
-        resultDiv.innerHTML = `
-          <div class="match-card">
-            <p><strong>🎅 Santa will be visiting:</strong></p>
-            <p><strong>🏘️ Street: </strong> ${match['Street Name']}</p>
-            <p><strong>📍 on route: </strong> ${match['Route Letter']}</p>
-            <p><strong>📅 on: </strong> ${match['Route Date']} (${match['Day']})</p>
-          </div>
-        `;
-       else {
-          resultDiv.innerText = "No match found - please check your spelling, or your street might be outside our coverage area. Check the Map page for a rough guide to our coverage area";
-      }
-    });
-  }
+												      const streets = data
+												        .filter(row => row['Route Date'] === selectedDate)
+												        .map(row => row['Street Name'])
+												        .filter(name => name)
+												        .sort();
 
-  function setupDateSelect(data) {
-    const dateDropdown = document.getElementById('dateDropdown');
-    const listDiv = document.getElementById('streetList');
+												      if (streets.length === 0) {
+												        listDiv.innerHTML = "<p>No streets found for this date.</p>";
+												      } else {
+												        listDiv.innerHTML = `<p>Streets on ${selectedDate}:</p><ul>` +
+												          streets.map(s => `<li>${s}</li>`).join('') +
+												          '</ul>';
+												      }
+												    });
+												  }
+												</script></p>
+											</p>
+										</section>
+									</div>
 
-    dateDropdown.addEventListener('change', function () {
-      const selectedDate = this.value;
-      if (!selectedDate) {
-        listDiv.innerHTML = '';
-        return;
-      }
+							</div>
+						</div>
+					</div>
+				</div>
 
-      const streets = data
-        .filter(row => row['Route Date'] === selectedDate)
-        .map(row => row['Street Name'])
-        .filter(name => name)
-        .sort();
+			<!-- Footer -->
+				<div id="footer-wrapper">
+					<footer id="footer" class="container">
+						<div class="row">
+							<div class="col-3 col-6-medium col-12-small">
 
-      if (streets.length === 0) {
-        listDiv.innerHTML = "<p>No streets found for this date.</p>";
-      } else {
-        listDiv.innerHTML = `<p>Streets on ${selectedDate}:</p><ul>` +
-          streets.map(s => `<li>${s}</li>`).join('') +
-          '</ul>';
-      }
-    });
-  }
-</script></p>
-</div>
+								<!-- Links -->
+									<section class="widget links">
+										<h3>Random Stuff</h3>
+										<ul class="style2">
+											<li><a href="#">Etiam feugiat condimentum</a></li>
+											<li><a href="#">Aliquam imperdiet suscipit odio</a></li>
+											<li><a href="#">Sed porttitor cras in erat nec</a></li>
+											<li><a href="#">Felis varius pellentesque potenti</a></li>
+											<li><a href="#">Nullam scelerisque blandit leo</a></li>
+										</ul>
+									</section>
 
-<!-- Chatbase FAQ Bot -->
-<script>
-  window.chatbaseConfig = {
-    chatbotId: "bvg4EznYOVKMoxhF45DJr"  // replace with your actual Chatbase chatbot ID
-  };
-</script>
-<script src="https://www.chatbase.co/embed.min.js" defer></script>
+							</div>
+							<div class="col-3 col-6-medium col-12-small">
 
-</body>
+								<!-- Links -->
+									<section class="widget links">
+										<h3>Random Stuff</h3>
+										<ul class="style2">
+											<li><a href="#">Etiam feugiat condimentum</a></li>
+											<li><a href="#">Aliquam imperdiet suscipit odio</a></li>
+											<li><a href="#">Sed porttitor cras in erat nec</a></li>
+											<li><a href="#">Felis varius pellentesque potenti</a></li>
+											<li><a href="#">Nullam scelerisque blandit leo</a></li>
+										</ul>
+									</section>
+
+							</div>
+							<div class="col-3 col-6-medium col-12-small">
+
+								<!-- Links -->
+									<section class="widget links">
+										<h3>Random Stuff</h3>
+										<ul class="style2">
+											<li><a href="#">Etiam feugiat condimentum</a></li>
+											<li><a href="#">Aliquam imperdiet suscipit odio</a></li>
+											<li><a href="#">Sed porttitor cras in erat nec</a></li>
+											<li><a href="#">Felis varius pellentesque potenti</a></li>
+											<li><a href="#">Nullam scelerisque blandit leo</a></li>
+										</ul>
+									</section>
+
+							</div>
+							<div class="col-3 col-6-medium col-12-small">
+
+								<!-- Contact -->
+									<section class="widget contact last">
+										<h3>Contact Us</h3>
+										<ul>
+											<li><a href="#" class="icon brands fa-twitter"><span class="label">Twitter</span></a></li>
+											<li><a href="#" class="icon brands fa-facebook-f"><span class="label">Facebook</span></a></li>
+											<li><a href="#" class="icon brands fa-instagram"><span class="label">Instagram</span></a></li>
+											<li><a href="#" class="icon brands fa-dribbble"><span class="label">Dribbble</span></a></li>
+											<li><a href="#" class="icon brands fa-pinterest"><span class="label">Pinterest</span></a></li>
+										</ul>
+										<p>1234 Fictional Road<br />
+										Nashville, TN 00000<br />
+										(800) 555-0000</p>
+									</section>
+
+							</div>
+						</div>
+						<div class="row">
+							<div class="col-12">
+								<div id="copyright">
+									<ul class="menu">
+										<li>&copy; Untitled. All rights reserved</li><li>Design: <a href="http://html5up.net">HTML5 UP</a></li>
+									</ul>
+								</div>
+							</div>
+						</div>
+					</footer>
+				</div>
+
+			</div>
+
+		<!-- Scripts -->
+
+			<script src="assets/js/jquery.min.js"></script>
+			<script src="assets/js/jquery.dropotron.min.js"></script>
+			<script src="assets/js/browser.min.js"></script>
+			<script src="assets/js/breakpoints.min.js"></script>
+			<script src="assets/js/util.js"></script>
+			<script src="assets/js/main.js"></script>
+			<!-- Chatbase FAQ Bot -->
+			<script>
+			  window.chatbaseConfig = {
+			    chatbotId: "bvg4EznYOVKMoxhF45DJr"  // replace with your actual Chatbase chatbot ID
+			  };
+			</script>
+			<script src="https://www.chatbase.co/embed.min.js" defer></script>
+			
+
+	</body>
 </html>
