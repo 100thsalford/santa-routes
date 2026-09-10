@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Find out when Santa Super Sleigh is visiting your street in Salford. 100th Salford Scout Group Christmas fundraiser.">
-    <title>Santa Super Sleigh Salford 2025 | 100th Salford Scouts</title>
+    <title>Santa Super Sleigh Salford 2026 | 100th Salford Scouts</title>
     <link rel="stylesheet" href="styles.css">
     <style>
         /* Additional styles for holding page */
@@ -137,7 +137,7 @@
         <!-- Total Raised Card -->
         <div class="total-raised-card">
             <div class="total-raised-label">Total Raised</div>
-            <div class="total-raised-amount">£4692.23</div>
+            <div class="total-raised-amount">£0.00</div>
             <div class="total-raised-subtitle">for 100th Salford Scout Group</div>
         </div>
 
@@ -388,10 +388,23 @@
         (function() {
             'use strict';
             
-            // Check if current date is December 13, 2025 or later
+            // ============================================
+            // SEASON CUTOFF DATE - UPDATE THIS EACH YEAR
+            // ============================================
+            // Live-tracking nav (Today's Streets, Search, etc.) is shown by
+            // default and gets HIDDEN once this date has passed, switching
+            // back to the "See you next year!" holding page.
+            //
+            // TODO for 2026 season: once route dates are confirmed, set
+            // SEASON_CUTOFF_DATE to the day AFTER the last sleigh run date,
+            // then redeploy so tracking shows again during the season.
+            // Currently still set to the 2025 cutoff, so the holding page
+            // correctly shows until this is updated.
+            const SEASON_CUTOFF_DATE = '2025-12-12'; // TODO: update for 2026 season
+
             function shouldHideSeasonalContent() {
                 const currentDate = new Date();
-                const cutoffDate = new Date('2025-12-12');
+                const cutoffDate = new Date(SEASON_CUTOFF_DATE);
                 return currentDate >= cutoffDate;
             }
 
