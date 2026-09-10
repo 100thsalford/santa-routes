@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Santa Sleigh Salford - Fundraising Tracker</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .tracker-container {
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 30px;
+            text-align: center;
+            background: linear-gradient(135deg, #fff5f5 0%, #ffe6e6 100%);
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        .tracker-title {
+            color: #c41e3a;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .tracker-subtitle {
+            color: #2d5016;
+            font-size: 1.2em;
+            margin-bottom: 40px;
+        }
+
+        .thermometer-container {
+            position: relative;
+            width: 120px;
+            height: 400px;
+            margin: 0 auto 40px;
+        }
+
+        .thermometer {
+            position: relative;
+            width: 60px;
+            height: 350px;
+            background: #e0e0e0;
+            border-radius: 30px 30px 0 0;
+            margin: 0 auto;
+            overflow: hidden;
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .goal-line {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 70px;
+            height: 3px;
+            background: #2d5016;
+            z-index: 3;
+            /* Goal is at 80% of the thermometer (4500/5625 = 0.8) */
+            top: 70px; /* Align with £4,500 marker */
+        }
+
+        .goal-line::before {
+            content: 'GOAL';
+            position: absolute;
+            left: -80px;
+            top: -8px;
+            font-size: 0.8em;
+            font-weight: bold;
+            color: #2d5016;
+            white-space: nowrap;
+        }
+
+        .thermometer-bulb {
+            position: absolute;
+            bottom: -40px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80px;
+            height: 80px;
+            background: #e0e0e0;
+            border-radius: 50%;
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.2);
+            z-index: 1;
+        }
+
+        .thermometer-fill-bulb {
+            position: absolute;
+            bottom: -40px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 70px;
+            height: 70px;
+            background: linear-gradient(135deg, #c41e3a 0%, #8b1426 100%);
+            border-radius: 50%;
+            z-index: 2;
+            box-shadow: 0 0 20px rgba(196, 30, 58, 0.5);
+        }
+
+        .thermometer-fill {
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 50px;
+            background: linear-gradient(to top, #c41e3a 0%, #e63946 100%);
+            border-radius: 25px 25px 0 0;
+            transition: height 1.5s ease-out;
+            z-index: 2;
+            box-shadow: 0 0 15px rgba(196, 30, 58, 0.3);
+        }
+
+        .thermometer-markers {
+            position: absolute;
+            right: -50px;
+            top: 0;
+            height: 350px;
+            font-size: 0.85em;
+            color: #666;
+        }
+
+        .marker {
+            position: absolute;
+            text-align: left;
+            padding-left: 15px;
+            white-space: nowrap;
+        }
+
+        .marker::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 10px;
+            height: 2px;
+            background: #666;
+        }
+
+        /* Position each marker at the correct height */
+        .marker:nth-child(1) { top: 0; }      /* £5,625 - top */
+        .marker:nth-child(2) { top: 70px; }   /* £4,500 - goal line (80% down from top) */
+        .marker:nth-child(3) { top: 140px; }  /* £3,375 */
+        .marker:nth-child(4) { top: 210px; }  /* £2,250 */
+        .marker:nth-child(5) { top: 280px; }  /* £1,125 */
+        .marker:nth-child(6) { top: 350px; }  /* £0 - bottom */
+
+        .stats-container {
+            display: flex;
+            justify-content: space-around;
+            margin: 40px 0;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .stat-box {
+            background: white;
+            padding: 20px 30px;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            min-width: 200px;
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 0.9em;
+            margin-bottom: 5px;
+        }
+
+        .stat-value {
+            color: #c41e3a;
+            font-size: 2em;
+            font-weight: bold;
+        }
+
+        .stat-value.goal {
+            color: #2d5016;
+        }
+
+        .progress-percentage {
+            font-size: 3em;
+            font-weight: bold;
+            color: #c41e3a;
+            margin: 20px 0;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .last-updated {
+            color: #888;
+            font-size: 0.9em;
+            margin-top: 20px;
+            font-style: italic;
+        }
+
+        .loading {
+            color: #666;
+            font-size: 1.2em;
+        }
+
+        .error {
+            color: #c41e3a;
+            background: #ffe6e6;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+
+        .donations-list {
+            margin-top: 40px;
+            text-align: left;
+            max-height: 400px;
+            overflow-y: auto;
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .donations-list h3 {
+            color: #c41e3a;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .donation-item {
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .donation-item:last-child {
+            border-bottom: none;
+        }
+
+        .donation-date {
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        .donation-location {
+            font-weight: 500;
+            color: #333;
+        }
+
+        .donation-amount {
+            color: #2d5016;
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+
+        @media (max-width: 600px) {
+            .tracker-container {
+                padding: 20px;
+            }
+
+            .tracker-title {
+                font-size: 2em;
+            }
+
+            .stats-container {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="tracker-container">
+        <h1 class="tracker-title">🎅 Santa Sleigh Salford 🎄</h1>
+        <p class="tracker-subtitle">Supporting 100th Salford Scout Group</p>
+
+        <div id="loading" class="loading">Loading fundraising data...</div>
+        <div id="error" class="error" style="display: none;"></div>
+
+        <div id="content" style="display: none;">
+            <div class="progress-percentage" id="percentage">0%</div>
+
+            <div class="thermometer-container">
+                <div class="thermometer">
+                    <div class="thermometer-fill" id="thermometer-fill"></div>
+                    <div class="goal-line"></div>
+                </div>
+                <div class="thermometer-bulb"></div>
+                <div class="thermometer-fill-bulb"></div>
+                <div class="thermometer-markers">
+                    <div class="marker">£</div>
+                    <div class="marker">£4,500 (Goal)</div>
+                    <div class="marker">£3,375</div>
+                    <div class="marker">£2,250</div>
+                    <div class="marker">£1,125</div>
+                    <div class="marker">£0</div>
+                </div>
+            </div>
+
+            <div class="stats-container">
+                <div class="stat-box">
+                    <div class="stat-label">Raised So Far</div>
+                    <div class="stat-value" id="raised">£0.00</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Our Goal</div>
+                    <div class="stat-value goal">£4,500.00</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Remaining</div>
+                    <div class="stat-value" id="remaining">£4,000.00</div>
+                </div>
+            </div>
+
+            <div class="donations-list" id="donations-list">
+                <h3>Recent Collections</h3>
+                <div id="donations-items"></div>
+            </div>
+
+            <p class="last-updated" id="last-updated">Last updated: --</p>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'https://sleigh-bell-support-nathan724.replit.app/api/public/donations';
+        const GOAL = 4500;
+        const MAX_DISPLAY = GOAL * 1.05; // Allow .5% overage (£5625)
+
+        async function fetchDonations() {
+            try {
+                // Try multiple CORS proxy services in order
+                const proxies = [
+                    `https://api.allorigins.win/raw?url=${encodeURIComponent(API_URL)}`,
+                    `https://corsproxy.io/?${encodeURIComponent(API_URL)}`,
+                    `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(API_URL)}`
+                ];
+
+                let lastError;
+                
+                for (const proxyUrl of proxies) {
+                    try {
+                        console.log('Trying proxy:', proxyUrl);
+                        const response = await fetch(proxyUrl);
+                        
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! status: ${response.status}`);
+                        }
+                        
+                        const data = await response.json();
+                        console.log('Successfully fetched data:', data);
+                        updateDisplay(data);
+                        return; // Success! Exit the function
+                    } catch (error) {
+                        console.warn('Proxy failed:', proxyUrl, error);
+                        lastError = error;
+                        // Continue to next proxy
+                    }
+                }
+                
+                // If all proxies failed
+                throw lastError || new Error('All proxy attempts failed');
+                
+            } catch (error) {
+                showError('Unable to load fundraising data. The API owner needs to enable CORS for your website.');
+                console.error('Error fetching donations:', error);
+            }
+        }
+
+        function updateDisplay(data) {
+            // Hide loading, show content
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('content').style.display = 'block';
+
+            // Get the grand total
+            const total = data.grandTotal || 0;
+            const remaining = Math.max(0, GOAL - total);
+            
+            // Calculate percentage based on MAX_DISPLAY to allow overage
+            const percentage = Math.min(100, (total / MAX_DISPLAY) * 100);
+            
+            // Calculate goal percentage for display
+            const goalPercentage = (total / GOAL) * 100;
+
+            // Update stats
+            document.getElementById('raised').textContent = `£${total.toFixed(2)}`;
+            document.getElementById('remaining').textContent = remaining > 0 ? `£${remaining.toFixed(2)}` : 'Goal Exceeded! 🎉';
+            document.getElementById('percentage').textContent = `${goalPercentage.toFixed(1)}%`;
+
+            // Update thermometer (capped at 100% of the display)
+            const fillHeight = (percentage / 100) * 350;
+            document.getElementById('thermometer-fill').style.height = `${fillHeight}px`;
+
+            // Update last updated
+            if (data.lastUpdated) {
+                const date = new Date(data.lastUpdated);
+                document.getElementById('last-updated').textContent = 
+                    `Last updated: ${date.toLocaleString()}`;
+            }
+
+            // Display donations list
+            if (data.events && data.events.length > 0) {
+                const donationsHtml = data.events
+                    .sort((a, b) => new Date(b.date) - new Date(a.date))
+                    .map(event => `
+                        <div class="donation-item">
+                            <div>
+                                <div class="donation-location">${formatDate(event.date)}</div>
+                                <div class="donation-date">${formatDate(event.date)} • Route ${event.route}</div>
+                            </div>
+                            <div class="donation-amount">£${event.cashCollected.toFixed(2)}</div>
+                        </div>
+                    `).join('');
+                
+                document.getElementById('donations-items').innerHTML = donationsHtml;
+            }
+        }
+
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('en-GB', { 
+                day: 'numeric', 
+                month: 'short', 
+                year: 'numeric' 
+            });
+        }
+
+        function showError(message) {
+            document.getElementById('loading').style.display = 'none';
+            const errorDiv = document.getElementById('error');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+        }
+
+        // Fetch data on page load
+        fetchDonations();
+
+        // Refresh data every 60 seconds
+        setInterval(fetchDonations, 60000);
+    </script>
+</body>
+</html>

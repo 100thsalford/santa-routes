@@ -1,0 +1,268 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml creator="plotaroute.com http://www.plotaroute.com" xmlns="http://earth.google.com/kml/2.2">
+<Document>
+<name>2025_01Dec_R1</name>
+<open>1</open>
+<Style id="StartIconStyle">
+<IconStyle id="StartIcon">
+<Icon><href>https://www.plotaroute.com/images/icons/starticon.png</href></Icon>
+</IconStyle>
+<LabelStyle><scale>0.7</scale></LabelStyle>
+</Style>
+<Style id="FinishIconStyle">
+<IconStyle id="FinishIcon">
+<Icon><href>https://www.plotaroute.com/images/icons/finishicon.png</href></Icon>
+</IconStyle>
+<LabelStyle><scale>0.7</scale></LabelStyle>
+</Style>
+<Style id="RoutePath">
+<LineStyle>
+<color>E52975F3</color>
+<width>4</width>
+</LineStyle>
+</Style>
+<Style id="WaypointIconStyle">
+<IconStyle id="WaypointIcon">
+<Icon><href>https://www.plotaroute.com/images/icons/waypointicon.png</href></Icon>
+<hotSpot x="0.5" y="0.5" xunits="fraction" yunits="fraction"/>
+</IconStyle>
+<LabelStyle><scale>0.7</scale></LabelStyle>
+</Style>
+<LookAt>
+<longitude>-2.322858</longitude>
+<latitude>53.500230</latitude>
+<range>400</range>
+<tilt>60</tilt>
+<altitudeMode>clampToGround</altitudeMode>
+</LookAt>
+<Folder id="Route3141577">
+<name><![CDATA[2025_01Dec_R1]]> </name><description><![CDATA[]]></description><Placemark>
+<name><![CDATA[Fly-Over Tour]]></name>
+<description><![CDATA[]]></description>
+<styleUrl>#RoutePath</styleUrl>
+<LineString id="Route">
+<extrude>0</extrude>
+<tessellate>1</tessellate>
+<coordinates>
+-2.322858,53.50023,50
+-2.322858,53.50023,50
+-2.322858,53.50023,50
+-2.322802,53.499811,49
+-2.322824,53.499736,49
+-2.322895,53.499702,49
+-2.32531,53.499064,45
+-2.32531,53.499064,45
+-2.328039,53.498354,41
+-2.328184,53.498375,41
+-2.328184,53.498375,41
+-2.328218,53.49838,41
+-2.327531,53.499097,42
+-2.327514,53.499094,42
+-2.327514,53.499094,42
+-2.327415,53.499078,42
+-2.327247,53.499104,43
+-2.322886,53.500248,50
+-2.322886,53.500248,50
+-2.322861,53.500255,50
+-2.322887,53.500452,50
+-2.322904,53.500454,50
+-2.322904,53.500454,50
+-2.32399,53.500566,49
+-2.324362,53.500568,48
+-2.324794,53.500542,48
+-2.325207,53.500481,47
+-2.325492,53.50042,46
+-2.325492,53.50042,46
+-2.32616,53.5002,46
+-2.326401,53.500075,45
+-2.326767,53.499839,45
+-2.327033,53.499617,44
+-2.327512,53.499117,42
+-2.327512,53.499117,42
+-2.327531,53.499097,42
+-2.327415,53.499078,42
+-2.327247,53.499104,43
+-2.325411,53.499587,45
+-2.325415,53.499612,45
+-2.325415,53.499612,45
+-2.325615,53.500819,46
+-2.325615,53.5008185,46
+-2.325615,53.500818,46
+-2.325647,53.501049,47
+-2.325639,53.501051,47
+-2.325639,53.501051,47
+-2.324554,53.501296,49
+-2.324554,53.501296,49
+-2.325647,53.501049,47
+-2.325651,53.501076,47
+-2.325651,53.501076,47
+-2.325736,53.50166,49
+-2.325726,53.50166,49
+-2.325726,53.50166,49
+-2.324256,53.50167,50
+-2.324073,53.501645,50
+-2.323853,53.501582,50
+-2.323853,53.501582,50
+-2.3238282,53.5015686,50
+-2.323541,53.501413,49
+-2.3235068,53.5013797,49
+-2.323465,53.501339,50
+-2.323479,53.501334,49
+-2.323479,53.501334,49
+-2.323465,53.501339,50
+-2.323387,53.50122,50
+-2.323342,53.501072,50
+-2.323277,53.500532,50
+</coordinates>
+</LineString>
+</Placemark>
+<Placemark>
+<name>START</name>
+<styleUrl>#StartIconStyle</styleUrl>
+<Point>
+<coordinates>-2.322858,53.50023,50</coordinates>
+</Point>
+</Placemark>
+<Placemark>
+<name><![CDATA[Start on B]]></name>
+<description><![CDATA[Start on Branksome Drive]]></description>
+<styleUrl>#WaypointIconStyle</styleUrl>
+<Point>
+<coordinates>-2.322858,53.50023,0</coordinates>
+</Point>
+</Placemark>
+<Placemark>
+<name><![CDATA[Turn LEFT ]]></name>
+<description><![CDATA[Turn LEFT onto Sunningdale Drive]]></description>
+<styleUrl>#WaypointIconStyle</styleUrl>
+<Point>
+<coordinates>-2.322858,53.50023,0</coordinates>
+</Point>
+</Placemark>
+<Placemark>
+<name><![CDATA[Turn sharp]]></name>
+<description><![CDATA[Turn sharp right onto Welwyn Drive]]></description>
+<styleUrl>#WaypointIconStyle</styleUrl>
+<Point>
+<coordinates>-2.328218,53.49838,0</coordinates>
+</Point>
+</Placemark>
+<Placemark>
+<name><![CDATA[Turn right]]></name>
+<description><![CDATA[Turn right onto Branksome Drive]]></description>
+<styleUrl>#WaypointIconStyle</styleUrl>
+<Point>
+<coordinates>-2.327531,53.499097,0</coordinates>
+</Point>
+</Placemark>
+<Placemark>
+<name><![CDATA[Turn left ]]></name>
+<description><![CDATA[Turn left onto Sunningdale Drive]]></description>
+<styleUrl>#WaypointIconStyle</styleUrl>
+<Point>
+<coordinates>-2.322861,53.500255,0</coordinates>
+</Point>
+</Placemark>
+<Placemark>
+<name><![CDATA[Turn left ]]></name>
+<description><![CDATA[Turn left onto Welwyn Drive]]></description>
+<styleUrl>#WaypointIconStyle</styleUrl>
+<Point>
+<coordinates>-2.322887,53.500452,0</coordinates>
+</Point>
+</Placemark>
+<Placemark>
+<name><![CDATA[Turn sharp]]></name>
+<description><![CDATA[Turn sharp left onto Branksome Drive]]></description>
+<styleUrl>#WaypointIconStyle</styleUrl>
+<Point>
+<coordinates>-2.327531,53.499097,0</coordinates>
+</Point>
+</Placemark>
+<Placemark>
+<name><![CDATA[Turn left ]]></name>
+<description><![CDATA[Turn left onto Runnymeade]]></description>
+<styleUrl>#WaypointIconStyle</styleUrl>
+<Point>
+<coordinates>-2.325411,53.499587,0</coordinates>
+</Point>
+</Placemark>
+<Placemark>
+<name><![CDATA[HOLD at Ma]]></name>
+<description><![CDATA[HOLD at Magna Carta Court]]></description>
+<styleUrl>#WaypointIconStyle</styleUrl>
+<Point>
+<coordinates>-2.325615,53.5008185,0</coordinates>
+</Point>
+</Placemark>
+<Placemark>
+<name><![CDATA[Turn right]]></name>
+<description><![CDATA[Turn right onto Parkstone Drive]]></description>
+<styleUrl>#WaypointIconStyle</styleUrl>
+<Point>
+<coordinates>-2.325647,53.501049,0</coordinates>
+</Point>
+</Placemark>
+<Placemark>
+<name><![CDATA[Turn sharp]]></name>
+<description><![CDATA[Turn sharp right onto Runnymeade]]></description>
+<styleUrl>#WaypointIconStyle</styleUrl>
+<Point>
+<coordinates>-2.325647,53.501049,0</coordinates>
+</Point>
+</Placemark>
+<Placemark>
+<name><![CDATA[Turn right]]></name>
+<description><![CDATA[Turn right onto Cliftonville Drive]]></description>
+<styleUrl>#WaypointIconStyle</styleUrl>
+<Point>
+<coordinates>-2.325736,53.50166,0</coordinates>
+</Point>
+</Placemark>
+<Placemark>
+<name><![CDATA[HOLD at Cr]]></name>
+<description><![CDATA[HOLD at Cranford Close entrance]]></description>
+<styleUrl>#WaypointIconStyle</styleUrl>
+<Point>
+<coordinates>-2.3238282,53.5015686,0</coordinates>
+</Point>
+</Placemark>
+<Placemark>
+<name><![CDATA[HOLD at To]]></name>
+<description><![CDATA[HOLD at Torrax Close entrance]]></description>
+<styleUrl>#WaypointIconStyle</styleUrl>
+<Point>
+<coordinates>-2.3235068,53.5013797,0</coordinates>
+</Point>
+</Placemark>
+<Placemark>
+<name><![CDATA[FINISH]]></name>
+<description><![CDATA[FINISH]]></description>
+<styleUrl>#WaypointIconStyle</styleUrl>
+<Point>
+<coordinates>-2.323277,53.500532,0</coordinates>
+</Point>
+</Placemark>
+<Placemark>
+<name><![CDATA[FINISH]]></name>
+<styleUrl>#FinishIconStyle</styleUrl>
+<Point>
+<coordinates>-2.323277,53.500532,50</coordinates>
+</Point>
+</Placemark>
+</Folder>
+<ScreenOverlay>
+<name><![CDATA[plotaroute.com]]></name>
+<visibility>1</visibility>
+<open>1</open>
+<Icon>
+<href>https://www.plotaroute.com/images/logo34reversev3.png</href>
+</Icon>
+<overlayXY x="0" y="0" xunits="fraction" yunits="fraction"/>
+<screenXY x="0.01" y="0.94" xunits="fraction" yunits="fraction"/>
+<rotationXY x="0" y="0" xunits="fraction" yunits="fraction"/>
+<size x="0" y="0" xunits="fraction" yunits="fraction"/>
+</ScreenOverlay>
+<Snippet><![CDATA[This route was downloaded from <a href="https://www.plotaroute.com">plotaroute.com</a>]]></Snippet>
+</Document>
+</kml>

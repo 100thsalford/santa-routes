@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Search Logging Test Page</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-card {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #c41e3a;
+        }
+        h2 {
+            color: #165b33;
+            margin-top: 0;
+        }
+        button {
+            background: #c41e3a;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+        }
+        button:hover {
+            background: #a01628;
+        }
+        .result {
+            background: #f0f0f0;
+            padding: 15px;
+            margin-top: 15px;
+            border-radius: 5px;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+        .success {
+            color: #165b33;
+            font-weight: bold;
+        }
+        .error {
+            color: #c41e3a;
+            font-weight: bold;
+        }
+        .instructions {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        input {
+            padding: 10px;
+            width: 300px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 Search Logging Test Page</h1>
+    
+    <div class="instructions">
+        <strong>Purpose:</strong> This page tests if your log-search Netlify function is working properly.
+        <br><br>
+        <strong>Instructions:</strong>
+        <ol>
+            <li>Deploy this file to your site (e.g., as test-logging.html)</li>
+            <li>Visit it on your live Netlify domain (NOT localhost)</li>
+            <li>Click the test buttons below</li>
+            <li>Check your Netlify function logs for entries</li>
+        </ol>
+    </div>
+
+    <div class="test-card">
+        <h2>Test 1: Direct Function Call</h2>
+        <p>Tests if the Netlify function responds correctly to a POST request.</p>
+        <button onclick="testDirectCall()">🚀 Test Direct Call</button>
+        <div id="result1" class="result"></div>
+    </div>
+
+    <div class="test-card">
+        <h2>Test 2: Successful Search Simulation</h2>
+        <p>Simulates a user finding their street.</p>
+        <button onclick="testSuccessfulSearch()">✅ Test Successful Search</button>
+        <div id="result2" class="result"></div>
+    </div>
+
+    <div class="test-card">
+        <h2>Test 3: Failed Search Simulation</h2>
+        <p>Simulates a user NOT finding their street (important for identifying missing streets!).</p>
+        <button onclick="testFailedSearch()">❌ Test Failed Search</button>
+        <div id="result3" class="result"></div>
+    </div>
+
+    <div class="test-card">
+        <h2>Test 4: Custom Search Test</h2>
+        <p>Enter your own test data:</p>
+        <input type="text" id="customSearch" placeholder="Enter street name..." value="Test Street">
+        <br><br>
+        <button onclick="testCustomSearch(true)">✅ Test as FOUND</button>
+        <button onclick="testCustomSearch(false)">❌ Test as NOT FOUND</button>
+        <div id="result4" class="result"></div>
+    </div>
+
+    <div class="test-card">
+        <h2>Test 5: Using window.logSearch (if analytics.js loaded)</h2>
+        <p>Tests if the global logSearch function is available.</p>
+        <button onclick="testGlobalFunction()">🌐 Test Global Function</button>
+        <div id="result5" class="result"></div>
+    </div>
+
+    <div class="instructions">
+        <strong>After Testing:</strong>
+        <ol>
+            <li>Go to Netlify Dashboard → Your Site → Functions → log-search → Function log</li>
+            <li>You should see entries like: <code>SEARCH EVENT: {...}</code></li>
+            <li>Each test creates one log entry with the test data</li>
+            <li>If you see logs, it's working! ✅</li>
+            <li>If you don't see logs, check the error messages above ⚠️</li>
+        </ol>
+    </div>
+
+    <script>
+        function displayResult(elementId, message, isError = false) {
+            const element = document.getElementById(elementId);
+            element.textContent = message;
+            element.className = 'result ' + (isError ? 'error' : 'success');
+        }
+
+        async function testDirectCall() {
+            displayResult('result1', 'Testing... Please wait...');
+            
+            try {
+                const response = await fetch('/.netlify/functions/log-search', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        searchTerm: 'Direct Test Street',
+                        matchFound: true,
+                        matchedStreet: 'Direct Test Street',
+                        resultsCount: 1,
+                        page: '/test-logging.html'
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (response.ok) {
+                    displayResult('result1', 
+                        `✅ SUCCESS!\n\nStatus: ${response.status}\nResponse: ${JSON.stringify(data, null, 2)}\n\nCheck your Netlify function logs now!`
+                    );
+                } else {
+                    displayResult('result1', 
+                        `⚠️ Function responded but with error:\n\nStatus: ${response.status}\nResponse: ${JSON.stringify(data, null, 2)}`,
+                        true
+                    );
+                }
+            } catch (error) {
+                displayResult('result1', 
+                    `❌ ERROR:\n\n${error.message}\n\nMake sure:\n1. You're on your live Netlify domain (not localhost)\n2. log-search.js is deployed to netlify/functions/\n3. Your site has been redeployed`,
+                    true
+                );
+            }
+        }
+
+        async function testSuccessfulSearch() {
+            displayResult('result2', 'Testing successful search...');
+            
+            try {
+                const response = await fetch('/.netlify/functions/log-search', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        searchTerm: 'manchester road',
+                        matchFound: true,
+                        matchedStreet: 'Manchester Road',
+                        resultsCount: 3,
+                        page: '/test-logging.html'
+                    })
+                });
+
+                const data = await response.json();
+                displayResult('result2', 
+                    `✅ Successful search logged!\n\nSearched: "manchester road"\nFound: YES\nMatched: "Manchester Road"\nResults: 3\n\nResponse: ${JSON.stringify(data, null, 2)}`
+                );
+            } catch (error) {
+                displayResult('result2', `❌ ERROR: ${error.message}`, true);
+            }
+        }
+
+        async function testFailedSearch() {
+            displayResult('result3', 'Testing failed search...');
+            
+            try {
+                const response = await fetch('/.netlify/functions/log-search', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        searchTerm: 'nonexistent lane',
+                        matchFound: false,
+                        matchedStreet: null,
+                        resultsCount: 0,
+                        page: '/test-logging.html'
+                    })
+                });
+
+                const data = await response.json();
+                displayResult('result3', 
+                    `✅ Failed search logged!\n\nSearched: "nonexistent lane"\nFound: NO\nMatched: null\nResults: 0\n\nThis is EXACTLY what you want to capture to find missing streets!\n\nResponse: ${JSON.stringify(data, null, 2)}`
+                );
+            } catch (error) {
+                displayResult('result3', `❌ ERROR: ${error.message}`, true);
+            }
+        }
+
+        async function testCustomSearch(matchFound) {
+            const searchTerm = document.getElementById('customSearch').value;
+            displayResult('result4', 'Testing custom search...');
+            
+            try {
+                const response = await fetch('/.netlify/functions/log-search', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        searchTerm: searchTerm,
+                        matchFound: matchFound,
+                        matchedStreet: matchFound ? searchTerm : null,
+                        resultsCount: matchFound ? 1 : 0,
+                        page: '/test-logging.html'
+                    })
+                });
+
+                const data = await response.json();
+                displayResult('result4', 
+                    `✅ Custom search logged!\n\nSearched: "${searchTerm}"\nFound: ${matchFound ? 'YES' : 'NO'}\nMatched: ${matchFound ? searchTerm : 'null'}\nResults: ${matchFound ? 1 : 0}\n\nResponse: ${JSON.stringify(data, null, 2)}`
+                );
+            } catch (error) {
+                displayResult('result4', `❌ ERROR: ${error.message}`, true);
+            }
+        }
+
+        function testGlobalFunction() {
+            displayResult('result5', 'Checking for window.logSearch...');
+            
+            if (typeof window.logSearch === 'function') {
+                try {
+                    window.logSearch('Global Function Test', true, 'Global Test Street', 1);
+                    displayResult('result5', 
+                        `✅ window.logSearch is available!\n\nCalled: window.logSearch('Global Function Test', true, 'Global Test Street', 1)\n\nCheck your function logs!`
+                    );
+                } catch (error) {
+                    displayResult('result5', 
+                        `⚠️ window.logSearch exists but threw error:\n\n${error.message}`,
+                        true
+                    );
+                }
+            } else {
+                displayResult('result5', 
+                    `❌ window.logSearch is NOT available.\n\nThis means analytics.js hasn't loaded or created the global function.\n\nMake sure:\n1. analytics.js is included in your HTML\n2. It's loaded before this test runs\n3. Check browser console for errors`,
+                    true
+                );
+            }
+        }
+
+        // Log when page loads
+        console.log('🧪 Test page loaded');
+        console.log('📍 Current URL:', window.location.href);
+        console.log('🌐 Hostname:', window.location.hostname);
+        console.log('✅ window.logSearch available?', typeof window.logSearch === 'function');
+        
+        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+            alert('⚠️ WARNING: You are on localhost. The function will not actually log (by design). Please test on your live Netlify domain!');
+        }
+    </script>
+
+    <!-- Include analytics.js if you want to test the global function -->
+    <!-- <script src="analytics.js"></script> -->
+</body>
+</html>

@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Santa Live Tracking (TEST MODE) | 100th Salford Scouts</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        .test-banner {
+            background: #ff9800;
+            color: white;
+            padding: 1rem;
+            text-align: center;
+            font-weight: bold;
+        }
+        
+        #mapContainer {
+            position: relative;
+            width: 100%;
+            height: 600px;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            margin: 1rem 0;
+        }
+        
+        #liveMap {
+            width: 100%;
+            height: 100%;
+        }
+        
+        .tracking-info {
+            background: white;
+            border-radius: 16px;
+            padding: 1.5rem;
+            margin: 1rem 0;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+        }
+        
+        .status-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-weight: 600;
+            background: #ff9800;
+            color: white;
+        }
+        
+        .tracking-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+        
+        .stat-box {
+            background: #f5f5f5;
+            padding: 1rem;
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .stat-label {
+            font-size: 0.8rem;
+            color: #666;
+        }
+        
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #c41e3a;
+        }
+        
+        .back-btn {
+            display: inline-block;
+            background: white;
+            color: #c41e3a;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: bold;
+            border: 2px solid #c41e3a;
+            margin-bottom: 1rem;
+            transition: all 0.2s;
+        }
+        
+        .back-btn:hover {
+            background: #c41e3a;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-banner">
+        ⚠️ TEST MODE - Mock GPS Data on OpenStreetMap ⚠️
+    </div>
+
+    <div class="header">
+        <h1>🎅 Santa Live Tracking (TEST MODE)</h1>
+        <p>Watch how the live tracking will work on your actual planned routes map!</p>
+    </div>
+
+    <div class="container">
+        <a href="index.html" class="back-btn">← Back to Main Page</a>
+
+        <div class="tracking-info">
+            <div>
+                <strong>📡 Tracking Status:</strong>
+                <div class="status-indicator" style="margin-top: 0.5rem;">
+                    <span>●</span>
+                    <span id="statusText">TEST MODE - Mock Data Active</span>
+                </div>
+            </div>
+            
+            <div class="tracking-stats">
+                <div class="stat-box">
+                    <div class="stat-label">Last Updated</div>
+                    <div class="stat-value" id="lastUpdate">--:--</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Speed</div>
+                    <div class="stat-value" id="speedDisplay">0 mph</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Location</div>
+                    <div class="stat-value" id="postcodeDisplay">---</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Status</div>
+                    <div class="stat-value" id="eventDisplay">---</div>
+                </div>
+            </div>
+        </div>
+
+        <div id="mapContainer">
+            <div id="liveMap"></div>
+        </div>
+
+        <div class="tracking-info">
+            <h3 style="color: #c41e3a; margin-top: 0;">ℹ️ About This Test</h3>
+            <p><strong>Base Map:</strong> OpenStreetMap (free, open-source map)</p>
+            <p><strong>Planned Route:</strong> Orange dashed line showing the route (if KML file is uploaded)</p>
+            <p><strong>Santa Icon & Trail:</strong> Mock GPS data simulating real-time movement around Salford</p>
+            <p><strong>Updates:</strong> Position changes every 10 seconds</p>
+            <p style="margin-top: 1rem; padding: 1rem; background: #e8f5e9; border-radius: 8px; border-left: 4px solid #4CAF50;">
+                <strong>✅ Ready for Production:</strong> Once the TruTrak device is online, simply switch to the real map.html page and it will work exactly like this with actual GPS data!
+            </p>
+            <p style="margin-top: 1rem; padding: 1rem; background: #fff3cd; border-radius: 8px; border-left: 4px solid #ff9800;">
+                <strong>📝 To test with your route:</strong> Edit the test page and change the filename in <code>loadTestKML('2025_01Dec_R1.kml')</code> to match your uploaded KML file.
+            </p>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <p>🎄 Supporting <a href="https://www.facebook.com/100thsalford" target="_blank" class="footer-link">100th Salford Scout Group</a> 🎄</p>
+    </footer>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- Leaflet Omnivore for KML loading -->
+    <script src="https://unpkg.com/leaflet-omnivore@0.3.4/leaflet-omnivore.min.js"></script>
+    
+    <script>
+        // Initialize Leaflet map with OpenStreetMap
+        let map, santaMarker, trailPolyline;
+        let trailPoints = [];
+        let currentIndex = 0;
+        let currentKmlLayer = null; // Track KML layer
+        let currentKmlFile = null; // Track which KML is loaded
+
+        // Mock route around Salford
+        const mockPoints = [
+            { lat: 53.5074, lng: -2.3114, speed: 0, status: 'Parked', postcode: 'M6 7PR' },
+            { lat: 53.5080, lng: -2.3120, speed: 15, status: 'Moving', postcode: 'M6 7PR' },
+            { lat: 53.5090, lng: -2.3135, speed: 20, status: 'Moving', postcode: 'M6 7PS' },
+            { lat: 53.5105, lng: -2.3150, speed: 18, status: 'Moving', postcode: 'M6 7PT' },
+            { lat: 53.5115, lng: -2.3160, speed: 0, status: 'Stopped', postcode: 'M6 7PU' },
+            { lat: 53.5120, lng: -2.3175, speed: 22, status: 'Moving', postcode: 'M6 7PV' },
+        ];
+
+        function initMap() {
+            // Create Leaflet map centered on Salford
+            map = L.map('liveMap', {
+                center: [53.5009, -2.3214],
+                zoom: 14,
+                zoomControl: true
+            });
+
+            // Add OpenStreetMap tile layer
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+                maxZoom: 19
+            }).addTo(map);
+
+            // Load a test KML route (if you have one uploaded)
+            // Change this to your actual KML filename for testing
+            loadTestKML('2025_01Dec_R1.kml'); // Update this filename!
+
+            // Create Santa marker
+            const santaIcon = L.divIcon({
+                html: '<div style="font-size: 2.5rem; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);">🎅</div>',
+                iconSize: [40, 40],
+                iconAnchor: [20, 40],
+                popupAnchor: [0, -40],
+                className: ''
+            });
+
+            santaMarker = L.marker([53.5074, -2.3114], { icon: santaIcon }).addTo(map);
+            
+            // Create trail polyline
+            trailPolyline = L.polyline([], {
+                color: '#2196F3',
+                weight: 6,
+                opacity: 0.8
+            }).addTo(map);
+
+            // Start updating
+            updatePosition();
+            setInterval(updatePosition, 10000); // Every 10 seconds
+        }
+
+        // Load test KML route
+        function loadTestKML(kmlFilename) {
+            if (!kmlFilename) {
+                console.log('No test KML specified');
+                return;
+            }
+
+            const kmlPath = `/routes/${kmlFilename}`;
+            console.log(`Loading test KML route: ${kmlPath}`);
+
+            // Check if file exists first
+            fetch(kmlPath)
+                .then(response => {
+                    if (!response.ok) {
+                        console.log(`Test KML not found: ${kmlPath} - This is OK for testing without routes`);
+                        return null;
+                    }
+                    return response.text();
+                })
+                .then(kmlText => {
+                    if (!kmlText) return;
+                    
+                    console.log(`Test KML file found, loading...`);
+                    
+                    currentKmlLayer = omnivore.kml(kmlPath)
+                        .on('ready', function() {
+                            console.log(`Test route loaded successfully!`);
+                            
+                            // Style and filter layers
+                            this.eachLayer(function(layer) {
+                                if (layer instanceof L.Polyline && !(layer instanceof L.Polygon)) {
+                                    // Route line - style it
+                                    console.log('Styling route line');
+                                    layer.setStyle({
+                                        color: '#FF6B35',
+                                        weight: 5,
+                                        opacity: 0.8,
+                                        dashArray: '10, 5'
+                                    });
+                                } else if (layer instanceof L.Marker) {
+                                    // Waypoint marker - hide it
+                                    map.removeLayer(layer);
+                                }
+                            });
+                            
+                            // Move to back (under Santa and trail)
+                            this.bringToBack();
+                            console.log('Test route is now visible on map');
+                        })
+                        .on('error', function(err) {
+                            console.error('Error loading test KML:', err);
+                        })
+                        .addTo(map);
+                    
+                    currentKmlFile = kmlFilename;
+                })
+                .catch(error => {
+                    console.log(`Could not load test KML - this is OK: ${error.message}`);
+                });
+        }
+
+        function updatePosition() {
+            const point = mockPoints[currentIndex];
+            currentIndex = (currentIndex + 1) % mockPoints.length;
+
+            const pos = [point.lat, point.lng];
+            
+            // Update Santa position
+            santaMarker.setLatLng(pos);
+            
+            // Update popup
+            santaMarker.bindPopup(`
+                <div style="text-align: center;">
+                    <h3 style="color: #c41e3a; margin: 0 0 10px 0;">🎅 Santa Sleigh (TEST)</h3>
+                    <p style="margin: 5px 0;"><strong>Speed:</strong> ${point.speed} mph</p>
+                    <p style="margin: 5px 0;"><strong>Status:</strong> ${point.status}</p>
+                    <p style="margin: 5px 0;"><strong>Location:</strong> ${point.postcode}</p>
+                    <p style="margin: 5px 0; font-size: 0.8em; color: #ff9800;">⚠️ MOCK DATA</p>
+                </div>
+            `);
+
+            // Add to trail
+            trailPoints.push(pos);
+            if (trailPoints.length > 20) trailPoints.shift(); // Keep last 20 points
+            trailPolyline.setLatLngs(trailPoints);
+
+            // Update stats display
+            const now = new Date();
+            document.getElementById('lastUpdate').textContent = now.toLocaleTimeString('en-GB', { 
+                hour: '2-digit', 
+                minute: '2-digit' 
+            });
+            document.getElementById('speedDisplay').textContent = point.speed + ' mph';
+            document.getElementById('postcodeDisplay').textContent = point.postcode;
+            document.getElementById('eventDisplay').textContent = point.status;
+        }
+
+        // Initialize when page loads
+        window.addEventListener('load', initMap);
+    </script>
+    
+    <script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "3b7106934eac4fcfa830d632dc201682"}'></script>
+</body>
+</html>

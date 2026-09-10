@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KML Test Page</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+        }
+        
+        #map {
+            height: 600px;
+            width: 100%;
+        }
+        
+        .controls {
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        
+        .controls h2 {
+            margin-top: 0;
+        }
+        
+        .controls input {
+            padding: 8px;
+            width: 300px;
+            margin-right: 10px;
+        }
+        
+        .controls button {
+            padding: 8px 20px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        
+        .controls button:hover {
+            background: #45a049;
+        }
+        
+        #log {
+            margin-top: 20px;
+            padding: 10px;
+            background: white;
+            border: 1px solid #ddd;
+            max-height: 200px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        
+        .log-entry {
+            margin: 5px 0;
+        }
+        
+        .error {
+            color: red;
+        }
+        
+        .success {
+            color: green;
+        }
+    </style>
+</head>
+<body>
+    <div class="controls">
+        <h2>🗺️ KML File Test Page</h2>
+        <p>Test your KML files to make sure they load correctly.</p>
+        
+        <div>
+            <input type="text" id="kmlPath" placeholder="Enter KML path (e.g., /routes/route-dec18.kml)" value="/routes/">
+            <button onclick="loadKML()">Load KML</button>
+            <button onclick="clearMap()">Clear Map</button>
+        </div>
+        
+        <div id="log"></div>
+    </div>
+    
+    <div id="map"></div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet-omnivore@0.3.4/leaflet-omnivore.min.js"></script>
+    
+    <script>
+        let map;
+        let currentLayer = null;
+        
+        // Initialize map
+        map = L.map('map').setView([53.5074, -2.3114], 14);
+        
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors',
+            maxZoom: 19
+        }).addTo(map);
+        
+        function log(message, type = 'info') {
+            const logDiv = document.getElementById('log');
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            logDiv.insertBefore(entry, logDiv.firstChild);
+        }
+        
+        function clearMap() {
+            if (currentLayer) {
+                map.removeLayer(currentLayer);
+                currentLayer = null;
+                log('Map cleared', 'info');
+            }
+        }
+        
+        function loadKML() {
+            const kmlPath = document.getElementById('kmlPath').value;
+            
+            if (!kmlPath) {
+                log('Please enter a KML path', 'error');
+                return;
+            }
+            
+            log(`Attempting to load: ${kmlPath}`, 'info');
+            
+            // First try to fetch the file to check if it exists
+            fetch(kmlPath)
+                .then(response => {
+                    log(`HTTP Status: ${response.status} ${response.statusText}`, response.ok ? 'success' : 'error');
+                    
+                    if (!response.ok) {
+                        throw new Error(`File not found or not accessible`);
+                    }
+                    
+                    return response.text();
+                })
+                .then(kmlText => {
+                    log(`File fetched successfully! Size: ${kmlText.length} bytes`, 'success');
+                    log(`Content preview: ${kmlText.substring(0, 100)}...`, 'info');
+                    
+                    // Check if it's valid XML/KML
+                    if (!kmlText.includes('<?xml') && !kmlText.includes('<kml')) {
+                        log('WARNING: File does not appear to be valid KML/XML', 'error');
+                    }
+                    
+                    // Clear existing layer
+                    clearMap();
+                    
+                    // Load with omnivore
+                    log('Loading KML with Leaflet Omnivore...', 'info');
+                    
+                    currentLayer = omnivore.kml(kmlPath)
+                        .on('ready', function() {
+                            const layerCount = Object.keys(this._layers).length;
+                            log(`✓ KML loaded successfully! Found ${layerCount} layers`, 'success');
+                            
+                            let routeLines = 0;
+                            let waypoints = 0;
+                            
+                            // Style the layer and filter out waypoint markers
+                            this.eachLayer(function(layer) {
+                                log(`Layer type: ${layer.constructor.name}`, 'info');
+                                
+                                // Check if it's a route line or waypoint marker
+                                if (layer instanceof L.Polyline && !(layer instanceof L.Polygon)) {
+                                    // This is a route line - style it prominently
+                                    routeLines++;
+                                    log('→ This is a ROUTE LINE - styling it', 'success');
+                                    layer.setStyle({
+                                        color: '#FF6B35',
+                                        weight: 5,
+                                        opacity: 0.8
+                                    });
+                                } else if (layer instanceof L.Marker) {
+                                    // This is a waypoint marker - hide it
+                                    waypoints++;
+                                    log('→ This is a waypoint marker - hiding it', 'info');
+                                    map.removeLayer(layer);
+                                } else if (layer.setStyle) {
+                                    layer.setStyle({
+                                        color: '#FF6B35',
+                                        weight: 4,
+                                        opacity: 0.8
+                                    });
+                                }
+                                
+                                if (layer.feature && layer.feature.properties) {
+                                    log(`Properties: ${JSON.stringify(layer.feature.properties)}`, 'info');
+                                }
+                            });
+                            
+                            log(`Found ${routeLines} route lines and ${waypoints} waypoint markers`, 'success');
+                            log(`Showing route lines only (waypoint markers hidden)`, 'info');
+                            
+                            // Fit map to bounds
+                            try {
+                                map.fitBounds(this.getBounds());
+                                log('Map fitted to route bounds', 'success');
+                            } catch (e) {
+                                log('Could not fit bounds: ' + e.message, 'error');
+                            }
+                        })
+                        .on('error', function(err) {
+                            log(`✗ Error loading KML: ${err.error ? err.error.message : 'Unknown error'}`, 'error');
+                            console.error('Full error:', err);
+                        })
+                        .addTo(map);
+                })
+                .catch(error => {
+                    log(`✗ Failed to fetch file: ${error.message}`, 'error');
+                    log('Possible issues:', 'error');
+                    log('1. File does not exist at that path', 'error');
+                    log('2. Incorrect file path (check spelling/case)', 'error');
+                    log('3. File not uploaded to Netlify', 'error');
+                    log('4. CORS issue (unlikely with same-origin files)', 'error');
+                });
+        }
+        
+        log('KML Test Page loaded. Enter a file path and click "Load KML"', 'info');
+        log('Example paths to try:', 'info');
+        log('  /routes/route-dec18.kml', 'info');
+        log('  /routes/route-dec19.kml', 'info');
+    </script>
+</body>
+</html>

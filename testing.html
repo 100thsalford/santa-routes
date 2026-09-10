@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Santa Sleigh Testing - Date/Time Simulator</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .test-controls {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: rgba(255, 215, 0, 0.95);
+            border: 3px solid #C41E3A;
+            border-radius: 12px;
+            padding: 1rem;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            z-index: 10001;
+            max-width: 300px;
+        }
+        
+        .test-controls h3 {
+            margin: 0 0 0.5rem 0;
+            color: #C41E3A;
+            font-size: 1rem;
+        }
+        
+        .test-controls label {
+            display: block;
+            font-size: 0.85rem;
+            font-weight: bold;
+            margin-top: 0.5rem;
+            color: #212529;
+        }
+        
+        .test-controls input,
+        .test-controls select {
+            width: 100%;
+            padding: 0.5rem;
+            margin-top: 0.25rem;
+            border: 2px solid #C41E3A;
+            border-radius: 6px;
+            font-size: 0.9rem;
+        }
+        
+        .test-controls button {
+            width: 100%;
+            margin-top: 0.75rem;
+            padding: 0.75rem;
+            background: #C41E3A;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+        
+        .test-controls button:hover {
+            background: #a01830;
+        }
+        
+        .test-controls .current-test-time {
+            margin-top: 0.75rem;
+            padding: 0.5rem;
+            background: white;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            color: #165B33;
+            font-weight: bold;
+            text-align: center;
+        }
+        
+        .test-controls .reset-btn {
+            background: #666;
+            margin-top: 0.5rem;
+        }
+        
+        .test-controls .reset-btn:hover {
+            background: #555;
+        }
+
+        .test-warning {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 1rem;
+            margin: 1rem;
+            border-radius: 8px;
+            color: #856404;
+            font-size: 0.9rem;
+        }
+
+        .test-warning strong {
+            display: block;
+            margin-bottom: 0.5rem;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Test Controls Panel -->
+    <div class="test-controls">
+        <h3>🧪 Testing Controls</h3>
+        
+        <label for="testDate">Test Date:</label>
+        <input type="date" id="testDate" value="">
+        
+        <label for="testTime">Test Time:</label>
+        <input type="time" id="testTime" value="">
+        
+        <button onclick="applyTestDateTime()">Apply Test Date/Time</button>
+        <button class="reset-btn" onclick="resetToRealTime()">Reset to Real Time</button>
+        
+        <div class="current-test-time" id="currentTestTime">
+            Using Real Time
+        </div>
+    </div>
+
+    <!-- Decorative snowflakes -->
+    <div class="snowflake" style="left: 10%; animation-duration: 10s; animation-delay: 0s;">❄</div>
+    <div class="snowflake" style="left: 30%; animation-duration: 12s; animation-delay: 2s;">❄</div>
+    <div class="snowflake" style="left: 50%; animation-duration: 11s; animation-delay: 4s;">❄</div>
+    <div class="snowflake" style="left: 70%; animation-duration: 13s; animation-delay: 1s;">❄</div>
+    <div class="snowflake" style="left: 90%; animation-duration: 10s; animation-delay: 3s;">❄</div>
+
+    <div class="test-warning">
+        <strong>⚠️ TESTING MODE</strong>
+        This is a testing page. Use the controls in the top-right to simulate different dates and times.
+    </div>
+
+    <div class="header">
+        <h1>🎅 Santa Super Sleigh Salford [TESTING]</h1>
+        <p>All the info you need to see when Santa will be coming to the Irlams o' th' Height and Pendlebury neighbourhoods of Salford. Brought to you by The 100th Salford Scout Group.</p>
+        <a href="https://checkout.square.site/merchant/MLHCM2TZHZ9NA/checkout/E4KKJFETD5BQZJYHETXWV6S2" 
+           target="_blank" 
+           rel="noopener noreferrer" 
+           class="donate-btn">
+            💝 Donate to Support Our Scouts
+        </a>
+    </div>
+
+    <div class="container">
+        <!-- Mobile Navigation Menu (only visible on mobile) -->
+        <div class="mobile-menu" id="mobileMenu">
+            <div class="menu-title">What do you want to do?</div>
+            <div class="menu-buttons">
+                <button class="menu-btn" data-section="todays-streets-section">🗓️ Today's Streets</button>
+                <button class="menu-btn" data-section="search-section">🔍 Search my street name</button>
+                <button class="menu-btn" data-section="search-section" data-tab="date">📅 Search streets by date</button>
+                <button class="menu-btn" data-section="sightings-view-section">👀 See Santa spotting reports</button>
+                <button class="menu-btn" data-section="map-section">🗺️ View route maps</button>
+                <button class="menu-btn" data-section="all-routes-section">📋 View list of all routes</button>
+                <button class="menu-btn" data-section="facebook-section">📱 See Facebook updates</button>
+                <button class="menu-btn" onclick="window.location.href='about.html'">🎅 About the Sleigh</button>
+                <button class="menu-btn" onclick="window.open('https://checkout.square.site/merchant/MLHCM2TZHZ9NA/checkout/E4KKJFETD5BQZJYHETXWV6S2', '_blank')">💝 Make a donation</button>
+            </div>
+        </div>
+
+        <!-- Today's Streets Section -->
+        <div class="content-section" id="todays-streets-section">
+            <button class="back-btn mobile-only">← Back to Menu</button>
+            <div class="search-card">
+                <div class="search-title">🗓️ Today's Streets</div>
+                <div class="search-subtitle">Streets Santa is visiting today</div>
+                <div id="todaysStreetsContent" class="todays-streets-content">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                        Loading today's routes...
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Search Card -->
+        <div class="content-section" id="search-section">
+            <button class="back-btn mobile-only">← Back to Menu</button>
+        <div class="search-card">
+            <div class="search-title">When is Santa visiting?</div>
+            <div class="search-subtitle">Search your street or pick a date</div>
+
+            <div class="tab-buttons">
+                <button class="tab-btn active" data-tab="street">🏘️ By Street</button>
+                <button class="tab-btn" data-tab="date">📅 By Date</button>
+            </div>
+
+            <div id="street-search">
+                <div class="search-box">
+                    <span class="search-icon">🔍</span>
+                    <input 
+                        type="text" 
+                        class="search-input" 
+                        id="streetInput" 
+                        placeholder="Type your street name..."
+                        autocomplete="off"
+                    >
+                </div>
+            </div>
+
+            <div id="date-search" style="display: none;">
+                <input 
+                    type="date" 
+                    class="date-picker" 
+                    id="dateInput"
+                    placeholder="Select a date"
+                    aria-label="Select a date to see Santa's route"
+                >
+                <div class="date-helper" id="dateHelper">
+                    📅 Tap to select a date
+                </div>
+            </div>
+
+            <div class="results-area" id="resultsArea">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    Loading routes...
+                </div>
+            </div>
+
+            <div class="disclaimer">
+                <strong>⚠️ PLEASE NOTE:</strong>
+                <div class="disclaimer-content" id="disclaimerContent">
+                    The times are estimated and factors such as crowds and traffic may mean Santa arrives later than suggested. Some streets are marked 'Partial' as Santa uses them to connect to other streets. Streets are displayed in the order they are planned to be visited, however these may change last minute/without notice.
+                </div>
+                <button class="disclaimer-toggle" id="disclaimerToggle">
+                    <span class="disclaimer-arrow">▶</span>
+                    <span id="disclaimerToggleText">Read more</span>
+                </button>
+            </div>
+        </div>
+
+        </div>
+
+        <!-- Last Seen Section -->
+        <div class="content-section" id="sightings-view-section">
+            <button class="back-btn mobile-only">← Back to Menu</button>
+            <div class="last-seen-section">
+                <div class="section-title">
+                    👀 Santa Spotted!
+                </div>
+                <div class="section-subtitle">
+                    Help others keep track of Santa and report when and where you see him!
+                </div>
+                
+                <div id="latestSighting" class="latest-sighting">
+                    <div class="loading">Loading latest sightings...</div>
+                </div>
+                
+                <button class="report-sighting-btn" id="reportSightingBtn">
+                    📍 Report a Santa Sighting
+                </button>
+            </div>
+        </div>
+
+        <!-- Map Section -->
+        <div class="content-section" id="map-section">
+            <button class="back-btn mobile-only">← Back to Menu</button>
+            <div class="search-card">
+                <div class="search-title">Interactive Map</div>
+                <div class="search-subtitle">View all routes on the map</div>
+                <a href="map.html" class="action-btn action-btn-outlined" style="display: block; text-align: center; text-decoration: none;">
+                    <div class="action-icon">🗺️</div>
+                    <div class="action-text">Open Map</div>
+                </a>
+            </div>
+        </div>
+
+        <!-- All Routes Section -->
+        <div class="content-section" id="all-routes-section">
+            <button class="back-btn mobile-only">← Back to Menu</button>
+            <div class="search-card">
+                <div class="search-title">All Routes</div>
+                <div class="search-subtitle">Browse all streets and routes</div>
+                <button class="action-btn action-btn-outlined" id="allRoutesBtnMobile" style="width: 100%; margin-top: 1rem; cursor: pointer;">
+                    <div class="action-icon">📋</div>
+                    <div class="action-text">View All Routes</div>
+                </button>
+            </div>
+        </div>
+
+        <!-- Facebook Section -->
+        <div class="content-section" id="facebook-section">
+            <button class="back-btn mobile-only">← Back to Menu</button>
+            <div class="updates-section">
+                <div class="section-title">
+                    📢 Latest Updates
+                </div>
+                
+                <div style="text-align: center; padding: 2rem; color: #666;">
+                    Facebook integration disabled in testing mode
+                </div>
+
+                <a href="https://www.facebook.com/SuperSleighSalford" target="_blank" rel="noopener noreferrer" class="fb-link">
+                    👍 Follow us on Facebook for live updates
+                </a>
+            </div>
+        </div>
+
+        <!-- About the Sleigh (Desktop Only) -->
+        <div class="desktop-only">
+            <div class="search-card">
+                <div class="search-title">🎅 About the Sleigh</div>
+                <div class="search-subtitle">Learn about Santa's Super Sleigh and our fundraising efforts</div>
+                <a href="about.html" class="action-btn action-btn-outlined" style="display: block; text-align: center; text-decoration: none;">
+                    <div class="action-icon">🎅</div>
+                    <div class="action-text">About the Sleigh</div>
+                </a>
+            </div>
+        </div>
+
+        <!-- All Routes Modal -->
+        <div id="allRoutesModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>All Routes</h2>
+                    <button class="close-modal" id="closeModal">&times;</button>
+                </div>
+                <div id="allRoutesContent" class="modal-body">
+                    <div class="loading">Loading all routes...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Report Sighting Modal -->
+    <div id="sightingModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Report Santa Sighting</h2>
+                <button class="close-modal" id="closeSightingModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="sightingForm">
+                    <div class="form-group">
+                        <label for="sightingStreet">Street Name *</label>
+                        <input 
+                            type="text" 
+                            id="sightingStreet" 
+                            class="form-input"
+                            placeholder="Start typing street name..."
+                            autocomplete="off"
+                            required
+                        >
+                        <div id="streetSuggestions" class="street-suggestions"></div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="sightingTime">Time Seen *</label>
+                        <input 
+                            type="time" 
+                            id="sightingTime" 
+                            class="form-input"
+                            required
+                        >
+                    </div>
+
+                    <div class="form-group">
+                        <label>When was this? *</label>
+                        <div class="time-options">
+                            <button type="button" class="time-btn active" data-when="now">Just Now</button>
+                            <button type="button" class="time-btn" data-when="earlier">Earlier Today</button>
+                        </div>
+                    </div>
+
+                    <div id="formMessage" class="form-message"></div>
+
+                    <button type="submit" class="submit-btn">Submit Sighting (Test Mode)</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <p>🎄 Supporting <a href="https://www.facebook.com/100thsalford" target="_blank" rel="noopener noreferrer" class="footer-link">100th Salford Scout Group</a> 🎄</p>
+        <p>Donations help fund Scouting activities for young people in Salford</p>
+        <p style="margin-top: 1rem; color: #C41E3A; font-weight: bold;">🧪 TESTING MODE - Changes here won't affect the live site</p>
+    </footer>
+
+    <script src="script.js"></script>
+    
+    <script>
+    // Test DateTime Override System
+    const OriginalDate = Date;
+    const TEST_DATETIME_KEY = 'santa_test_datetime';
+    
+    // Load test datetime from localStorage
+    let testDateTime = localStorage.getItem(TEST_DATETIME_KEY);
+
+    // Override Date constructor to use test time
+    window.Date = function(...args) {
+        if (args.length === 0 && testDateTime) {
+            return new OriginalDate(testDateTime);
+        }
+        return new OriginalDate(...args);
+    };
+    
+    // Copy static methods
+    Object.setPrototypeOf(window.Date, OriginalDate);
+    Object.setPrototypeOf(window.Date.prototype, OriginalDate.prototype);
+    window.Date.now = function() {
+        return testDateTime ? new OriginalDate(testDateTime).getTime() : OriginalDate.now();
+    };
+
+    function applyTestDateTime() {
+        const dateInput = document.getElementById('testDate');
+        const timeInput = document.getElementById('testTime');
+        
+        if (!dateInput.value || !timeInput.value) {
+            alert('Please select both date and time');
+            return;
+        }
+        
+        testDateTime = dateInput.value + 'T' + timeInput.value + ':00';
+        localStorage.setItem(TEST_DATETIME_KEY, testDateTime);
+        
+        // Reload to apply changes
+        location.reload();
+    }
+
+    function resetToRealTime() {
+        testDateTime = null;
+        localStorage.removeItem(TEST_DATETIME_KEY);
+        
+        // Reload to apply changes
+        location.reload();
+    }
+
+    function updateCurrentTestTimeDisplay() {
+        const display = document.getElementById('currentTestTime');
+        if (testDateTime) {
+            const dt = new OriginalDate(testDateTime);
+            display.textContent = 'Testing: ' + dt.toLocaleString('en-GB', {
+                weekday: 'short',
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+            display.style.background = '#ffcccc';
+        } else {
+            display.textContent = 'Using Real Time';
+            display.style.background = 'white';
+        }
+    }
+
+    // Initialize test controls with current or saved date/time
+    window.addEventListener('DOMContentLoaded', function() {
+        const dateInput = document.getElementById('testDate');
+        const timeInput = document.getElementById('timeTime');
+        
+        if (testDateTime) {
+            // Load from saved test time
+            const dt = new OriginalDate(testDateTime);
+            dateInput.value = dt.toISOString().split('T')[0];
+            const hours = String(dt.getHours()).padStart(2, '0');
+            const mins = String(dt.getMinutes()).padStart(2, '0');
+            timeInput.value = hours + ':' + mins;
+        } else {
+            // Use current real time
+            const now = new OriginalDate();
+            dateInput.value = now.toISOString().split('T')[0];
+            const hours = String(now.getHours()).padStart(2, '0');
+            const mins = String(now.getMinutes()).padStart(2, '0');
+            timeInput.value = hours + ':' + mins;
+        }
+        
+        updateCurrentTestTimeDisplay();
+    });
+
+    // Override form submission to prevent actual submissions
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.getElementById('sightingForm');
+        if (form) {
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                const messageDiv = document.getElementById('formMessage');
+                if (messageDiv) {
+                    messageDiv.className = 'form-message success';
+                    messageDiv.textContent = 'TEST MODE: Sighting would have been submitted (but was not)';
+                }
+                setTimeout(function() {
+                    const modal = document.getElementById('sightingModal');
+                    if (modal) modal.classList.remove('show');
+                }, 2000);
+            });
+        }
+    });
+    </script>
+</body>
+</html>

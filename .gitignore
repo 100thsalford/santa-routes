@@ -1,0 +1,13 @@
+# Local Netlify folder
+.netlify
+
+# Dependencies (Netlify installs these at function-bundle time from package.json)
+node_modules
+
+# macOS
+.DS_Store
+
+# Local logs/caches (not part of the deployed site)
+cache-output.json
+raw-logs.txt
+search-logs-*.json

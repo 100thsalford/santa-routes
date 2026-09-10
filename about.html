@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Learn about Santa Super Sleigh Salford and the 100th Salford Scout Group">
+    <title>About the Sleigh | 100th Salford Scouts</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .about-section {
+            background: white;
+            border-radius: 16px;
+            padding: 2rem 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+        }
+
+        .about-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .about-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+        }
+
+        .about-title {
+            font-size: 1.75rem;
+            font-weight: bold;
+            color: var(--santa-red);
+            margin-bottom: 0.5rem;
+        }
+
+        .about-subtitle {
+            color: #666;
+            font-size: 1rem;
+        }
+
+        .content-block {
+            margin-bottom: 2rem;
+        }
+
+        .content-block:last-child {
+            margin-bottom: 0;
+        }
+
+        .block-title {
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: var(--santa-green);
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .block-text {
+            color: var(--text-dark);
+            line-height: 1.8;
+            font-size: 1rem;
+        }
+
+        .block-text p {
+            margin-bottom: 1rem;
+        }
+
+        .block-text p:last-child {
+            margin-bottom: 0;
+        }
+
+        .highlight-box {
+            background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+            text-align: center;
+        }
+
+        .highlight-box strong {
+            display: block;
+            font-size: 1.2rem;
+            margin-bottom: 0.5rem;
+            color: var(--text-dark);
+        }
+
+        .highlight-box p {
+            margin: 0;
+            color: var(--text-dark);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin: 1.5rem 0;
+        }
+
+        .stat-box {
+            background: var(--snow);
+            border-radius: 12px;
+            padding: 1.5rem 1rem;
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--santa-red);
+            display: block;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            color: #666;
+            margin-top: 0.25rem;
+        }
+
+        .back-btn {
+            display: inline-block;
+            background: white;
+            color: var(--santa-red);
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: bold;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            transition: all 0.2s;
+            margin-bottom: 1rem;
+            border: 2px solid var(--santa-red);
+        }
+
+        .back-btn:hover {
+            background: var(--santa-red);
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .cta-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+
+        .cta-btn {
+            display: block;
+            padding: 1.25rem;
+            border-radius: 12px;
+            text-decoration: none;
+            font-weight: bold;
+            text-align: center;
+            transition: all 0.3s;
+            font-size: 1.1rem;
+        }
+
+        .cta-btn.primary {
+            background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+            color: var(--text-dark);
+            box-shadow: 0 4px 15px rgba(255, 165, 0, 0.4);
+        }
+
+        .cta-btn.primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(255, 165, 0, 0.6);
+        }
+
+        .cta-btn.secondary {
+            background: var(--santa-green);
+            color: white;
+            box-shadow: 0 4px 15px rgba(22, 91, 51, 0.4);
+        }
+
+        .cta-btn.secondary:hover {
+            background: #0f4523;
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(22, 91, 51, 0.6);
+        }
+
+        @media (min-width: 768px) {
+            .about-section {
+                padding: 3rem 2.5rem;
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(4, 1fr);
+            }
+
+            .cta-buttons {
+                flex-direction: row;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🎅 About the Sleigh</h1>
+        <p>100th Salford Scout Group | Christmas 2025</p>
+    </div>
+
+    <div class="container">
+        <a href="index.html" class="back-btn">← Back to Home</a>
+
+        <div class="about-section">
+            <div class="about-header">
+                <div class="about-icon">🎄🎅🛷</div>
+                <h2 class="about-title">Santa Super Sleigh Salford</h2>
+                <p class="about-subtitle">Bringing Christmas joy to Salford since 2000</p>
+            </div>
+
+            <div class="content-block">
+                <div class="block-title">
+                    <span>🎅</span>
+                    <span>Our Mission</span>
+                </div>
+                <div class="block-text">
+                    <p>Every December, Santa Super Sleigh Salford takes to the streets to spread Christmas cheer and raise vital funds for the 100th Salford Scout Group. We're visiting the Irlams o' th' Height and Pendlebury neighbourhoods of Salford. Our festive sleigh, complete with music, lights, and of course Santa himself, creates magical memories for families while supporting local youth activities.</p>
+                </div>
+            </div>
+
+            <div class="highlight-box">
+                <strong>🎄 This Year's Routes</strong>
+                <p>We're visiting the Irlams o' th' Height and Pendlebury neighbourhoods of Salford throughout December. Check the schedule to find out when Santa is coming to your street!</p>
+            </div>
+
+            <div class="content-block">
+                <div class="block-title">
+                    <span>🏕️</span>
+                    <span>Supporting Scouting</span>
+                </div>
+                <div class="block-text">
+                    <p>All donations collected during our sleigh visits go directly to supporting the 100th Salford Scout Group. These funds help provide:</p>
+                    <ul style="margin-left: 1.5rem; margin-top: 1rem; line-height: 1.8;">
+                        <li>Equipment and resources for weekly Scout meetings</li>
+                        <li>Camping trips and outdoor adventures</li>
+                        <li>Badge work and skill development activities</li>
+                        <li>Training and support for our volunteer leaders</li>
+                        <li>Subsidies to ensure Scouting is accessible to all young people</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-box">
+                    <span class="stat-number">100+</span>
+                    <span class="stat-label">Streets Visited</span>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-number">1000s</span>
+                    <span class="stat-label">Happy Families</span>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-number">20+</span>
+                    <span class="stat-label">Volunteers</span>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-number">£1000s</span>
+                    <span class="stat-label">Raised Annually</span>
+                </div>
+            </div>
+
+            <div class="content-block">
+                <div class="block-title">
+                    <span>🎁</span>
+                    <span>How You Can Help</span>
+                </div>
+                <div class="block-text">
+                    <p>When Santa visits your street, any donation - no matter how small - makes a real difference to local young people. Every pound helps us continue providing high-quality Scouting activities that develop confidence, resilience, and important life skills.</p>
+                    <p>Can't donate when we visit? You can make a secure online donation at any time using the button below.</p>
+                </div>
+            </div>
+
+            <div class="content-block">
+                <div class="block-title">
+                    <span>📱</span>
+                    <span>Stay Connected</span>
+                </div>
+                <div class="block-text">
+                    <p>Follow us on Facebook for live updates during our sleigh visits, route changes, and to see photos from our journey around the Irlams o' th' Height and Pendlebury neighbourhoods! You can also report Santa sightings to help others track where we are!</p>
+                </div>
+            </div>
+
+            <div class="cta-buttons">
+                <a href="https://checkout.square.site/merchant/MLHCM2TZHZ9NA/checkout/E4KKJFETD5BQZJYHETXWV6S2" 
+                   target="_blank" 
+                   rel="noopener noreferrer"
+                   class="cta-btn primary">
+                    💝 Make a Donation
+                </a>
+                <a href="https://www.facebook.com/SuperSleighSalford" 
+                   target="_blank" 
+                   rel="noopener noreferrer"
+                   class="cta-btn secondary">
+                    👍 Follow on Facebook
+                </a>
+            </div>
+        </div>
+
+        <div class="about-section">
+            <div class="block-title">
+                <span>❓</span>
+                <span>Frequently Asked Questions</span>
+            </div>
+            
+            <div class="content-block">
+                <div class="block-text">
+                    <p><strong>Q: What time will Santa visit my street?</strong><br>
+                    A: Use our street search on the home page to find your approximate time. Please note times can vary due to crowds and traffic.</p>
+
+                    <p><strong>Q: What if I miss Santa?</strong><br>
+                    A: You can still support us by making an online donation. Check our Facebook page for updates on where Santa is currently visiting, or catch him another night on another street.</p>
+
+                    <p><strong>Q: How do I donate?</strong><br>
+                    A: You can donate in person when Santa visits, or make a secure online donation anytime through our Square donation page.</p>
+
+                    <p><strong>Q: Why don't you cover my street?</strong><br>
+                    A: We're staffed entirely by volunteers and cover over 100 streets in the 10 nights. However, Salford's a big city and our Scout group is one of 4 within a few square miles, so we focus our streets to those in the immediate vicinity of our meeting place, as well as streets where our Scouts and their families live.</p>
+
+                    <p><strong>Q: Can I volunteer to help with the sleigh?</strong><br>
+                    A: We love having enthusiastic volunteers! Please contact the 100th Salford Scout Group through our Facebook page if you'd like to get involved.</p>
+
+                <p><strong>Q: Can I hire your sleigh for an event?</strong><br>
+                A: We receive several requests each year for the use of our sleigh, however due to logistics of charging, storing, towing and insuring the sleigh, it's unfortunately not feasible for us to hire it out to other organisations. </p>
+
+                <p><strong>Q: Can we sit on the Sleigh?</strong><br>
+                A: Unfortunately, Santa has lots of streets to visits and limited time to do so, meaning we can't always pause for photos. The sleigh can be a tripping hazard to little feet, but Santa will do his best to pause for photos beside the sleigh. Just check with our Head of Elf and Safety before approaching the sleigh. </p>
+
+                <p><strong>Q: Can my child give Santa their letter/a card/a gift?</strong><br>
+                A: Absolutely! Santa will take them back to the 'North Pole' to read. Just hand them to one of the Elves to keep safe (magic aside, we won't be able to take any action from any letters, however our Elves do have some little postcards that thank your child for coming to see Santa!)</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <p>🎄 Supporting <a href="https://www.facebook.com/100thsalford" target="_blank" rel="noopener noreferrer" class="footer-link">100th Salford Scout Group</a> 🎄</p>
+        <p>Donations help fund Scouting activities for young people in Salford</p>
+    </footer>
+
+    <script src="script.js"></script>
+	<!-- Cookie Banner - Add this just before closing </body> tag -->
+	<div id="cookieBanner" class="cookie-banner">
+	    <div class="cookie-content">
+	        <div class="cookie-text">
+	            <strong>🍪 We use cookies</strong>
+	            <p>This site uses cookies from Facebook and Google Maps to provide embedded content. We also use basic analytics to improve your experience. By clicking "Accept", you consent to these cookies.</p>
+	        </div>
+	        <div class="cookie-buttons">
+	            <button id="cookieAccept" class="cookie-btn cookie-accept">Accept</button>
+	            <button id="cookieDecline" class="cookie-btn cookie-decline">Decline</button>
+	            <a href="privacy.html" class="cookie-link">Learn more</a>
+	        </div>
+	    </div>
+	</div>
+
+	<script>
+	// Cookie Banner Functionality
+	(function() {
+	    'use strict';
+    
+	    const COOKIE_NAME = 'santa_sleigh_cookie_consent';
+	    const COOKIE_DURATION = 365; // days
+    
+	    // Check if user has already made a choice
+	    function getCookieConsent() {
+	        const cookies = document.cookie.split(';');
+	        for (let cookie of cookies) {
+	            const [name, value] = cookie.trim().split('=');
+	            if (name === COOKIE_NAME) {
+	                return value;
+	            }
+	        }
+	        return null;
+	    }
+    
+	    // Set cookie consent
+	    function setCookieConsent(value) {
+	        const date = new Date();
+	        date.setTime(date.getTime() + (COOKIE_DURATION * 24 * 60 * 60 * 1000));
+	        const expires = 'expires=' + date.toUTCString();
+	        document.cookie = COOKIE_NAME + '=' + value + ';' + expires + ';path=/;SameSite=Lax';
+	    }
+    
+	    // Show banner
+	    function showBanner() {
+	        const banner = document.getElementById('cookieBanner');
+	        if (banner) {
+	            banner.classList.add('show');
+	        }
+	    }
+    
+	    // Hide banner
+	    function hideBanner() {
+	        const banner = document.getElementById('cookieBanner');
+	        if (banner) {
+	            banner.classList.remove('show');
+	        }
+	    }
+    
+	    // Handle accept
+	    function acceptCookies() {
+	        setCookieConsent('accepted');
+	        hideBanner();
+	        // Reload to load third-party scripts
+	        if (typeof FB === 'undefined' || typeof google === 'undefined') {
+	            location.reload();
+	        }
+	    }
+    
+	    // Handle decline
+	    function declineCookies() {
+	        setCookieConsent('declined');
+	        hideBanner();
+	        // Remove Facebook SDK if loaded
+	        const fbRoot = document.getElementById('fb-root');
+	        if (fbRoot) fbRoot.innerHTML = '';
+	        // Show message about limited functionality
+	        alert('Some features (Facebook updates, interactive map) may not work fully without cookies.');
+	    }
+    
+	    // Initialize
+	    document.addEventListener('DOMContentLoaded', function() {
+	        const consent = getCookieConsent();
+        
+	        if (consent === null) {
+	            // No choice made yet, show banner
+	            showBanner();
+	        } else if (consent === 'declined') {
+	            // User declined, don't load third-party scripts
+	            const fbRoot = document.getElementById('fb-root');
+	            if (fbRoot) fbRoot.innerHTML = '';
+	        }
+        
+	        // Add event listeners
+	        const acceptBtn = document.getElementById('cookieAccept');
+	        const declineBtn = document.getElementById('cookieDecline');
+        
+	        if (acceptBtn) {
+	            acceptBtn.addEventListener('click', acceptCookies);
+	        }
+        
+	        if (declineBtn) {
+	            declineBtn.addEventListener('click', declineCookies);
+	        }
+	    });
+	})();
+	</script>
+				<!-- Cloudflare Web Analytics --><script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "3b7106934eac4fcfa830d632dc201682"}'></script><!-- End Cloudflare Web Analytics -->
+</body>
+</html>

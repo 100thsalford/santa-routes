@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Interactive map showing Santa's routes across Salford">
+    <title>Santa Routes Map | 100th Salford Scouts</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .map-container {
+            background: white;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            margin-bottom: 1rem;
+        }
+
+        .map-controls {
+            background: var(--snow);
+            padding: 1rem;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .control-group {
+            margin-bottom: 1rem;
+        }
+
+        .control-group:last-child {
+            margin-bottom: 0;
+        }
+
+        .control-label {
+            font-weight: bold;
+            color: var(--text-dark);
+            margin-bottom: 0.5rem;
+            display: block;
+        }
+
+        .filter-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .filter-btn {
+            padding: 0.5rem 1rem;
+            border: 2px solid var(--santa-red);
+            background: white;
+            color: var(--santa-red);
+            border-radius: 20px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.9rem;
+        }
+
+        .filter-btn.active {
+            background: var(--santa-red);
+            color: white;
+        }
+
+        .filter-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .date-filter {
+            width: 100%;
+            padding: 0.75rem;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1rem;
+        }
+
+        #map {
+            width: 100%;
+            height: 500px;
+            background: #f0f0f0;
+        }
+
+        .map-legend {
+            background: white;
+            border-radius: 16px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+        }
+
+        .legend-title {
+            font-weight: bold;
+            color: var(--santa-red);
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
+        }
+
+        .legend-items {
+            display: grid;
+            gap: 0.75rem;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .legend-color {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .legend-text {
+            font-size: 0.9rem;
+        }
+
+        .back-btn {
+            display: inline-block;
+            background: white;
+            color: var(--santa-red);
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: bold;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            transition: all 0.2s;
+            margin-bottom: 1rem;
+            border: 2px solid var(--santa-red);
+        }
+
+        .back-btn:hover {
+            background: var(--santa-red);
+            color: white;
+        }
+
+        @media (min-width: 768px) {
+            #map {
+                height: 600px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🗺️ Santa Routes Map</h1>
+        <p>All the info you need to see when Santa will be coming to the Irlams o' th' Heights and Pendlebury neighbourhoods of Salford. Brought to you by The 100th Salford Scout Group.</p>
+    </div>
+
+    <div class="container">
+        <a href="index.html" class="back-btn">← Back</a>
+
+        <div class="map-container">
+            <div class="map-controls">
+                <div class="control-group">
+                    <label class="control-label">🔍 Filter by Route or Date:</label>
+                    <p style="color: #666; font-size: 0.9rem; margin-top: 0.5rem;">
+                        Use the <strong>slide menu icon</strong> on the left side of the map to show/hide individual routes. 
+                        You can also search for specific streets using the search box in the map.
+                    </p>
+                </div>
+            </div>
+
+            <div id="map">
+                <!-- Google Map will be embedded here -->
+                <iframe 
+                    id="mapFrame"
+                    width="100%" 
+                    height="100%" 
+                    style="border:0;" 
+                    loading="lazy"
+                    allowfullscreen
+                    referrerpolicy="no-referrer-when-downgrade">
+                </iframe>
+            </div>
+        </div>
+
+        <div class="map-legend">
+            <div class="legend-title">🔍 Route Legend</div>
+            <div class="legend-items" id="legendItems">
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #4285F4;"></div>
+                    <div class="legend-text">Loading routes...</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="updates-section">
+            <div class="section-title">ℹ️ How to Use the Map</div>
+            <div class="update-card no-hover">
+                <div class="update-text">
+                    <strong>Using the interactive map:</strong>
+                    <ul style="margin-left: 1.5rem; margin-top: 0.5rem; line-height: 1.8;">
+                        <li><strong>Show/Hide Routes:</strong> Click the slide menu icon on the left side of the map to turn routes on/off</li>
+                        <li><strong>View Details:</strong> Click on any marker to see street names and times</li>
+                        <li><strong>Zoom:</strong> Pinch to zoom on mobile, scroll wheel on desktop, or use +/- buttons</li>
+                        <li><strong>Full Screen:</strong> Click the expand button in the top-right to open in Google Maps</li>
+                        <li><strong>Navigate:</strong> Drag to pan around, or use the search box in the map</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="update-card no-hover">
+                <div class="update-text">
+                    <strong>💡 Tip:</strong> Each route is a different color on the map. Use the slide menu to find your route easily!
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <p>🎄 Supporting <a href="https://www.facebook.com/100thsalford" target="_blank" rel="noopener noreferrer" class="footer-link">100th Salford Scout Group</a> 🎄</p>
+        <p>Donations help fund Scouting activities for young people in Salford</p>
+    </footer>
+
+    <script src="script.js"></script>
+    <script src="analytics.js"></script>
+    
+    <script>
+        // Map-specific functionality - simplified for Google My Maps
+        document.addEventListener('DOMContentLoaded', () => {
+            loadMap();
+        });
+
+        function loadMap() {
+            // Load your custom Google My Maps
+            const mapUrl = 'https://www.google.com/maps/d/embed?mid=1-o17vOh4X0WHMx9gF7OAJjL6DdtiL8g&ehbc=2E312F&noprof=1';
+            document.getElementById('mapFrame').src = mapUrl;
+        }
+    </script>
+		<!-- Cookie Banner - Add this just before closing </body> tag -->
+		<div id="cookieBanner" class="cookie-banner">
+		    <div class="cookie-content">
+		        <div class="cookie-text">
+		            <strong>🍪 We use cookies</strong>
+		            <p>This site uses cookies from Facebook and Google Maps to provide embedded content. We also use basic analytics to improve your experience. By clicking "Accept", you consent to these cookies.</p>
+		        </div>
+		        <div class="cookie-buttons">
+		            <button id="cookieAccept" class="cookie-btn cookie-accept">Accept</button>
+		            <button id="cookieDecline" class="cookie-btn cookie-decline">Decline</button>
+		            <a href="privacy.html" class="cookie-link">Learn more</a>
+		        </div>
+		    </div>
+		</div>
+
+		<script>
+		// Cookie Banner Functionality
+		(function() {
+		    'use strict';
+    
+		    const COOKIE_NAME = 'santa_sleigh_cookie_consent';
+		    const COOKIE_DURATION = 365; // days
+    
+		    // Check if user has already made a choice
+		    function getCookieConsent() {
+		        const cookies = document.cookie.split(';');
+		        for (let cookie of cookies) {
+		            const [name, value] = cookie.trim().split('=');
+		            if (name === COOKIE_NAME) {
+		                return value;
+		            }
+		        }
+		        return null;
+		    }
+    
+		    // Set cookie consent
+		    function setCookieConsent(value) {
+		        const date = new Date();
+		        date.setTime(date.getTime() + (COOKIE_DURATION * 24 * 60 * 60 * 1000));
+		        const expires = 'expires=' + date.toUTCString();
+		        document.cookie = COOKIE_NAME + '=' + value + ';' + expires + ';path=/;SameSite=Lax';
+		    }
+    
+		    // Show banner
+		    function showBanner() {
+		        const banner = document.getElementById('cookieBanner');
+		        if (banner) {
+		            banner.classList.add('show');
+		        }
+		    }
+    
+		    // Hide banner
+		    function hideBanner() {
+		        const banner = document.getElementById('cookieBanner');
+		        if (banner) {
+		            banner.classList.remove('show');
+		        }
+		    }
+    
+		    // Handle accept
+		    function acceptCookies() {
+		        setCookieConsent('accepted');
+		        hideBanner();
+		        // Reload to load third-party scripts
+		        if (typeof FB === 'undefined' || typeof google === 'undefined') {
+		            location.reload();
+		        }
+		    }
+    
+		    // Handle decline
+		    function declineCookies() {
+		        setCookieConsent('declined');
+		        hideBanner();
+		        // Remove Facebook SDK if loaded
+		        const fbRoot = document.getElementById('fb-root');
+		        if (fbRoot) fbRoot.innerHTML = '';
+		        // Show message about limited functionality
+		        alert('Some features (Facebook updates, interactive map) may not work fully without cookies.');
+		    }
+    
+		    // Initialize
+		    document.addEventListener('DOMContentLoaded', function() {
+		        const consent = getCookieConsent();
+        
+		        if (consent === null) {
+		            // No choice made yet, show banner
+		            showBanner();
+		        } else if (consent === 'declined') {
+		            // User declined, don't load third-party scripts
+		            const fbRoot = document.getElementById('fb-root');
+		            if (fbRoot) fbRoot.innerHTML = '';
+		        }
+        
+		        // Add event listeners
+		        const acceptBtn = document.getElementById('cookieAccept');
+		        const declineBtn = document.getElementById('cookieDecline');
+        
+		        if (acceptBtn) {
+		            acceptBtn.addEventListener('click', acceptCookies);
+		        }
+        
+		        if (declineBtn) {
+		            declineBtn.addEventListener('click', declineCookies);
+		        }
+		    });
+		})();
+		</script>
+					<!-- Cloudflare Web Analytics --><script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "3b7106934eac4fcfa830d632dc201682"}'></script><!-- End Cloudflare Web Analytics -->
+</body>
+</html>

@@ -6,103 +6,6 @@
     <meta name="description" content="Find out when Santa Super Sleigh is visiting your street in Salford. 100th Salford Scout Group Christmas fundraiser.">
     <title>Santa Super Sleigh Salford 2025 | 100th Salford Scouts</title>
     <link rel="stylesheet" href="styles.css">
-    <style>
-        /* Additional styles for holding page */
-        .holding-card {
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
-            padding: 2rem;
-            margin: 2rem auto;
-            max-width: 800px;
-            text-align: center;
-        }
-
-        .holding-card img {
-            width: 100%;
-            max-width: 600px;
-            height: auto;
-            border-radius: 15px;
-            margin: 1rem 0;
-        }
-
-        .holding-title {
-            font-size: 2rem;
-            font-weight: bold;
-            color: #c41e3a;
-            margin: 1.5rem 0 1rem;
-        }
-
-        .holding-subtitle {
-            font-size: 1.1rem;
-            color: #333;
-            line-height: 1.6;
-            margin-bottom: 1rem;
-        }
-
-        .total-raised-card {
-            background: linear-gradient(135deg, #165b33 0%, #0f4529 100%);
-            border-radius: 15px;
-            padding: 2rem;
-            margin: 2rem auto;
-            max-width: 600px;
-            text-align: center;
-            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
-        }
-
-        .total-raised-amount {
-            font-size: 3.5rem;
-            font-weight: bold;
-            color: #4ade80;
-            margin: 0.5rem 0;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
-        }
-
-        .total-raised-label {
-            font-size: 1.5rem;
-            font-weight: bold;
-            color: #ffffff;
-            margin-bottom: 0.5rem;
-        }
-
-        .total-raised-subtitle {
-            font-size: 1.1rem;
-            color: #e0e0e0;
-            margin-top: 0.5rem;
-        }
-
-        @media (max-width: 768px) {
-            .holding-title {
-                font-size: 1.5rem;
-            }
-
-            .holding-subtitle {
-                font-size: 1rem;
-            }
-
-            .total-raised-amount {
-                font-size: 2.5rem;
-            }
-
-            .total-raised-label {
-                font-size: 1.2rem;
-            }
-
-            .total-raised-subtitle {
-                font-size: 1rem;
-            }
-
-            .holding-card {
-                padding: 1.5rem;
-                margin: 1rem auto;
-            }
-        }
-
-        /* Hidden class for date-based visibility */
-        .hidden-after-season {
-            display: none !important;
-        }
-    </style>
 </head>
 
 <body>
@@ -125,32 +28,16 @@
     </div>
 
     <div class="container">
-        <!-- Holding Page Card - See You in 2026 -->
-        <div class="holding-card">
-            <img src="santa-relaxing.png" alt="Santa relaxing by the fireplace">
-            <div class="holding-title">See you in 2026!</div>
-            <div class="holding-subtitle">
-                Santa has returned to the North Pole to rest up. He and his elves at 100th Salford St Luke's thank you for your waves, smiles and kind donations!
-            </div>
-        </div>
-
-        <!-- Total Raised Card -->
-        <div class="total-raised-card">
-            <div class="total-raised-label">Total Raised</div>
-            <div class="total-raised-amount">£4692.23</div>
-            <div class="total-raised-subtitle">for 100th Salford Scout Group</div>
-        </div>
-
         <!-- Mobile Navigation Menu (only visible on mobile) -->
         <div class="mobile-menu" id="mobileMenu">
             <div class="menu-title">What do you want to do?</div>
             <div class="menu-buttons">
-                <button class="menu-btn date-conditional" data-section="todays-streets-section">🗓️ Today's Streets</button>
-                <button class="menu-btn date-conditional" data-section="search-section">🔍 Search my street name</button>
-                <button class="menu-btn date-conditional" data-section="search-section" data-tab="date">📅 Search streets by date</button>
-                <button class="menu-btn date-conditional" data-section="sightings-view-section">👀 See Santa spotting reports</button>
-                <button class="menu-btn date-conditional" data-section="map-section">🗺️ View route maps</button>
-                <button class="menu-btn date-conditional" data-section="all-routes-section">📋 View list of all routes</button>
+                <button class="menu-btn" data-section="todays-streets-section">🗓️ Today's Streets</button>
+                <button class="menu-btn" data-section="search-section">🔍 Search my street name</button>
+                <button class="menu-btn" data-section="search-section" data-tab="date">📅 Search streets by date</button>
+                <button class="menu-btn" data-section="sightings-view-section">👀 See Santa spotting reports</button>
+                <button class="menu-btn" data-section="map-section">🗺️ View route maps</button>
+                <button class="menu-btn" data-section="all-routes-section">📋 View list of all routes</button>
                 <button class="menu-btn" data-section="facebook-section">📱 See Facebook updates</button>
                 <button class="menu-btn" onclick="window.location.href='about.html'">🎅 About the Sleigh</button>
                 <button class="menu-btn" onclick="window.open('https://checkout.square.site/merchant/MLHCM2TZHZ9NA/checkout/E4KKJFETD5BQZJYHETXWV6S2', '_blank')">💝 Make a donation</button>
@@ -158,7 +45,7 @@
         </div>
 
         <!-- Today's Streets Section -->
-        <div class="content-section date-conditional" id="todays-streets-section">
+        <div class="content-section" id="todays-streets-section">
             <button class="back-btn mobile-only">← Back to Menu</button>
             <div class="search-card">
                 <div class="search-title">🗓️ Today's Streets</div>
@@ -173,7 +60,7 @@
         </div>
 
         <!-- Main Search Card -->
-        <div class="content-section date-conditional" id="search-section">
+        <div class="content-section" id="search-section">
             <button class="back-btn mobile-only">← Back to Menu</button>
         <div class="search-card">
             <div class="search-title">When is Santa visiting?</div>
@@ -232,7 +119,7 @@
         </div>
 
         <!-- Last Seen Section -->
-        <div class="content-section date-conditional" id="sightings-view-section">
+        <div class="content-section" id="sightings-view-section">
             <button class="back-btn mobile-only">← Back to Menu</button>
             <div class="last-seen-section">
                 <div class="section-title">
@@ -253,7 +140,7 @@
         </div>
 
         <!-- Map Section -->
-        <div class="content-section date-conditional" id="map-section">
+        <div class="content-section" id="map-section">
             <button class="back-btn mobile-only">← Back to Menu</button>
             <div class="search-card">
                 <div class="search-title">Interactive Map</div>
@@ -266,7 +153,7 @@
         </div>
 
         <!-- All Routes Section -->
-        <div class="content-section date-conditional" id="all-routes-section">
+        <div class="content-section" id="all-routes-section">
             <button class="back-btn mobile-only">← Back to Menu</button>
             <div class="search-card">
                 <div class="search-title">All Routes</div>
@@ -292,35 +179,54 @@
                      data-tabs="timeline"
                      data-width="500"
                      data-height="400"
-                     data-small-header="false"
+                     data-small-header="true"
                      data-adapt-container-width="true"
                      data-hide-cover="false"
-                     data-show-facepile="true">
+                     data-show-facepile="false">
+                    <blockquote cite="https://www.facebook.com/SuperSleighSalford" class="fb-xfbml-parse-ignore">
+                        <a href="https://www.facebook.com/SuperSleighSalford">Santa Super Sleigh Salford</a>
+                    </blockquote>
                 </div>
-                
-                <div class="section-subtitle" style="margin-top: 1rem;">
-                    Follow us on <a href="https://www.facebook.com/SuperSleighSalford" target="_blank" rel="noopener noreferrer" style="color: #c41e3a; text-decoration: underline;">Facebook</a> for live updates!
-                </div>
+
+                <a href="https://www.facebook.com/SuperSleighSalford" target="_blank" rel="noopener noreferrer" class="fb-link">
+                    👍 Follow us on Facebook for live updates
+                </a>
             </div>
         </div>
 
-        <div class="content-section">
+        <!-- About the Sleigh (Desktop Only) -->
+        <div class="desktop-only">
             <div class="search-card">
-                <div class="search-title">About Santa Super Sleigh</div>
-                <div class="search-subtitle">Learn more about our Christmas tradition</div>
+                <div class="search-title">🎅 About the Sleigh</div>
+                <div class="search-subtitle">Learn about Santa's Super Sleigh and our fundraising efforts</div>
                 <a href="about.html" class="action-btn action-btn-outlined" style="display: block; text-align: center; text-decoration: none;">
-                    <div class="action-icon">ℹ️</div>
+                    <div class="action-icon">🎅</div>
                     <div class="action-text">About the Sleigh</div>
                 </a>
             </div>
         </div>
+
+        <!-- All Routes Modal -->
+        <div id="allRoutesModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>All Routes</h2>
+                    <button class="close-modal" id="closeModal">&times;</button>
+                </div>
+                <div id="allRoutesContent" class="modal-body">
+                    <div class="loading">Loading all routes...</div>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <!-- Sighting Form Modal -->
+    <!-- Report Sighting Modal -->
     <div id="sightingModal" class="modal">
         <div class="modal-content">
-            <button class="modal-close" id="closeModal">&times;</button>
-            <h2 class="modal-title">📍 Report Santa Sighting</h2>
+            <div class="modal-header">
+                <h2>Report Santa Sighting</h2>
+                <button class="close-modal" id="closeSightingModal">&times;</button>
+            </div>
             <div class="modal-body">
                 <form id="sightingForm">
                     <div class="form-group">
@@ -366,7 +272,7 @@
     <a href="https://glympse.com/!santasleighsalford" 
        target="_blank" 
        rel="noopener noreferrer" 
-       class="track-santa-float date-conditional"
+       class="track-santa-float"
        id="trackSantaFloatBtn"
        data-tracking="track-santa-live-click"
        aria-label="Track Santa Live">
@@ -382,29 +288,6 @@
         <p>🎄 Supporting <a href="https://www.facebook.com/100thsalford" target="_blank" rel="noopener noreferrer" class="footer-link">100th Salford Scout Group</a> 🎄</p>
         <p>Donations help fund Scouting activities for young people in Salford</p>
     </footer>
-
-    <!-- Date-based Visibility Script -->
-    <script>
-        (function() {
-            'use strict';
-            
-            // Check if current date is December 13, 2025 or later
-            function shouldHideSeasonalContent() {
-                const currentDate = new Date();
-                const cutoffDate = new Date('2025-12-12');
-                return currentDate >= cutoffDate;
-            }
-
-            // Hide seasonal content if date condition is met
-            if (shouldHideSeasonalContent()) {
-                // Add hidden class to all elements with date-conditional class
-                const elementsToHide = document.querySelectorAll('.date-conditional');
-                elementsToHide.forEach(element => {
-                    element.classList.add('hidden-after-season');
-                });
-            }
-        })();
-    </script>
 
     <script src="script.js"></script>
     <script src="analytics.js"></script>
