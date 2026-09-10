@@ -1,24 +1,25 @@
-// Netlify Function to fetch routes from the Netlify DB (Postgres).
-// Replaces the old Google Sheet CSV fetch. Response shape is kept
-// identical to the old function so the front-end doesn't need to change:
+// Netlify Function (v2, fetch-style) to fetch routes from the Netlify DB (Postgres).
+// Replaces the old Google Sheet CSV fetch. Response shape is kept identical to the
+// old function so the front-end doesn't need to change:
 // { success, routes: [{ street, date, route, time }], lastUpdated, debug }
+//
+// This must use the v2 (fetch-style: `export default async (req, context) => ...`)
+// function signature rather than the old Lambda-compatible `exports.handler` form —
+// Netlify only auto-injects the Netlify DB connection string for v2 functions.
+// See https://ntl.fyi/database-environment
 
-const { getDatabase } = require('@netlify/database');
+import { getDatabase } from '@netlify/database';
 
-exports.handler = async (event, context) => {
-  const headers = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'Content-Type',
-    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-    'Content-Type': 'application/json'
-  };
+const headers = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'Content-Type',
+  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+  'Content-Type': 'application/json'
+};
 
-  if (event.httpMethod === 'OPTIONS') {
-    return {
-      statusCode: 200,
-      headers,
-      body: ''
-    };
+export default async (req, context) => {
+  if (req.method === 'OPTIONS') {
+    return new Response('', { status: 200, headers });
   }
 
   try {
@@ -38,10 +39,8 @@ exports.handler = async (event, context) => {
 
     console.log('Rows fetched from DB:', rows.length);
 
-    return {
-      statusCode: 200,
-      headers,
-      body: JSON.stringify({
+    return new Response(
+      JSON.stringify({
         success: true,
         routes: rows,
         lastUpdated: new Date().toISOString(),
@@ -50,16 +49,15 @@ exports.handler = async (event, context) => {
           sampleRoute: rows[0] || null,
           source: 'netlify-db'
         }
-      })
-    };
+      }),
+      { status: 200, headers }
+    );
 
   } catch (error) {
     console.error('Error fetching routes from DB:', error);
 
-    return {
-      statusCode: 200,
-      headers,
-      body: JSON.stringify({
+    return new Response(
+      JSON.stringify({
         success: false,
         error: error.message,
         routes: [],
@@ -68,7 +66,8 @@ exports.handler = async (event, context) => {
           errorMessage: error.message,
           source: 'netlify-db'
         }
-      })
-    };
+      }),
+      { status: 200, headers }
+    );
   }
 };
