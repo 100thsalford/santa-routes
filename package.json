@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "Netlify functions for Santa Sleigh live tracking",
   "dependencies": {
-    "xml2js": "^0.6.2"
+    "xml2js": "^0.6.2",
+    "@netlify/database": "^2.0.1"
   }
 }
