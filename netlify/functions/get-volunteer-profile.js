@@ -21,7 +21,7 @@ export default async (req, context) => {
     const db = getDatabase();
 
     let rows = await db.sql`
-      SELECT id, identity_user_id, email, reminder_email_opt_in, preferred_email
+      SELECT id, identity_user_id, email, reminder_email_opt_in, preferred_email, risk_ack_at
       FROM volunteers WHERE identity_user_id = ${user.id}
     `;
 
@@ -30,11 +30,17 @@ export default async (req, context) => {
         INSERT INTO volunteers (identity_user_id, email)
         VALUES (${user.id}, ${user.email})
         ON CONFLICT (identity_user_id) DO UPDATE SET email = EXCLUDED.email
-        RETURNING id, identity_user_id, email, reminder_email_opt_in, preferred_email
+        RETURNING id, identity_user_id, email, reminder_email_opt_in, preferred_email, risk_ack_at
       `;
     }
 
     const profile = rows[0];
+
+    const settingsRows = await db.sql`
+      SELECT key, value FROM settings WHERE key IN ('risk_assessment_text', 'risk_assessment_url')
+    `;
+    const settingsByKey = {};
+    for (const row of settingsRows) settingsByKey[row.key] = row.value;
 
     const shiftRows = await db.sql`
       SELECT sa.route_date_id, sa.role, r.name AS route_name, to_char(rd.event_date, 'YYYY-MM-DD') AS event_date,
@@ -60,6 +66,11 @@ export default async (req, context) => {
       email: profile.email,
       reminderEmailOptIn: profile.reminder_email_opt_in,
       preferredEmail: profile.preferred_email,
+      riskAckAt: profile.risk_ack_at,
+      riskAssessment: {
+        text: settingsByKey.risk_assessment_text || '',
+        url: settingsByKey.risk_assessment_url || ''
+      },
       shifts
     }), { status: 200, headers });
   } catch (error) {

@@ -13,7 +13,9 @@ const ALLOWED_KEYS = [
   'season_lead_days',
   'season_trail_days',
   'sightings_window_start',
-  'sightings_window_end'
+  'sightings_window_end',
+  'risk_assessment_text',
+  'risk_assessment_url'
 ];
 
 function requireAdmin(user) {
