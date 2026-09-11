@@ -76,6 +76,53 @@ export default async (req, context) => {
         return ok();
       }
 
+      case 'update-date': {
+        const id = parseInt(body.id, 10);
+        const eventDate = String(body.eventDate || '').trim();
+        if (!id || !eventDate) return badRequest('Date id and eventDate are required');
+        const amountCollected = body.amountCollected != null && String(body.amountCollected).trim() !== ''
+          ? Number(body.amountCollected)
+          : null;
+        await db.sql`
+          UPDATE route_dates SET event_date = ${eventDate}, amount_collected = ${amountCollected}
+          WHERE id = ${id}
+        `;
+        return ok();
+      }
+
+      // Copies a route_date's full street list (name/sequence/time range)
+      // into a brand new route_date on the same route, so a new season's
+      // night can start from last year's list instead of being retyped.
+      // The new date's amount_collected is intentionally left null -- it's
+      // a new night's collection, not a copy of last year's total.
+      case 'clone-date': {
+        const sourceDateId = parseInt(body.sourceDateId, 10);
+        const newEventDate = String(body.newEventDate || '').trim();
+        if (!sourceDateId || !newEventDate) return badRequest('sourceDateId and newEventDate are required');
+
+        const sourceRows = await db.sql`SELECT route_id FROM route_dates WHERE id = ${sourceDateId}`;
+        if (sourceRows.length === 0) return badRequest('Source date not found');
+        const routeId = sourceRows[0].route_id;
+
+        const newDateRows = await db.sql`
+          INSERT INTO route_dates (route_id, event_date) VALUES (${routeId}, ${newEventDate})
+          RETURNING id
+        `;
+        const newDateId = newDateRows[0].id;
+
+        const sourceStreets = await db.sql`
+          SELECT sequence, name, time_range FROM streets WHERE route_date_id = ${sourceDateId} ORDER BY sequence
+        `;
+        for (const s of sourceStreets) {
+          await db.sql`
+            INSERT INTO streets (route_date_id, sequence, name, time_range)
+            VALUES (${newDateId}, ${s.sequence}, ${s.name}, ${s.time_range})
+          `;
+        }
+
+        return ok({ id: newDateId, streetsCopied: sourceStreets.length });
+      }
+
       case 'create-street': {
         const routeDateId = parseInt(body.routeDateId, 10);
         const name = String(body.name || '').trim();

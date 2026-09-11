@@ -27,7 +27,7 @@ export default async (req, context) => {
 
     const [routeRows, dateRows, streetRows, settingsRows, volunteerRows, assignmentRows] = await Promise.all([
       db.sql`SELECT id, name, display_order FROM routes ORDER BY display_order NULLS LAST, name`,
-      db.sql`SELECT id, route_id, to_char(event_date, 'YYYY-MM-DD') AS event_date FROM route_dates ORDER BY event_date`,
+      db.sql`SELECT id, route_id, to_char(event_date, 'YYYY-MM-DD') AS event_date, amount_collected FROM route_dates ORDER BY event_date`,
       db.sql`SELECT id, route_date_id, sequence, name, time_range FROM streets ORDER BY route_date_id, sequence`,
       db.sql`SELECT key, value FROM settings`,
       db.sql`SELECT id, email, reminder_email_opt_in FROM volunteers ORDER BY email`,
@@ -53,9 +53,13 @@ export default async (req, context) => {
       (datesByRoute[d.route_id] = datesByRoute[d.route_id] || []).push({
         id: d.id,
         eventDate: d.event_date,
+        year: parseInt(d.event_date.slice(0, 4), 10),
+        amountCollected: d.amount_collected != null ? Number(d.amount_collected) : null,
         streets: streetsByDate[d.id] || []
       });
     }
+
+    const years = Array.from(new Set(dateRows.map((d) => parseInt(d.event_date.slice(0, 4), 10)))).sort();
 
     const routes = routeRows.map((r) => ({
       id: r.id,
@@ -84,7 +88,7 @@ export default async (req, context) => {
       shifts: assignmentsByVolunteer[v.id] || []
     }));
 
-    return new Response(JSON.stringify({ routes, settings, volunteers }), { status: 200, headers });
+    return new Response(JSON.stringify({ routes, settings, volunteers, years }), { status: 200, headers });
   } catch (error) {
     console.error('Error fetching admin data:', error);
     return new Response(JSON.stringify({ error: error.message }), { status: 500, headers });

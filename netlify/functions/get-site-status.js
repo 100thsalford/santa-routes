@@ -69,9 +69,18 @@ export default async (req, context) => {
     const todayDate = londonDateString(now);
     const nowTime = londonTimeString(now);
 
-    const [settingsRows, routeDateRows] = await Promise.all([
+    const [settingsRows, routeDateRows, totalRaisedRows] = await Promise.all([
       db.sql`SELECT key, value FROM settings`,
-      db.sql`SELECT to_char(event_date, 'YYYY-MM-DD') AS date FROM route_dates ORDER BY event_date`
+      db.sql`SELECT to_char(event_date, 'YYYY-MM-DD') AS date FROM route_dates ORDER BY event_date`,
+      // "Total Raised" always reflects the most recent season that has any
+      // dates entered -- so it shows last year's final total right up
+      // until this year's dates are added, then switches over to this
+      // year's (initially zero, then growing as nights are recorded).
+      db.sql`
+        SELECT COALESCE(SUM(amount_collected), 0) AS total, MAX(EXTRACT(YEAR FROM event_date)) AS year
+        FROM route_dates
+        WHERE EXTRACT(YEAR FROM event_date) = (SELECT MAX(EXTRACT(YEAR FROM event_date)) FROM route_dates)
+      `
     ]);
 
     const settings = {};
@@ -114,6 +123,10 @@ export default async (req, context) => {
       }
     }
 
+    const totalRaisedRow = totalRaisedRows[0];
+    const totalRaised = totalRaisedRow ? Number(totalRaisedRow.total) : 0;
+    const totalRaisedYear = totalRaisedRow && totalRaisedRow.year != null ? Number(totalRaisedRow.year) : null;
+
     return new Response(
       JSON.stringify({
         now: now.toISOString(),
@@ -126,7 +139,9 @@ export default async (req, context) => {
           windowStart,
           windowEnd,
           nextRouteDate
-        }
+        },
+        totalRaised,
+        totalRaisedYear
       }),
       { status: 200, headers }
     );

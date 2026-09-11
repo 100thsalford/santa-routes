@@ -137,7 +137,7 @@
         <!-- Total Raised Card -->
         <div class="total-raised-card off-season-only">
             <div class="total-raised-label">Total Raised</div>
-            <div class="total-raised-amount">£0.00</div>
+            <div class="total-raised-amount" id="totalRaisedAmount">£0.00</div>
             <div class="total-raised-subtitle">for 100th Salford Scout Group</div>
         </div>
 
@@ -404,6 +404,12 @@
                 });
             }
 
+            function applyTotalRaised(totalRaised) {
+                var el = document.getElementById('totalRaisedAmount');
+                if (!el || typeof totalRaised !== 'number') return;
+                el.textContent = '£' + totalRaised.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            }
+
             var params = new URLSearchParams(window.location.search);
             var asOf = params.get('asOf');
             var url = '/.netlify/functions/get-site-status';
@@ -415,6 +421,7 @@
                 .then(function(res) { return res.json(); })
                 .then(function(status) {
                     applySeasonVisibility(!!(status && status.season && status.season.active));
+                    applyTotalRaised(status && status.totalRaised);
                 })
                 .catch(function(err) {
                     console.error('Error fetching site status:', err);

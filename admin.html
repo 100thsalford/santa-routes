@@ -196,6 +196,11 @@
             <!-- Routes & Streets -->
             <div class="admin-card" id="tab-routes">
                 <p id="routesLoading" class="admin-loading">Loading routes...</p>
+                <div class="add-row-form" id="yearSelectorRow" style="margin-bottom: 1rem;">
+                    <label for="yearSelect" style="font-weight: bold;">Season year:</label>
+                    <select id="yearSelect"></select>
+                    <span style="color:#777; font-size: 0.85rem;">Previous years' routes/streets stay saved — switch years to view or clone from them.</span>
+                </div>
                 <div id="routesContent"></div>
                 <div class="add-row-form">
                     <input type="text" id="newRouteName" placeholder="New route name">
@@ -330,8 +335,38 @@
 
             // ---- Routes & Streets ----
 
+            var selectedYear = null;
+
+            function currentCalendarYear() {
+                return new Date().getFullYear();
+            }
+
+            function populateYearSelector() {
+                var select = document.getElementById('yearSelect');
+                var years = Array.from(new Set(adminData.years.concat([currentCalendarYear()]))).sort();
+                if (selectedYear == null) {
+                    selectedYear = years.indexOf(currentCalendarYear()) !== -1
+                        ? currentCalendarYear()
+                        : years[years.length - 1];
+                }
+                select.innerHTML = '';
+                years.forEach(function(y) {
+                    var opt = document.createElement('option');
+                    opt.value = y;
+                    opt.textContent = y;
+                    if (y === selectedYear) opt.selected = true;
+                    select.appendChild(opt);
+                });
+            }
+
+            document.getElementById('yearSelect').addEventListener('change', function(e) {
+                selectedYear = parseInt(e.target.value, 10);
+                renderRoutes();
+            });
+
             function renderRoutes() {
                 document.getElementById('routesLoading').classList.add('admin-hidden');
+                populateYearSelector();
                 var container = document.getElementById('routesContent');
                 container.innerHTML = '';
 
@@ -363,7 +398,10 @@
                     header.appendChild(actions);
                     block.appendChild(header);
 
-                    route.dates.forEach(function(date) {
+                    var datesThisYear = route.dates.filter(function(d) { return d.year === selectedYear; });
+                    var datesOtherYears = route.dates.filter(function(d) { return d.year !== selectedYear; });
+
+                    datesThisYear.forEach(function(date) {
                         block.appendChild(renderDateBlock(route, date));
                     });
 
@@ -382,6 +420,33 @@
                     addDateForm.appendChild(addDateBtn);
                     block.appendChild(addDateForm);
 
+                    if (datesOtherYears.length > 0) {
+                        var cloneForm = document.createElement('div');
+                        cloneForm.className = 'add-row-form';
+                        var cloneSelect = document.createElement('select');
+                        datesOtherYears.forEach(function(d) {
+                            var opt = document.createElement('option');
+                            opt.value = d.id;
+                            opt.textContent = formatDateLabel(d.eventDate) + ' (' + d.streets.length + ' streets)';
+                            cloneSelect.appendChild(opt);
+                        });
+                        var cloneDateInput = document.createElement('input');
+                        cloneDateInput.type = 'date';
+                        var cloneBtn = document.createElement('button');
+                        cloneBtn.className = 'admin-btn small';
+                        cloneBtn.textContent = 'Clone street list into new date';
+                        cloneBtn.onclick = function() {
+                            if (!cloneDateInput.value) return;
+                            runOp('/.netlify/functions/admin-routes', {
+                                op: 'clone-date', sourceDateId: cloneSelect.value, newEventDate: cloneDateInput.value
+                            }, 'routesStatus');
+                        };
+                        cloneForm.appendChild(cloneSelect);
+                        cloneForm.appendChild(cloneDateInput);
+                        cloneForm.appendChild(cloneBtn);
+                        block.appendChild(cloneForm);
+                    }
+
                     container.appendChild(block);
                 });
             }
@@ -392,7 +457,40 @@
 
                 var header = document.createElement('div');
                 header.className = 'date-block-header';
-                header.innerHTML = '<span class="date-block-title">📅 ' + formatDateLabel(date.eventDate) + '</span>';
+
+                var titleSpan = document.createElement('span');
+                titleSpan.className = 'date-block-title';
+                titleSpan.textContent = '📅';
+                header.appendChild(titleSpan);
+
+                var dateInput = document.createElement('input');
+                dateInput.type = 'date';
+                dateInput.value = date.eventDate;
+                dateInput.style.width = '10rem';
+                header.appendChild(dateInput);
+
+                var amountLabel = document.createElement('span');
+                amountLabel.textContent = '£';
+                header.appendChild(amountLabel);
+
+                var amountInput = document.createElement('input');
+                amountInput.type = 'number';
+                amountInput.step = '0.01';
+                amountInput.min = '0';
+                amountInput.placeholder = 'collected';
+                amountInput.style.width = '7rem';
+                amountInput.value = date.amountCollected != null ? date.amountCollected : '';
+                header.appendChild(amountInput);
+
+                var saveDateBtn = document.createElement('button');
+                saveDateBtn.className = 'admin-btn small';
+                saveDateBtn.textContent = 'Save';
+                saveDateBtn.onclick = function() {
+                    runOp('/.netlify/functions/admin-routes', {
+                        op: 'update-date', id: date.id, eventDate: dateInput.value, amountCollected: amountInput.value
+                    }, 'routesStatus');
+                };
+                header.appendChild(saveDateBtn);
 
                 var delBtn = document.createElement('button');
                 delBtn.className = 'admin-btn small danger';
