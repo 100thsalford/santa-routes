@@ -83,11 +83,48 @@
             margin-bottom: 0;
         }
 
-        .shift-row {
+        .shift-row-top {
             display: flex;
             align-items: center;
             justify-content: space-between;
             gap: 0.75rem;
+        }
+
+        .shift-detail {
+            display: block;
+            font-size: 0.85rem;
+            color: #666;
+            margin-top: 0.35rem;
+        }
+
+        .shift-detail a {
+            color: var(--santa-green);
+            font-weight: bold;
+        }
+
+        .shift-map-btn {
+            background: var(--santa-green);
+            color: white;
+            border: none;
+            border-radius: 999px;
+            padding: 0.3rem 0.9rem;
+            font-size: 0.8rem;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 0.4rem;
+        }
+
+        .shift-map-btn:hover {
+            opacity: 0.9;
+        }
+
+        .shift-map-warning {
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+            font-size: 0.75rem;
+            color: var(--santa-red);
+            margin-top: 0.35rem;
         }
 
         .shift-row-cancel-btn {
@@ -411,15 +448,48 @@
                                 weekday: 'short', day: 'numeric', month: 'short'
                             });
 
+                            var top = document.createElement('div');
+                            top.className = 'shift-row-top';
+
                             var label = document.createElement('span');
                             label.textContent = dateLabel + ' — ' + shift.routeName + (shift.role ? ' (' + shift.role + ')' : '');
-                            row.appendChild(label);
+                            top.appendChild(label);
 
                             var cancelBtn = document.createElement('button');
                             cancelBtn.className = 'shift-row-cancel-btn';
                             cancelBtn.textContent = 'Cancel';
                             cancelBtn.onclick = function() { cancelShift(shift.routeDateId, row, cancelBtn); };
-                            row.appendChild(cancelBtn);
+                            top.appendChild(cancelBtn);
+
+                            row.appendChild(top);
+
+                            if (shift.what3words) {
+                                var w3w = document.createElement('span');
+                                w3w.className = 'shift-detail';
+                                w3w.innerHTML = '📍 Meeting point: <a href="https://w3w.co/' + encodeURIComponent(shift.what3words) +
+                                    '" target="_blank" rel="noopener noreferrer">///' + shift.what3words + '</a>';
+                                row.appendChild(w3w);
+                            }
+
+                            if (shift.notes) {
+                                var notesEl = document.createElement('span');
+                                notesEl.className = 'shift-detail';
+                                notesEl.textContent = shift.notes;
+                                row.appendChild(notesEl);
+                            }
+
+                            if (shift.hasRouteMap) {
+                                var mapBtn = document.createElement('button');
+                                mapBtn.className = 'shift-map-btn';
+                                mapBtn.textContent = 'View route map';
+                                mapBtn.onclick = function() { viewRouteMap(shift.routeDateId, mapBtn); };
+                                row.appendChild(mapBtn);
+
+                                var warning = document.createElement('span');
+                                warning.className = 'shift-map-warning';
+                                warning.textContent = '⚠️ Please don\'t share the route map outside the volunteer group.';
+                                row.appendChild(warning);
+                            }
 
                             shiftsContent.appendChild(row);
                         });
@@ -464,6 +534,14 @@
                         badge.textContent = shiftStatusLabel(shift.capacity, shift.signupCount);
                         info.textContent = dateLabel + ' — ' + shift.routeName + ' ';
                         info.appendChild(badge);
+
+                        if (shift.what3words) {
+                            var openW3w = document.createElement('span');
+                            openW3w.className = 'shift-detail';
+                            openW3w.textContent = '📍 ///' + shift.what3words;
+                            info.appendChild(openW3w);
+                        }
+
                         row.appendChild(info);
 
                         var claimBtn = document.createElement('button');
@@ -479,6 +557,31 @@
                     console.error('Error loading open shifts:', err);
                     openShiftsContent.classList.add('shifts-empty');
                     openShiftsContent.textContent = "Couldn't load open shifts — please try refreshing the page.";
+                }
+            }
+
+            async function viewRouteMap(routeDateId, btn) {
+                var originalText = btn.textContent;
+                btn.disabled = true;
+                btn.textContent = 'Loading...';
+                try {
+                    var res = await authedFetch('/.netlify/functions/get-route-map?routeDateId=' + routeDateId);
+                    if (!res.ok) {
+                        var data = await res.json();
+                        throw new Error(data.error || 'Could not load map');
+                    }
+                    var blob = await res.blob();
+                    var url = URL.createObjectURL(blob);
+                    window.open(url, '_blank');
+                    btn.disabled = false;
+                    btn.textContent = originalText;
+                } catch (err) {
+                    console.error('Error viewing route map:', err);
+                    btn.textContent = "Couldn't open — try again";
+                    setTimeout(function() {
+                        btn.disabled = false;
+                        btn.textContent = originalText;
+                    }, 2500);
                 }
             }
 
