@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex">
+    <meta name="description" content="Volunteer portal for Santa Super Sleigh Salford helpers.">
+    <title>Volunteer Portal | Santa Super Sleigh Salford</title>
+    <link rel="stylesheet" href="styles.css?v=20260911">
+    <style>
+        .volunteer-card {
+            background: white;
+            border-radius: 16px;
+            padding: 2rem 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            text-align: center;
+        }
+
+        .volunteer-card p {
+            color: var(--text-dark);
+            line-height: 1.7;
+            margin-bottom: 1.5rem;
+        }
+
+        .volunteer-login-btn {
+            display: inline-block;
+            background: var(--santa-green);
+            color: white;
+            border: none;
+            border-radius: 999px;
+            padding: 0.9rem 2rem;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .volunteer-login-btn:hover {
+            opacity: 0.9;
+        }
+
+        .volunteer-dashboard {
+            display: none;
+        }
+
+        .volunteer-dashboard.visible {
+            display: block;
+        }
+
+        .volunteer-welcome {
+            text-align: left;
+        }
+
+        .volunteer-welcome .block-title {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: var(--santa-green);
+            margin: 1.5rem 0 0.75rem;
+        }
+
+        .volunteer-welcome .block-title:first-child {
+            margin-top: 0;
+        }
+
+        .shifts-empty {
+            background: #f4f4f4;
+            border-radius: 10px;
+            padding: 1rem;
+            color: #555;
+            text-align: left;
+        }
+
+        .preference-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            text-align: left;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .preference-row:last-of-type {
+            border-bottom: none;
+        }
+
+        .preference-label {
+            color: var(--text-dark);
+        }
+
+        .preference-hint {
+            display: block;
+            font-size: 0.85rem;
+            color: #777;
+            margin-top: 0.15rem;
+        }
+
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 46px;
+            height: 26px;
+            flex-shrink: 0;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            inset: 0;
+            background-color: #ccc;
+            border-radius: 999px;
+            transition: 0.2s;
+        }
+
+        .toggle-slider::before {
+            position: absolute;
+            content: "";
+            height: 20px;
+            width: 20px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            border-radius: 50%;
+            transition: 0.2s;
+        }
+
+        .toggle-switch input:checked + .toggle-slider {
+            background-color: var(--santa-green);
+        }
+
+        .toggle-switch input:checked + .toggle-slider::before {
+            transform: translateX(20px);
+        }
+
+        .volunteer-save-status {
+            font-size: 0.85rem;
+            color: var(--santa-green);
+            margin-top: 0.5rem;
+            min-height: 1.2em;
+            text-align: left;
+        }
+
+        .volunteer-logout-btn {
+            background: none;
+            border: 2px solid var(--santa-red);
+            color: var(--santa-red);
+            border-radius: 999px;
+            padding: 0.5rem 1.25rem;
+            font-size: 0.9rem;
+            cursor: pointer;
+            margin-top: 1.5rem;
+        }
+
+        .volunteer-logout-btn:hover {
+            background: var(--santa-red);
+            color: white;
+        }
+
+        .volunteer-loading {
+            color: #777;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🎅 Volunteer Portal</h1>
+        <p>100th Salford Scout Group | Santa Super Sleigh Salford</p>
+    </div>
+
+    <div class="container">
+        <a href="index.html" class="back-btn">← Back to Home</a>
+
+        <!-- Logged-out state -->
+        <div class="volunteer-card" id="loggedOutCard">
+            <p>This portal is for invited Santa Sleigh volunteers. If you've received an invite email, click below to log in and finish setting up your account. If you haven't been invited yet, get in touch with your route lead.</p>
+            <button class="volunteer-login-btn" id="loginBtn">Log In</button>
+        </div>
+
+        <!-- Logged-in state -->
+        <div class="volunteer-card volunteer-dashboard" id="dashboardCard">
+            <div class="volunteer-welcome">
+                <p id="welcomeText" class="volunteer-loading">Loading your profile...</p>
+
+                <div class="block-title">🗓️ My Shifts</div>
+                <div id="shiftsContent" class="shifts-empty">
+                    No shifts assigned yet — check back once this year's routes and dates are finalised.
+                </div>
+
+                <div class="block-title">✉️ Reminder Emails</div>
+                <div class="preference-row">
+                    <span class="preference-label">
+                        Send me a reminder on the day of my shift
+                        <span class="preference-hint">Sent the morning of any route/date you're assigned to.</span>
+                    </span>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="reminderToggle">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+                <div class="volunteer-save-status" id="saveStatus"></div>
+            </div>
+
+            <button class="volunteer-logout-btn" id="logoutBtn">Log Out</button>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <p>🎄 Supporting <a href="https://www.facebook.com/100thsalford" target="_blank" rel="noopener noreferrer" class="footer-link">100th Salford Scout Group</a> 🎄</p>
+    </footer>
+
+    <script type="text/javascript" src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
+    <script>
+        (function() {
+            'use strict';
+
+            var loggedOutCard = document.getElementById('loggedOutCard');
+            var dashboardCard = document.getElementById('dashboardCard');
+            var welcomeText = document.getElementById('welcomeText');
+            var shiftsContent = document.getElementById('shiftsContent');
+            var reminderToggle = document.getElementById('reminderToggle');
+            var saveStatus = document.getElementById('saveStatus');
+
+            var currentProfile = null;
+            var saveTimer = null;
+
+            function showLoggedOut() {
+                loggedOutCard.style.display = '';
+                dashboardCard.classList.remove('visible');
+            }
+
+            function showDashboard() {
+                loggedOutCard.style.display = 'none';
+                dashboardCard.classList.add('visible');
+            }
+
+            async function authedFetch(url, options) {
+                var user = netlifyIdentity.currentUser();
+                if (!user) throw new Error('Not logged in');
+                var token = await user.jwt();
+                options = options || {};
+                options.headers = Object.assign({}, options.headers, {
+                    'Authorization': 'Bearer ' + token
+                });
+                return fetch(url, options);
+            }
+
+            async function loadProfile() {
+                welcomeText.textContent = 'Loading your profile...';
+                welcomeText.classList.add('volunteer-loading');
+                try {
+                    var res = await authedFetch('/.netlify/functions/get-volunteer-profile');
+                    var profile = await res.json();
+                    if (!res.ok) throw new Error(profile.error || 'Could not load profile');
+
+                    currentProfile = profile;
+                    var user = netlifyIdentity.currentUser();
+                    var name = (user && user.user_metadata && user.user_metadata.full_name) || profile.email;
+                    welcomeText.textContent = 'Welcome back, ' + name + '!';
+                    welcomeText.classList.remove('volunteer-loading');
+
+                    reminderToggle.checked = !!profile.reminderEmailOptIn;
+
+                    if (profile.shifts && profile.shifts.length > 0) {
+                        shiftsContent.textContent = JSON.stringify(profile.shifts);
+                    } else {
+                        shiftsContent.textContent = "No shifts assigned yet — check back once this year's routes and dates are finalised.";
+                    }
+                } catch (err) {
+                    console.error('Error loading volunteer profile:', err);
+                    welcomeText.textContent = "Couldn't load your profile — please try refreshing the page.";
+                    welcomeText.classList.remove('volunteer-loading');
+                }
+            }
+
+            async function saveReminderPreference() {
+                saveStatus.textContent = 'Saving...';
+                try {
+                    var res = await authedFetch('/.netlify/functions/update-volunteer-profile', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            reminderEmailOptIn: reminderToggle.checked,
+                            preferredEmail: currentProfile ? currentProfile.preferredEmail : null
+                        })
+                    });
+                    var updated = await res.json();
+                    if (!res.ok) throw new Error(updated.error || 'Could not save');
+                    currentProfile = updated;
+                    saveStatus.textContent = 'Saved.';
+                    setTimeout(function() { saveStatus.textContent = ''; }, 2000);
+                } catch (err) {
+                    console.error('Error saving reminder preference:', err);
+                    saveStatus.textContent = "Couldn't save — please try again.";
+                }
+            }
+
+            reminderToggle.addEventListener('change', function() {
+                clearTimeout(saveTimer);
+                saveTimer = setTimeout(saveReminderPreference, 300);
+            });
+
+            document.getElementById('loginBtn').addEventListener('click', function() {
+                netlifyIdentity.open('login');
+            });
+
+            document.getElementById('logoutBtn').addEventListener('click', function() {
+                netlifyIdentity.logout();
+            });
+
+            netlifyIdentity.on('init', function(user) {
+                if (user) {
+                    showDashboard();
+                    loadProfile();
+                } else {
+                    showLoggedOut();
+                }
+            });
+
+            netlifyIdentity.on('login', function() {
+                showDashboard();
+                loadProfile();
+                netlifyIdentity.close();
+            });
+
+            netlifyIdentity.on('logout', function() {
+                currentProfile = null;
+                showLoggedOut();
+            });
+
+            netlifyIdentity.init();
+        })();
+    </script>
+
+    <!-- Cloudflare Web Analytics --><script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "3b7106934eac4fcfa830d632dc201682"}'></script><!-- End Cloudflare Web Analytics -->
+</body>
+</html>
