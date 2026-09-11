@@ -27,12 +27,12 @@ export default async (req, context) => {
 
     const [routeRows, dateRows, streetRows, settingsRows, volunteerRows, assignmentRows] = await Promise.all([
       db.sql`SELECT id, name, display_order FROM routes ORDER BY display_order NULLS LAST, name`,
-      db.sql`SELECT id, route_id, to_char(event_date, 'YYYY-MM-DD') AS event_date, amount_collected FROM route_dates ORDER BY event_date`,
+      db.sql`SELECT id, route_id, to_char(event_date, 'YYYY-MM-DD') AS event_date, amount_collected, volunteer_capacity FROM route_dates ORDER BY event_date`,
       db.sql`SELECT id, route_date_id, sequence, name, time_range FROM streets ORDER BY route_date_id, sequence`,
       db.sql`SELECT key, value FROM settings`,
       db.sql`SELECT id, email, reminder_email_opt_in FROM volunteers ORDER BY email`,
       db.sql`
-        SELECT sa.id, sa.route_date_id, sa.volunteer_id, sa.role,
+        SELECT sa.id, sa.route_date_id, sa.volunteer_id, sa.role, sa.source,
                r.name AS route_name, to_char(rd.event_date, 'YYYY-MM-DD') AS event_date
         FROM shift_assignments sa
         JOIN route_dates rd ON sa.route_date_id = rd.id
@@ -40,6 +40,11 @@ export default async (req, context) => {
         ORDER BY rd.event_date
       `
     ]);
+
+    const signupCountByDate = {};
+    for (const a of assignmentRows) {
+      signupCountByDate[a.route_date_id] = (signupCountByDate[a.route_date_id] || 0) + 1;
+    }
 
     const streetsByDate = {};
     for (const s of streetRows) {
@@ -55,6 +60,8 @@ export default async (req, context) => {
         eventDate: d.event_date,
         year: parseInt(d.event_date.slice(0, 4), 10),
         amountCollected: d.amount_collected != null ? Number(d.amount_collected) : null,
+        volunteerCapacity: d.volunteer_capacity != null ? Number(d.volunteer_capacity) : null,
+        signupCount: signupCountByDate[d.id] || 0,
         streets: streetsByDate[d.id] || []
       });
     }
@@ -77,7 +84,8 @@ export default async (req, context) => {
         routeDateId: a.route_date_id,
         routeName: a.route_name,
         eventDate: a.event_date,
-        role: a.role
+        role: a.role,
+        source: a.source
       });
     }
 

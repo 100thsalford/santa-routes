@@ -86,6 +86,19 @@
         .field-amount { width: 7rem; box-sizing: border-box; }
         .field-seq { width: 4rem; box-sizing: border-box; }
 
+        .shift-status-badge {
+            display: inline-block;
+            font-size: 0.75rem;
+            font-weight: bold;
+            padding: 0.2rem 0.6rem;
+            border-radius: 999px;
+            white-space: nowrap;
+        }
+        .shift-status-badge.uncapped { background: #eee; color: #666; }
+        .shift-status-badge.open { background: #e3f2e6; color: #2e7d32; }
+        .shift-status-badge.urgent { background: #fdecea; color: #c62828; }
+        .shift-status-badge.full { background: #e8f0fe; color: #1a56b0; }
+
         .route-block, .date-block {
             border: 1px solid #eee;
             border-radius: 10px;
@@ -674,6 +687,21 @@
                 });
             }
 
+            // Mirrors the status logic in netlify/functions/get-shift-openings.js
+            // (kept in sync manually -- see the note there about this codebase's
+            // per-function self-contained-helpers convention).
+            function shiftStatusClass(capacity, signupCount) {
+                if (capacity == null) return 'uncapped';
+                if (signupCount >= capacity) return 'full';
+                if (signupCount === 0 || signupCount / capacity <= 0.5) return 'urgent';
+                return 'open';
+            }
+
+            function shiftStatusLabel(capacity, signupCount) {
+                if (capacity == null) return signupCount + ' signed up';
+                return signupCount + ' / ' + capacity + ' volunteers';
+            }
+
             // ---- Routes & Streets ----
 
             var selectedYear = null;
@@ -823,12 +851,27 @@
                 amountInput.value = date.amountCollected != null ? date.amountCollected : '';
                 header.appendChild(amountInput);
 
+                var capacityInput = document.createElement('input');
+                capacityInput.type = 'number';
+                capacityInput.step = '1';
+                capacityInput.min = '0';
+                capacityInput.placeholder = 'volunteers needed';
+                capacityInput.className = 'field-narrow';
+                capacityInput.title = 'Volunteer capacity for self-serve signup (leave blank to not track one)';
+                capacityInput.value = date.volunteerCapacity != null ? date.volunteerCapacity : '';
+                header.appendChild(capacityInput);
+
+                var shiftBadge = document.createElement('span');
+                shiftBadge.className = 'shift-status-badge ' + shiftStatusClass(date.volunteerCapacity, date.signupCount);
+                shiftBadge.textContent = shiftStatusLabel(date.volunteerCapacity, date.signupCount);
+                header.appendChild(shiftBadge);
+
                 var saveDateBtn = document.createElement('button');
                 saveDateBtn.className = 'admin-btn small';
                 saveDateBtn.textContent = 'Save';
                 saveDateBtn.onclick = function() {
                     runOp('/.netlify/functions/admin-routes', {
-                        op: 'update-date', id: date.id, eventDate: dateInput.value, amountCollected: amountInput.value
+                        op: 'update-date', id: date.id, eventDate: dateInput.value, amountCollected: amountInput.value, volunteerCapacity: capacityInput.value
                     }, 'routesStatus');
                 };
                 header.appendChild(saveDateBtn);
@@ -1035,7 +1078,8 @@
                         var chip = document.createElement('span');
                         chip.className = 'shift-chip';
                         chip.innerHTML = '<span>' + escapeHtml(shift.routeName) + ' — ' + formatDateLabel(shift.eventDate) +
-                            (shift.role ? ' (' + escapeHtml(shift.role) + ')' : '') + '</span>';
+                            (shift.role ? ' (' + escapeHtml(shift.role) + ')' : '') +
+                            (shift.source === 'self' ? ' <em>· self-signed up</em>' : '') + '</span>';
                         var removeBtn = document.createElement('button');
                         removeBtn.textContent = '✕';
                         removeBtn.onclick = function() {

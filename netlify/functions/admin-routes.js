@@ -62,8 +62,11 @@ export default async (req, context) => {
         const routeId = parseInt(body.routeId, 10);
         const eventDate = String(body.eventDate || '').trim();
         if (!routeId || !eventDate) return badRequest('routeId and eventDate are required');
+        const volunteerCapacity = body.volunteerCapacity != null && String(body.volunteerCapacity).trim() !== ''
+          ? parseInt(body.volunteerCapacity, 10)
+          : null;
         const rows = await db.sql`
-          INSERT INTO route_dates (route_id, event_date) VALUES (${routeId}, ${eventDate})
+          INSERT INTO route_dates (route_id, event_date, volunteer_capacity) VALUES (${routeId}, ${eventDate}, ${volunteerCapacity})
           RETURNING id
         `;
         return ok({ id: rows[0].id });
@@ -83,8 +86,11 @@ export default async (req, context) => {
         const amountCollected = body.amountCollected != null && String(body.amountCollected).trim() !== ''
           ? Number(body.amountCollected)
           : null;
+        const volunteerCapacity = body.volunteerCapacity != null && String(body.volunteerCapacity).trim() !== ''
+          ? parseInt(body.volunteerCapacity, 10)
+          : null;
         await db.sql`
-          UPDATE route_dates SET event_date = ${eventDate}, amount_collected = ${amountCollected}
+          UPDATE route_dates SET event_date = ${eventDate}, amount_collected = ${amountCollected}, volunteer_capacity = ${volunteerCapacity}
           WHERE id = ${id}
         `;
         return ok();
