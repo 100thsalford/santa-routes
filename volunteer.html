@@ -83,6 +83,94 @@
             margin-bottom: 0;
         }
 
+        .shift-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
+        }
+
+        .shift-row-cancel-btn {
+            background: none;
+            border: 1px solid var(--santa-red);
+            color: var(--santa-red);
+            border-radius: 999px;
+            padding: 0.3rem 0.8rem;
+            font-size: 0.8rem;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+
+        .shift-row-cancel-btn:hover {
+            background: var(--santa-red);
+            color: white;
+        }
+
+        .shift-row-note {
+            display: block;
+            font-size: 0.8rem;
+            color: #777;
+            margin-top: 0.2rem;
+        }
+
+        .open-shift-row {
+            background: #f4f4f4;
+            border-radius: 10px;
+            padding: 0.75rem 1rem;
+            margin-bottom: 0.5rem;
+            text-align: left;
+            color: var(--text-dark);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        .open-shift-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .open-shift-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .shift-status-badge {
+            display: inline-block;
+            font-size: 0.75rem;
+            font-weight: bold;
+            padding: 0.2rem 0.6rem;
+            border-radius: 999px;
+            white-space: nowrap;
+            margin-left: 0.5rem;
+        }
+        .shift-status-badge.uncapped { background: #eee; color: #666; }
+        .shift-status-badge.open { background: #e3f2e6; color: #2e7d32; }
+        .shift-status-badge.urgent { background: #fdecea; color: #c62828; }
+        .shift-status-badge.full { background: #e8f0fe; color: #1a56b0; }
+
+        .shift-claim-btn {
+            background: var(--santa-green);
+            color: white;
+            border: none;
+            border-radius: 999px;
+            padding: 0.4rem 1rem;
+            font-size: 0.85rem;
+            font-weight: bold;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+
+        .shift-claim-btn:hover {
+            opacity: 0.9;
+        }
+
+        .shift-claim-btn:disabled {
+            background: #ccc;
+            cursor: default;
+        }
+
         .preference-row {
             display: flex;
             align-items: center;
@@ -216,6 +304,12 @@
                     No shifts assigned yet — check back once this year's routes and dates are finalised.
                 </div>
 
+                <div class="block-title">🙋 Open Shifts</div>
+                <div id="openShiftsContent" class="shifts-empty">
+                    Loading open shifts...
+                </div>
+                <div class="volunteer-save-status" id="openShiftsStatus"></div>
+
                 <div class="block-title">✉️ Reminder Emails</div>
                 <div class="preference-row">
                     <span class="preference-label">
@@ -247,11 +341,28 @@
             var dashboardCard = document.getElementById('dashboardCard');
             var welcomeText = document.getElementById('welcomeText');
             var shiftsContent = document.getElementById('shiftsContent');
+            var openShiftsContent = document.getElementById('openShiftsContent');
+            var openShiftsStatus = document.getElementById('openShiftsStatus');
             var reminderToggle = document.getElementById('reminderToggle');
             var saveStatus = document.getElementById('saveStatus');
 
             var currentProfile = null;
             var saveTimer = null;
+
+            // Mirrors the status logic in netlify/functions/get-shift-openings.js
+            // (kept in sync manually -- see the note there about this codebase's
+            // per-function self-contained-helpers convention).
+            function shiftStatusClass(capacity, signupCount) {
+                if (capacity == null) return 'uncapped';
+                if (signupCount >= capacity) return 'full';
+                if (signupCount === 0 || signupCount / capacity <= 0.5) return 'urgent';
+                return 'open';
+            }
+
+            function shiftStatusLabel(capacity, signupCount) {
+                if (capacity == null) return signupCount + ' signed up';
+                return signupCount + ' / ' + capacity + ' volunteers';
+            }
 
             function showLoggedOut() {
                 loggedOutCard.style.display = '';
@@ -299,7 +410,17 @@
                             var dateLabel = new Date(shift.eventDate + 'T00:00:00').toLocaleDateString('en-GB', {
                                 weekday: 'short', day: 'numeric', month: 'short'
                             });
-                            row.textContent = dateLabel + ' — ' + shift.routeName + (shift.role ? ' (' + shift.role + ')' : '');
+
+                            var label = document.createElement('span');
+                            label.textContent = dateLabel + ' — ' + shift.routeName + (shift.role ? ' (' + shift.role + ')' : '');
+                            row.appendChild(label);
+
+                            var cancelBtn = document.createElement('button');
+                            cancelBtn.className = 'shift-row-cancel-btn';
+                            cancelBtn.textContent = 'Cancel';
+                            cancelBtn.onclick = function() { cancelShift(shift.routeDateId, row, cancelBtn); };
+                            row.appendChild(cancelBtn);
+
                             shiftsContent.appendChild(row);
                         });
                     } else {
@@ -310,6 +431,101 @@
                     console.error('Error loading volunteer profile:', err);
                     welcomeText.textContent = "Couldn't load your profile — please try refreshing the page.";
                     welcomeText.classList.remove('volunteer-loading');
+                }
+            }
+
+            async function loadOpenShifts() {
+                try {
+                    var res = await authedFetch('/.netlify/functions/get-shift-openings');
+                    var data = await res.json();
+                    if (!res.ok) throw new Error(data.error || 'Could not load open shifts');
+
+                    var shifts = (data.shifts || []).filter(function(s) { return !s.viewerSignedUp; });
+
+                    if (shifts.length === 0) {
+                        openShiftsContent.classList.add('shifts-empty');
+                        openShiftsContent.textContent = 'No open shifts to claim right now — check back once more dates are added.';
+                        return;
+                    }
+
+                    openShiftsContent.innerHTML = '';
+                    openShiftsContent.classList.remove('shifts-empty');
+                    shifts.forEach(function(shift) {
+                        var row = document.createElement('div');
+                        row.className = 'open-shift-row';
+
+                        var info = document.createElement('div');
+                        info.className = 'open-shift-info';
+                        var dateLabel = new Date(shift.eventDate + 'T00:00:00').toLocaleDateString('en-GB', {
+                            weekday: 'short', day: 'numeric', month: 'short'
+                        });
+                        var badge = document.createElement('span');
+                        badge.className = 'shift-status-badge ' + shiftStatusClass(shift.capacity, shift.signupCount);
+                        badge.textContent = shiftStatusLabel(shift.capacity, shift.signupCount);
+                        info.textContent = dateLabel + ' — ' + shift.routeName + ' ';
+                        info.appendChild(badge);
+                        row.appendChild(info);
+
+                        var claimBtn = document.createElement('button');
+                        claimBtn.className = 'shift-claim-btn';
+                        claimBtn.textContent = shift.status === 'full' ? 'Full' : 'Claim shift';
+                        claimBtn.disabled = shift.status === 'full';
+                        claimBtn.onclick = function() { claimShift(shift.id, claimBtn); };
+                        row.appendChild(claimBtn);
+
+                        openShiftsContent.appendChild(row);
+                    });
+                } catch (err) {
+                    console.error('Error loading open shifts:', err);
+                    openShiftsContent.classList.add('shifts-empty');
+                    openShiftsContent.textContent = "Couldn't load open shifts — please try refreshing the page.";
+                }
+            }
+
+            async function claimShift(routeDateId, btn) {
+                btn.disabled = true;
+                openShiftsStatus.textContent = 'Claiming shift...';
+                try {
+                    var res = await authedFetch('/.netlify/functions/volunteer-shift-signup', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ op: 'claim', routeDateId: routeDateId })
+                    });
+                    var result = await res.json();
+                    if (!res.ok) throw new Error(result.message || result.error || 'Could not claim shift');
+                    openShiftsStatus.textContent = 'Shift claimed — see it under My Shifts.';
+                    setTimeout(function() { openShiftsStatus.textContent = ''; }, 4000);
+                    loadProfile();
+                    loadOpenShifts();
+                } catch (err) {
+                    console.error('Error claiming shift:', err);
+                    openShiftsStatus.textContent = err.message || "Couldn't claim that shift — please try again.";
+                    btn.disabled = false;
+                }
+            }
+
+            async function cancelShift(routeDateId, row, btn) {
+                btn.disabled = true;
+                try {
+                    var res = await authedFetch('/.netlify/functions/volunteer-shift-signup', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ op: 'cancel', routeDateId: routeDateId })
+                    });
+                    var result = await res.json();
+                    if (!res.ok) throw new Error(result.message || result.error || 'Could not cancel shift');
+                    loadProfile();
+                    loadOpenShifts();
+                } catch (err) {
+                    console.error('Error cancelling shift:', err);
+                    var note = row.querySelector('.shift-row-note');
+                    if (!note) {
+                        note = document.createElement('span');
+                        note.className = 'shift-row-note';
+                        row.appendChild(note);
+                    }
+                    note.textContent = err.message || "Couldn't cancel — please try again.";
+                    btn.disabled = false;
                 }
             }
 
@@ -352,6 +568,7 @@
                 if (user) {
                     showDashboard();
                     loadProfile();
+                    loadOpenShifts();
                 } else {
                     showLoggedOut();
                 }
@@ -360,6 +577,7 @@
             netlifyIdentity.on('login', function() {
                 showDashboard();
                 loadProfile();
+                loadOpenShifts();
                 netlifyIdentity.close();
             });
 
