@@ -4,6 +4,7 @@
   "description": "Netlify functions for Santa Sleigh live tracking",
   "dependencies": {
     "xml2js": "^0.6.2",
+    "@netlify/blobs": "^11.0.3",
     "@netlify/database": "^2.0.1",
     "@netlify/identity": "^2.0.0"
   }
