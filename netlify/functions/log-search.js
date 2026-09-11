@@ -1,105 +1,52 @@
-// FILE: netlify/functions/log-search.js
-// DEBUG VERSION: Temporarily use this to see what's happening
+// Logs a street search from index.html's "When is Santa visiting?" search
+// box into the search_logs table. This used to POST to a Google Sheets
+// webhook (GOOGLE_SHEETS_WEBHOOK_URL) with only a 24-hour Netlify function
+// log as fallback -- moved onto the same Postgres DB as the rest of the
+// site so search history has a permanent, queryable home. Fire-and-forget
+// from the client (analytics.js), so failures here should never surface
+// to the visitor.
 
-exports.handler = async (event, context) => {
-    // Only allow POST requests
-    if (event.httpMethod !== 'POST') {
-        return {
-            statusCode: 405,
-            body: JSON.stringify({ error: 'Method not allowed' })
-        };
-    }
+import { getDatabase } from '@netlify/database';
 
-    try {
-        const data = JSON.parse(event.body);
-        const timestamp = new Date().toISOString();
-        
-        // Get user info
-        const userAgent = event.headers['user-agent'] || 'Unknown';
-        const referer = event.headers['referer'] || 'Direct';
-        const ip = event.headers['x-forwarded-for'] || event.headers['client-ip'] || 'Unknown';
-        const cleanIp = ip.split(',')[0].trim();
-        
-        // Get approximate location from IP using Netlify's geo data
-        const country = event.headers['x-country'] || 'Unknown';
-        const city = event.headers['x-city'] || 'Unknown';
-        const region = event.headers['x-subdivision-code'] || 'Unknown';
-        
-        // Build the log entry
-        const logEntry = {
-            timestamp,
-            searchTerm: data.searchTerm,
-            matchFound: data.matchFound,
-            matchedStreet: data.matchedStreet || null,
-            resultsCount: data.resultsCount || 0,
-            userInfo: {
-                ip: cleanIp,
-                country,
-                city,
-                region,
-                userAgent,
-                referer
-            },
-            page: data.page || 'Unknown'
-        };
+const headers = {
+  'Content-Type': 'application/json',
+  'Access-Control-Allow-Origin': '*'
+};
 
-        // Log to Netlify console (24-hour retention)
-        console.log('SEARCH EVENT:', JSON.stringify(logEntry, null, 2));
+export default async (req, context) => {
+  if (req.method !== 'POST') {
+    return new Response(JSON.stringify({ error: 'Method not allowed' }), { status: 405, headers });
+  }
 
-        // 🆕 SEND TO GOOGLE SHEETS for permanent storage
-        const GOOGLE_SHEETS_URL = process.env.GOOGLE_SHEETS_WEBHOOK_URL;
-        
-        // 🔍 DEBUG: Log environment variable status
-        console.log('🔍 DEBUG: Checking environment variables...');
-        console.log('GOOGLE_SHEETS_WEBHOOK_URL exists?', !!GOOGLE_SHEETS_URL);
-        if (GOOGLE_SHEETS_URL) {
-            console.log('GOOGLE_SHEETS_WEBHOOK_URL starts with:', GOOGLE_SHEETS_URL.substring(0, 50) + '...');
-        }
-        
-        if (GOOGLE_SHEETS_URL) {
-            try {
-                console.log('📤 Attempting to send to Google Sheets...');
-                console.log('📦 Payload:', JSON.stringify(logEntry, null, 2));
-                
-                const sheetsResponse = await fetch(GOOGLE_SHEETS_URL, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(logEntry)
-                });
-                
-                const responseText = await sheetsResponse.text();
-                console.log('📥 Google Sheets response status:', sheetsResponse.status);
-                console.log('📥 Google Sheets response body:', responseText);
-                
-                if (sheetsResponse.ok) {
-                    console.log('✅ Successfully sent to Google Sheets');
-                } else {
-                    console.warn('⚠️ Google Sheets response not OK:', sheetsResponse.status);
-                    console.warn('Response body:', responseText);
-                }
-            } catch (sheetsError) {
-                console.error('❌ Failed to send to Google Sheets:', sheetsError.message);
-                console.error('Full error:', sheetsError);
-            }
-        } else {
-            console.log('⚠️ GOOGLE_SHEETS_WEBHOOK_URL not configured - skipping Google Sheets logging');
-        }
+  try {
+    const data = await req.json();
+    const db = getDatabase();
 
-        return {
-            statusCode: 200,
-            headers: {
-                'Content-Type': 'application/json',
-                'Access-Control-Allow-Origin': '*',
-            },
-            body: JSON.stringify({ success: true, logged: true })
-        };
-    } catch (error) {
-        console.error('Search logging error:', error);
-        return {
-            statusCode: 500,
-            body: JSON.stringify({ error: 'Failed to log search event' })
-        };
-    }
+    const geo = context.geo || {};
+    const userAgent = req.headers.get('user-agent') || 'Unknown';
+    const referer = req.headers.get('referer') || 'Direct';
+    const ip = context.ip
+      || (req.headers.get('x-forwarded-for') || '').split(',')[0].trim()
+      || req.headers.get('client-ip')
+      || 'Unknown';
+    const country = (geo.country && geo.country.name) || req.headers.get('x-country') || 'Unknown';
+    const city = geo.city || req.headers.get('x-city') || 'Unknown';
+    const region = (geo.subdivision && geo.subdivision.code) || req.headers.get('x-subdivision-code') || 'Unknown';
+
+    await db.sql`
+      INSERT INTO search_logs (
+        search_term, match_found, matched_street, results_count,
+        page, user_agent, referer, ip, country, city, region
+      )
+      VALUES (
+        ${data.searchTerm || null}, ${!!data.matchFound}, ${data.matchedStreet || null}, ${data.resultsCount || 0},
+        ${data.page || 'Unknown'}, ${userAgent}, ${referer}, ${ip}, ${country}, ${city}, ${region}
+      )
+    `;
+
+    return new Response(JSON.stringify({ success: true, logged: true }), { status: 200, headers });
+  } catch (error) {
+    console.error('Search logging error:', error);
+    return new Response(JSON.stringify({ error: 'Failed to log search event' }), { status: 500, headers });
+  }
 };
