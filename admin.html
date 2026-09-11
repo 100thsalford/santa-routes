@@ -6,7 +6,7 @@
     <meta name="robots" content="noindex">
     <meta name="description" content="Admin screens for Santa Super Sleigh Salford routes, dates, settings and volunteer shifts.">
     <title>Admin | Santa Super Sleigh Salford</title>
-    <link rel="stylesheet" href="styles.css?v=20260911">
+    <link rel="stylesheet" href="styles.css?v=20260911b">
     <style>
         .admin-card {
             background: white;
@@ -379,6 +379,10 @@
                     <select id="yearSelect"></select>
                     <span style="color:#777; font-size: 0.85rem;">Previous years' routes/streets stay saved — switch years to view or clone from them.</span>
                 </div>
+                <div class="add-row-form" id="geocodeStatusRow" style="margin-bottom: 1rem;">
+                    <button class="admin-btn small" id="geocodeStreetsBtn" type="button">📍 Geocode streets for nearest-match search</button>
+                    <span class="admin-status" id="geocodeStatus" style="margin: 0;"></span>
+                </div>
                 <div id="routesContent"></div>
                 <div class="add-row-form">
                     <input type="text" id="newRouteName" placeholder="New route name">
@@ -510,6 +514,63 @@
                     document.getElementById('routesLoading').textContent = "Couldn't load data — please try refreshing.";
                 }
                 loadSearchActivity();
+                loadGeocodeStatus();
+            }
+
+            // ---- Street geocoding (for the "nearest covered street"
+            // search fallback) ----
+
+            async function loadGeocodeStatus() {
+                try {
+                    var res = await authedFetch('/.netlify/functions/admin-geocode-streets');
+                    var data = await res.json();
+                    if (!res.ok) throw new Error(data.error || 'Could not load geocoding status');
+                    renderGeocodeStatus(data);
+                } catch (err) {
+                    console.error('Error loading geocode status:', err);
+                    var statusEl = document.getElementById('geocodeStatus');
+                    if (statusEl) statusEl.textContent = "Couldn't load geocoding status.";
+                }
+            }
+
+            function renderGeocodeStatus(data) {
+                var statusEl = document.getElementById('geocodeStatus');
+                if (!statusEl) return;
+                if (!data.totalStreets) {
+                    statusEl.textContent = 'No upcoming streets to geocode yet.';
+                } else if (data.remaining <= 0) {
+                    statusEl.textContent = '✅ All ' + data.totalStreets + ' current/upcoming streets are geocoded.';
+                } else {
+                    statusEl.textContent = data.alreadyGeocoded + ' of ' + data.totalStreets + ' streets geocoded — ' + data.remaining + ' remaining.';
+                }
+            }
+
+            var geocodeRunning = false;
+
+            async function runGeocodeStreets() {
+                if (geocodeRunning) return;
+                geocodeRunning = true;
+                var btn = document.getElementById('geocodeStreetsBtn');
+                var statusEl = document.getElementById('geocodeStatus');
+                if (btn) btn.disabled = true;
+                try {
+                    var safety = 0;
+                    while (safety < 200) { // hard cap so a bug can't loop forever
+                        safety++;
+                        var data = await postOp('/.netlify/functions/admin-geocode-streets', {});
+                        renderGeocodeStatus(data);
+                        if (data.failed && data.failed.length) {
+                            console.warn('Streets that failed to geocode this batch:', data.failed);
+                        }
+                        if (data.remaining <= 0) break;
+                    }
+                } catch (err) {
+                    console.error('Error geocoding streets:', err);
+                    if (statusEl) statusEl.textContent = 'Geocoding stopped early: ' + err.message;
+                } finally {
+                    geocodeRunning = false;
+                    if (btn) btn.disabled = false;
+                }
             }
 
             async function loadSearchActivity() {
@@ -911,6 +972,8 @@
                     orderInput.value = '';
                 });
             });
+
+            document.getElementById('geocodeStreetsBtn').addEventListener('click', runGeocodeStreets);
 
             // ---- Season Settings ----
 

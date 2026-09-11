@@ -208,53 +208,84 @@ async function loadRoutes() {
     }
 }
 
-// NEW: Load and display today's streets
+// NEW: Load and display today's streets. When there's no route running
+// tonight (but the season is still active -- i.e. "between nights"), this
+// falls back to showing the next scheduled route's full street list
+// instead of just a "Santa returns on X" message, so visitors can still
+// see exactly where Santa's headed next.
 function loadTodaysStreets() {
     const container = document.getElementById('todaysStreetsContent');
+    const titleEl = document.getElementById('todaysStreetsTitle');
+    const subtitleEl = document.getElementById('todaysStreetsSubtitle');
     if (!container) return;
-    
+
     // Get today's date in YYYY-MM-DD format
     const todayString = (siteStatus && siteStatus.todayDate) || new Date().toISOString().split('T')[0];
-    
+
     // Filter routes for today
     const todaysRoutes = routesData.filter(function(item) {
         return item.date === todayString;
     });
-    
+
     if (todaysRoutes.length > 0) {
-        // Sort by street number
-        todaysRoutes.sort(function(a, b) {
-            const getNumber = function(str) {
-                const match = str.match(/^(\d+)/);
-                return match ? parseInt(match[1]) : 999999;
-            };
-            return getNumber(a.street) - getNumber(b.street);
-        });
-        
-        // Get the route name and date from the first item (all same route/date)
-        const routeName = todaysRoutes[0].route;
-        const routeDate = todaysRoutes[0].date;
-        
-        // Display route info header + streets with times
-        const headerHtml = '<div class="route-group"><div class="route-title">' + formatDate(routeDate) + '</div><div class="route-subtitle">' + escapeHtml(routeName) + '</div></div>';
-        
-        const streetsHtml = todaysRoutes.map(function(item) {
-            const timeDisplay = item.time ? '<span style="color: #165b33; margin-left: 0.5rem;">🕐 Approx. ' + escapeHtml(item.time) + '</span>' : '';
-            return '<div class="street-list-item">' + escapeHtml(item.street) + timeDisplay + '</div>';
-        }).join('');
-        
-        container.innerHTML = headerHtml + '<div class="streets-list-view">' + streetsHtml + '</div>';
-    } else {
-        // No routes today, find next available date
-        const nextDate = findNextAvailableDate();
-        
-        if (nextDate) {
-            const formattedDate = formatDate(nextDate);
-            container.innerHTML = '<div style="text-align: center; padding: 2rem; color: #666; line-height: 1.6;"><strong style="display: block; font-size: 1.1rem; margin-bottom: 0.5rem;">🎅</strong>Santa returns ' + formattedDate + '</div>';
-        } else {
-            container.innerHTML = '<div style="text-align: center; padding: 2rem; color: #666;">🎅 No upcoming routes scheduled</div>';
-        }
+        if (titleEl) titleEl.textContent = "🗓️ Today's Streets";
+        if (subtitleEl) subtitleEl.textContent = 'Streets Santa visits today:';
+        container.innerHTML = renderRouteStreetsHtml(todaysRoutes);
+        return;
     }
+
+    // No route tonight -- find the next scheduled date and show its full
+    // route instead of just an announcement.
+    const nextDate = findNextAvailableDate();
+
+    if (!nextDate) {
+        if (titleEl) titleEl.textContent = "🗓️ Today's Streets";
+        if (subtitleEl) subtitleEl.textContent = 'Streets Santa visits today:';
+        container.innerHTML = '<div style="text-align: center; padding: 2rem; color: #666;">🎅 No upcoming routes scheduled</div>';
+        return;
+    }
+
+    const nextRoutes = routesData.filter(function(item) {
+        return item.date === nextDate;
+    });
+
+    if (nextRoutes.length > 0) {
+        if (titleEl) titleEl.textContent = '📅 Coming Up';
+        if (subtitleEl) subtitleEl.textContent = "Santa isn't out tonight -- here's the next route:";
+        container.innerHTML = renderRouteStreetsHtml(nextRoutes);
+    } else {
+        // We know the next date but don't have its streets yet for some
+        // reason -- fall back to the simple announcement.
+        if (titleEl) titleEl.textContent = "🗓️ Today's Streets";
+        if (subtitleEl) subtitleEl.textContent = 'Streets Santa visits today:';
+        const formattedDate = formatDate(nextDate);
+        container.innerHTML = '<div style="text-align: center; padding: 2rem; color: #666; line-height: 1.6;"><strong style="display: block; font-size: 1.1rem; margin-bottom: 0.5rem;">🎅</strong>Santa returns ' + formattedDate + '</div>';
+    }
+}
+
+// Shared renderer for "one route's worth of streets" used by both the
+// today-branch and the next-route (between-nights) branch above.
+function renderRouteStreetsHtml(routes) {
+    const sorted = routes.slice().sort(function(a, b) {
+        const getNumber = function(str) {
+            const match = str.match(/^(\d+)/);
+            return match ? parseInt(match[1]) : 999999;
+        };
+        return getNumber(a.street) - getNumber(b.street);
+    });
+
+    // Get the route name and date from the first item (all same route/date)
+    const routeName = sorted[0].route;
+    const routeDate = sorted[0].date;
+
+    const headerHtml = '<div class="route-group"><div class="route-title">' + formatDate(routeDate) + '</div><div class="route-subtitle">' + escapeHtml(routeName) + '</div></div>';
+
+    const streetsHtml = sorted.map(function(item) {
+        const timeDisplay = item.time ? '<span style="color: #165b33; margin-left: 0.5rem;">🕐 Approx. ' + escapeHtml(item.time) + '</span>' : '';
+        return '<div class="street-list-item">' + escapeHtml(item.street) + timeDisplay + '</div>';
+    }).join('');
+
+    return headerHtml + '<div class="streets-list-view">' + streetsHtml + '</div>';
 }
 
 // Find next available date from routes
@@ -490,8 +521,15 @@ function setupSearchListeners() {
     
     // Street search with smart matching
     streetInput.addEventListener('input', function(e) {
-        const query = e.target.value.toLowerCase().trim();
-        
+        const rawTyped = e.target.value.trim();
+        const query = rawTyped.toLowerCase();
+
+        // Bump the generation counter so any in-flight nearest-street
+        // lookup from a previous keystroke knows to ignore its response.
+        window.nearestStreetGen = (window.nearestStreetGen || 0) + 1;
+        const myGen = window.nearestStreetGen;
+        clearTimeout(window.nearestStreetTimeout);
+
         if (query.length < 2) {
             resultsArea.classList.remove('show');
             resultsArea.innerHTML = '<div class="loading">Start typing to search...</div>';
@@ -509,7 +547,17 @@ function setupSearchListeners() {
         });
 
         displayResults(results, 'street');
-        
+
+        // No direct match -- see if what they typed geocodes to somewhere
+        // within a mile of a street we DO cover (handles full addresses,
+        // postcodes, and streets we genuinely don't cover but have a
+        // near neighbour for).
+        if (results.length === 0 && rawTyped.length >= 3) {
+            window.nearestStreetTimeout = setTimeout(function() {
+                checkNearestStreet(rawTyped, myGen);
+            }, 800);
+        }
+
         // 🎅 LOG THE SEARCH - Track search terms and results for analytics
         if (typeof window.logSearch === 'function') {
             const matchFound = results.length > 0;
@@ -549,6 +597,38 @@ function setupSearchListeners() {
 
     // Clear initial loading message
     resultsArea.innerHTML = '<div class="loading">Start typing to search...</div>';
+}
+
+// Called (debounced) when a street search comes back with zero direct
+// matches. Asks find-nearest-street.js to geocode what was typed and
+// checks whether a street we cover is within a mile of it -- if so, we
+// swap the plain "no results" message for a pointer to that street.
+// `gen` guards against a slow response landing after the visitor has
+// already typed something else.
+async function checkNearestStreet(query, gen) {
+    try {
+        const res = await fetch('/.netlify/functions/find-nearest-street', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ query: query })
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+
+        // A newer keystroke has already superseded this lookup.
+        if (gen !== window.nearestStreetGen) return;
+
+        if (data && data.nearestStreet) {
+            const resultsArea = document.getElementById('resultsArea');
+            if (!resultsArea) return;
+            const ns = data.nearestStreet;
+            resultsArea.innerHTML = '<div class="no-results">😕 Sorry, we don\'t cover that street.<br>The nearest street we cover is <strong>' + escapeHtml(ns.street) + '</strong> — coming up on ' + formatDate(ns.date) + '.</div>';
+        }
+        // No nearby match: leave the existing "no matches found" message as-is.
+    } catch (err) {
+        console.error('Error checking nearest street:', err);
+        // Silent failure -- the existing "no results" message stays as-is.
+    }
 }
 
 // Display search results
