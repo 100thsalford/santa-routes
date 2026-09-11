@@ -259,7 +259,13 @@
             var adminData = null; // last fetch of admin-data.js
 
             function isAdmin(user) {
-                return !!(user && user.roles && user.roles.indexOf('admin') !== -1);
+                // The client-side widget's user object exposes roles at
+                // app_metadata.roles, NOT a top-level .roles (that
+                // convenience flattening is only on the server-side
+                // @netlify/identity getUser(), used in the admin-*.js
+                // functions -- those checks were already correct).
+                var roles = user && user.app_metadata && user.app_metadata.roles;
+                return !!(roles && roles.indexOf('admin') !== -1);
             }
 
             function showState(user) {
