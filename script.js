@@ -3,21 +3,49 @@ let routesData = [];
 let currentTab = 'street';
 let selectedStreet = '';
 
+// Cached result of /.netlify/functions/get-site-status -- the single
+// source of truth for "is the season live / are sightings active right
+// now", replacing the old scattered hardcoded date/time checks. Kept
+// fresh via a periodic refresh so time-window based UI (like the report
+// button) still updates correctly for a page left open across a window
+// boundary (e.g. 10pm cutoff).
+let siteStatus = null;
+
+async function refreshSiteStatus() {
+    try {
+        const params = new URLSearchParams(window.location.search);
+        const asOf = params.get('asOf');
+        let url = '/.netlify/functions/get-site-status';
+        if (asOf) {
+            url += '?asOf=' + encodeURIComponent(asOf);
+        }
+        const response = await fetch(url);
+        siteStatus = await response.json();
+    } catch (error) {
+        console.error('Error fetching site status:', error);
+    }
+}
+
 // Initialize when DOM is ready
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', async function() {
     console.log('DOM loaded, initializing...');
-    
+
+    // Fetch site status first so everything date/time-gated below has it
+    // available on first render, then keep it refreshed every minute.
+    await refreshSiteStatus();
+    setInterval(refreshSiteStatus, 60000);
+
     // Initialize main search features
     initializeTabs();
     loadRoutes();
     initializeModal();
-    
+
     // Initialize sightings feature
     initializeSightingsFeature();
-    
+
     // Initialize disclaimer toggle
     initializeDisclaimerToggle();
-    
+
     // Initialize mobile navigation
     initializeMobileNavigation();
 });
@@ -186,8 +214,7 @@ function loadTodaysStreets() {
     if (!container) return;
     
     // Get today's date in YYYY-MM-DD format
-    const today = new Date();
-    const todayString = today.toISOString().split('T')[0];
+    const todayString = (siteStatus && siteStatus.todayDate) || new Date().toISOString().split('T')[0];
     
     // Filter routes for today
     const todaysRoutes = routesData.filter(function(item) {
@@ -234,8 +261,7 @@ function loadTodaysStreets() {
 function findNextAvailableDate() {
     if (routesData.length === 0) return null;
     
-    const today = new Date();
-    const todayString = today.toISOString().split('T')[0];
+    const todayString = (siteStatus && siteStatus.todayDate) || new Date().toISOString().split('T')[0];
     
     // Get all unique dates and sort them
     const dates = [...new Set(routesData.map(r => r.date))].sort();
@@ -742,99 +768,71 @@ async function loadSightings() {
     }
 }
 
-// Check if sightings are available based on date/time
+// Check if sightings are available based on date/time.
+// Driven by siteStatus (from /.netlify/functions/get-site-status), which
+// derives the active window from the actual route dates in Netlify DB and
+// the `settings` table -- instead of dates/times hardcoded to one
+// specific year's calendar.
 function checkSightingsAvailability() {
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = now.getMonth(); // 0-indexed (11 = December)
-    const day = now.getDate();
-    const hours = now.getHours();
-    
-    // Only December (month 11)
-    if (month !== 11) {
+    if (!siteStatus || !siteStatus.sightings) {
         return {
             showData: false,
-            message: 'Santa visits in December! Check back then.'
+            message: 'Loading...'
         };
     }
-    
-    // Define active date ranges (December 1-5 and 8-12)
-    const isWeek1 = day >= 1 && day <= 5;
-    const isWeek2 = day >= 8 && day <= 12;
-    const isActiveDate = isWeek1 || isWeek2;
-    
-    // Not in active date range
-    if (!isActiveDate) {
-        if (day > 12) {
-            return {
-                showData: false,
-                message: 'Santa has returned back to the North Pole ready for the main event Christmas Eve! 🎄'
-            };
-        }
-        return {
-            showData: false,
-            message: 'Check back soon for Santa sightings!'
-        };
-    }
-    
-    // Active dates - check time
-    // Before 5pm (17:00)
-    if (hours < 17) {
-        return {
-            showData: false,
-            message: 'Check back this evening! Santa starts his rounds at 5pm. 🎅'
-        };
-    }
-    
-    // After 10pm (22:00)
-    if (hours >= 22) {
-        // Friday Dec 5th after 10pm
-        if (day === 5) {
-            return {
-                showData: false,
-                message: 'Check back Monday! Santa is resting for the weekend. 😴'
-            };
-        }
-        // Thursday Dec 12th after 10pm
-        if (day === 12) {
-            return {
-                showData: false,
-                message: 'Santa has returned back to the North Pole ready for the main event Christmas Eve! 🎄'
-            };
-        }
-        // Any other day after 10pm
-        return {
-            showData: false,
-            message: 'Check back tomorrow! Santa has finished his rounds for tonight. 🌙'
-        };
-    }
-    
-    // Between 5pm and 10pm on active dates - show data
+
+    const sightings = siteStatus.sightings;
+
     return {
-        showData: true,
-        message: ''
+        showData: sightings.active,
+        message: sightings.active ? '' : sightingsMessageForState(sightings.state, sightings)
     };
 }
 
-// Check if report button should be enabled
+// Maps a sightings.state value (computed server-side) to a friendly message.
+function sightingsMessageForState(state, sightings) {
+    const nextRouteDate = sightings && sightings.nextRouteDate;
+
+    switch (state) {
+        case 'off-season':
+            return 'Santa visits during December! Check back when the season starts.';
+        case 'not-a-route-day':
+            return nextRouteDate
+                ? 'Check back soon for Santa sightings! Next stop: ' + formatDate(nextRouteDate)
+                : 'Check back soon for Santa sightings!';
+        case 'before-window':
+            return 'Check back this evening! Santa starts his rounds at ' + formatHourLabel(sightings.windowStart) + '. \ud83c\udf85';
+        case 'after-window':
+            return nextRouteDate
+                ? 'Check back ' + formatDate(nextRouteDate) + '! Santa has finished his rounds for tonight. \ud83c\udf19'
+                : 'Santa has finished his rounds for tonight. \ud83c\udf19';
+        case 'season-ending':
+            return 'Santa has returned back to the North Pole ready for the main event Christmas Eve! \ud83c\udf84';
+        case 'error':
+            return "Unable to check Santa's schedule right now \u2014 please try again shortly.";
+        default:
+            return 'Check back soon for Santa sightings!';
+    }
+}
+
+// Formats a "HH:MM" 24-hour string as a friendly "5pm" / "5:30pm" label.
+function formatHourLabel(hhmm) {
+    if (!hhmm) return '';
+    const parts = hhmm.split(':').map(Number);
+    const h = parts[0];
+    const m = parts[1] || 0;
+    const period = h >= 12 ? 'pm' : 'am';
+    let hour12 = h % 12;
+    if (hour12 === 0) hour12 = 12;
+    return m === 0 ? (hour12 + period) : (hour12 + ':' + String(m).padStart(2, '0') + period);
+}
+
+// Check if report button should be enabled.
+// Uses the same siteStatus.sightings.active flag as checkSightingsAvailability
+// above, so reporting a sighting is only possible exactly when sightings are
+// being shown.
 function checkReportButtonAvailability() {
-    const now = new Date();
-    const month = now.getMonth();
-    const day = now.getDate();
-    const hours = now.getHours();
-    
-    // Only December
-    if (month !== 11) return false;
-    
-    // Only Dec 1-5 and 8-12
-    const isWeek1 = day >= 1 && day <= 5;
-    const isWeek2 = day >= 8 && day <= 12;
-    const isActiveDate = isWeek1 || isWeek2;
-    
-    if (!isActiveDate) return false;
-    
-    // Only between 5pm (17:00) and 10pm (22:00)
-    return hours >= 17 && hours < 22;
+    return !!(siteStatus && siteStatus.sightings && siteStatus.sightings.active);
 }
 
 function displaySightings(sightings) {
@@ -916,7 +914,7 @@ function initializeSightingModal() {
         
         // Check if reporting is currently allowed
         if (!checkReportButtonAvailability()) {
-            alert('Santa sighting reports are only available between 5pm and 10pm on December 1st-5th and 8th-12th when Santa is out on his rounds! 🎅');
+            alert(siteStatus && siteStatus.sightings ? sightingsMessageForState(siteStatus.sightings.state, siteStatus.sightings) : "Santa sighting reports aren't available right now.");
             return;
         }
         

@@ -126,7 +126,7 @@
 
     <div class="container">
         <!-- Holding Page Card - See You in 2026 -->
-        <div class="holding-card">
+        <div class="holding-card off-season-only">
             <img src="santa-relaxing.png" alt="Santa relaxing by the fireplace">
             <div class="holding-title">See you in 2026!</div>
             <div class="holding-subtitle">
@@ -135,7 +135,7 @@
         </div>
 
         <!-- Total Raised Card -->
-        <div class="total-raised-card">
+        <div class="total-raised-card off-season-only">
             <div class="total-raised-label">Total Raised</div>
             <div class="total-raised-amount">£0.00</div>
             <div class="total-raised-subtitle">for 100th Salford Scout Group</div>
@@ -145,12 +145,12 @@
         <div class="mobile-menu" id="mobileMenu">
             <div class="menu-title">What do you want to do?</div>
             <div class="menu-buttons">
-                <button class="menu-btn date-conditional" data-section="todays-streets-section">🗓️ Today's Streets</button>
-                <button class="menu-btn date-conditional" data-section="search-section">🔍 Search my street name</button>
-                <button class="menu-btn date-conditional" data-section="search-section" data-tab="date">📅 Search streets by date</button>
-                <button class="menu-btn date-conditional" data-section="sightings-view-section">👀 See Santa spotting reports</button>
-                <button class="menu-btn date-conditional" data-section="map-section">🗺️ View route maps</button>
-                <button class="menu-btn date-conditional" data-section="all-routes-section">📋 View list of all routes</button>
+                <button class="menu-btn date-conditional hidden-after-season" data-section="todays-streets-section">🗓️ Today's Streets</button>
+                <button class="menu-btn date-conditional hidden-after-season" data-section="search-section">🔍 Search my street name</button>
+                <button class="menu-btn date-conditional hidden-after-season" data-section="search-section" data-tab="date">📅 Search streets by date</button>
+                <button class="menu-btn date-conditional hidden-after-season" data-section="sightings-view-section">👀 See Santa spotting reports</button>
+                <button class="menu-btn date-conditional hidden-after-season" data-section="map-section">🗺️ View route maps</button>
+                <button class="menu-btn date-conditional hidden-after-season" data-section="all-routes-section">📋 View list of all routes</button>
                 <button class="menu-btn" data-section="facebook-section">📱 See Facebook updates</button>
                 <button class="menu-btn" onclick="window.location.href='about.html'">🎅 About the Sleigh</button>
                 <button class="menu-btn" onclick="window.open('https://checkout.square.site/merchant/MLHCM2TZHZ9NA/checkout/E4KKJFETD5BQZJYHETXWV6S2', '_blank')">💝 Make a donation</button>
@@ -158,7 +158,7 @@
         </div>
 
         <!-- Today's Streets Section -->
-        <div class="content-section date-conditional" id="todays-streets-section">
+        <div class="content-section date-conditional hidden-after-season" id="todays-streets-section">
             <button class="back-btn mobile-only">← Back to Menu</button>
             <div class="search-card">
                 <div class="search-title">🗓️ Today's Streets</div>
@@ -173,7 +173,7 @@
         </div>
 
         <!-- Main Search Card -->
-        <div class="content-section date-conditional" id="search-section">
+        <div class="content-section date-conditional hidden-after-season" id="search-section">
             <button class="back-btn mobile-only">← Back to Menu</button>
         <div class="search-card">
             <div class="search-title">When is Santa visiting?</div>
@@ -232,7 +232,7 @@
         </div>
 
         <!-- Last Seen Section -->
-        <div class="content-section date-conditional" id="sightings-view-section">
+        <div class="content-section date-conditional hidden-after-season" id="sightings-view-section">
             <button class="back-btn mobile-only">← Back to Menu</button>
             <div class="last-seen-section">
                 <div class="section-title">
@@ -253,7 +253,7 @@
         </div>
 
         <!-- Map Section -->
-        <div class="content-section date-conditional" id="map-section">
+        <div class="content-section date-conditional hidden-after-season" id="map-section">
             <button class="back-btn mobile-only">← Back to Menu</button>
             <div class="search-card">
                 <div class="search-title">Interactive Map</div>
@@ -266,7 +266,7 @@
         </div>
 
         <!-- All Routes Section -->
-        <div class="content-section date-conditional" id="all-routes-section">
+        <div class="content-section date-conditional hidden-after-season" id="all-routes-section">
             <button class="back-btn mobile-only">← Back to Menu</button>
             <div class="search-card">
                 <div class="search-title">All Routes</div>
@@ -366,7 +366,7 @@
     <a href="https://glympse.com/!santasleighsalford" 
        target="_blank" 
        rel="noopener noreferrer" 
-       class="track-santa-float date-conditional"
+       class="track-santa-float date-conditional hidden-after-season"
        id="trackSantaFloatBtn"
        data-tracking="track-santa-live-click"
        aria-label="Track Santa Live">
@@ -387,35 +387,39 @@
     <script>
         (function() {
             'use strict';
-            
-            // ============================================
-            // SEASON CUTOFF DATE - UPDATE THIS EACH YEAR
-            // ============================================
-            // Live-tracking nav (Today's Streets, Search, etc.) is shown by
-            // default and gets HIDDEN once this date has passed, switching
-            // back to the "See you next year!" holding page.
-            //
-            // TODO for 2026 season: once route dates are confirmed, set
-            // SEASON_CUTOFF_DATE to the day AFTER the last sleigh run date,
-            // then redeploy so tracking shows again during the season.
-            // Currently still set to the 2025 cutoff, so the holding page
-            // correctly shows until this is updated.
-            const SEASON_CUTOFF_DATE = '2025-12-12'; // TODO: update for 2026 season
 
-            function shouldHideSeasonalContent() {
-                const currentDate = new Date();
-                const cutoffDate = new Date(SEASON_CUTOFF_DATE);
-                return currentDate >= cutoffDate;
-            }
-
-            // Hide seasonal content if date condition is met
-            if (shouldHideSeasonalContent()) {
-                // Add hidden class to all elements with date-conditional class
-                const elementsToHide = document.querySelectorAll('.date-conditional');
-                elementsToHide.forEach(element => {
-                    element.classList.add('hidden-after-season');
+            // Season on/off is driven by the route dates stored in Netlify DB
+            // (see netlify/functions/get-site-status.js), not a hardcoded
+            // date here -- it updates automatically once next season's route
+            // dates are entered. On non-production deploys, an
+            // ?asOf=<ISO datetime> URL parameter can override "now" for
+            // testing (ignored in production).
+            function applySeasonVisibility(isSeasonActive) {
+                document.querySelectorAll('.date-conditional').forEach(function(el) {
+                    el.classList.toggle('hidden-after-season', !isSeasonActive);
+                });
+                document.querySelectorAll('.off-season-only').forEach(function(el) {
+                    el.classList.toggle('hidden-after-season', isSeasonActive);
                 });
             }
+
+            var params = new URLSearchParams(window.location.search);
+            var asOf = params.get('asOf');
+            var url = '/.netlify/functions/get-site-status';
+            if (asOf) {
+                url += '?asOf=' + encodeURIComponent(asOf);
+            }
+
+            fetch(url)
+                .then(function(res) { return res.json(); })
+                .then(function(status) {
+                    applySeasonVisibility(!!(status && status.season && status.season.active));
+                })
+                .catch(function(err) {
+                    console.error('Error fetching site status:', err);
+                    // Fail safe: elements already default to the off-season
+                    // state in the markup, so no further action is needed.
+                });
         })();
     </script>
 
