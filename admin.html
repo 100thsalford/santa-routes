@@ -6,7 +6,7 @@
     <meta name="robots" content="noindex">
     <meta name="description" content="Admin screens for Santa Super Sleigh Salford routes, dates, settings and volunteer shifts.">
     <title>Admin | Santa Super Sleigh Salford</title>
-    <link rel="stylesheet" href="styles.css?v=20260911">
+    <link rel="stylesheet" href="styles.css?v=20260911b">
     <style>
         .admin-card {
             background: white;
@@ -180,6 +180,65 @@
 
         .admin-loading { color: #777; }
 
+        .search-stats-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin-bottom: 1.25rem;
+        }
+
+        .search-stat {
+            background: #f4f4f4;
+            border-radius: 10px;
+            padding: 0.75rem 1rem;
+            flex: 1 1 140px;
+            text-align: center;
+        }
+
+        .search-stat-value {
+            font-size: 1.4rem;
+            font-weight: bold;
+            color: var(--santa-green);
+        }
+
+        .search-stat-label {
+            font-size: 0.8rem;
+            color: #666;
+        }
+
+        .search-activity-subtitle {
+            font-weight: bold;
+            margin: 0 0 0.5rem;
+        }
+
+        .no-match-list {
+            margin: 0 0 1.5rem;
+            padding-left: 1.25rem;
+        }
+
+        .no-match-list li {
+            margin-bottom: 0.25rem;
+            font-size: 0.9rem;
+        }
+
+        .no-match-empty {
+            color: #777;
+            font-size: 0.9rem;
+            margin: 0 0 1.5rem;
+        }
+
+        table.admin-table td.truncate {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .sa-col-time { width: 9rem; }
+        .sa-col-term { width: auto; }
+        .sa-col-match { width: 4rem; }
+        .sa-col-street { width: 10rem; }
+        .sa-col-results { width: 4.5rem; }
+
         .table-scroll {
             overflow-x: auto;
             -webkit-overflow-scrolling: touch;
@@ -257,6 +316,31 @@
             .field-seq {
                 width: 5rem;
             }
+
+            .sa-col-time {
+                width: 6.5rem;
+            }
+
+            .sa-col-match {
+                width: 3rem;
+            }
+
+            .sa-col-street {
+                width: 6rem;
+            }
+
+            .sa-col-results {
+                width: 3.5rem;
+            }
+
+            .search-stat {
+                flex: 1 1 100px;
+                padding: 0.6rem 0.5rem;
+            }
+
+            .search-stat-value {
+                font-size: 1.2rem;
+            }
         }
     </style>
 </head>
@@ -284,6 +368,7 @@
                 <button class="tab-btn active" data-tab="routes">🗺️ Routes &amp; Streets</button>
                 <button class="tab-btn" data-tab="settings">⚙️ Season Settings</button>
                 <button class="tab-btn" data-tab="volunteers">👥 Volunteer Shifts</button>
+                <button class="tab-btn" data-tab="search-activity">🔍 Search Activity</button>
             </div>
 
             <!-- Routes & Streets -->
@@ -293,6 +378,10 @@
                     <label for="yearSelect" style="font-weight: bold;">Season year:</label>
                     <select id="yearSelect"></select>
                     <span style="color:#777; font-size: 0.85rem;">Previous years' routes/streets stay saved — switch years to view or clone from them.</span>
+                </div>
+                <div class="add-row-form" id="geocodeStatusRow" style="margin-bottom: 1rem;">
+                    <button class="admin-btn small" id="geocodeStreetsBtn" type="button">📍 Geocode streets for nearest-match search</button>
+                    <span class="admin-status" id="geocodeStatus" style="margin: 0;"></span>
                 </div>
                 <div id="routesContent"></div>
                 <div class="add-row-form">
@@ -333,6 +422,12 @@
                 <p id="volunteersLoading" class="admin-loading">Loading volunteers...</p>
                 <div id="volunteersContent"></div>
                 <div class="admin-status" id="volunteersStatus"></div>
+            </div>
+
+            <!-- Search Activity -->
+            <div class="admin-card admin-hidden" id="tab-search-activity">
+                <p id="searchActivityLoading" class="admin-loading">Loading search activity...</p>
+                <div id="searchActivityContent"></div>
             </div>
 
             <div style="text-align: right;">
@@ -418,6 +513,159 @@
                     console.error('Error loading admin data:', err);
                     document.getElementById('routesLoading').textContent = "Couldn't load data — please try refreshing.";
                 }
+                loadSearchActivity();
+                loadGeocodeStatus();
+            }
+
+            // ---- Street geocoding (for the "nearest covered street"
+            // search fallback) ----
+
+            async function loadGeocodeStatus() {
+                try {
+                    var res = await authedFetch('/.netlify/functions/admin-geocode-streets');
+                    var data = await res.json();
+                    if (!res.ok) throw new Error(data.error || 'Could not load geocoding status');
+                    renderGeocodeStatus(data);
+                } catch (err) {
+                    console.error('Error loading geocode status:', err);
+                    var statusEl = document.getElementById('geocodeStatus');
+                    if (statusEl) statusEl.textContent = "Couldn't load geocoding status.";
+                }
+            }
+
+            function renderGeocodeStatus(data) {
+                var statusEl = document.getElementById('geocodeStatus');
+                if (!statusEl) return;
+                if (!data.totalStreets) {
+                    statusEl.textContent = 'No upcoming streets to geocode yet.';
+                } else if (data.remaining <= 0) {
+                    statusEl.textContent = '✅ All ' + data.totalStreets + ' current/upcoming streets are geocoded.';
+                } else {
+                    statusEl.textContent = data.alreadyGeocoded + ' of ' + data.totalStreets + ' streets geocoded — ' + data.remaining + ' remaining.';
+                }
+            }
+
+            var geocodeRunning = false;
+
+            async function runGeocodeStreets() {
+                if (geocodeRunning) return;
+                geocodeRunning = true;
+                var btn = document.getElementById('geocodeStreetsBtn');
+                var statusEl = document.getElementById('geocodeStatus');
+                if (btn) btn.disabled = true;
+                try {
+                    var safety = 0;
+                    while (safety < 200) { // hard cap so a bug can't loop forever
+                        safety++;
+                        var data = await postOp('/.netlify/functions/admin-geocode-streets', {});
+                        renderGeocodeStatus(data);
+                        if (data.failed && data.failed.length) {
+                            console.warn('Streets that failed to geocode this batch:', data.failed);
+                        }
+                        if (data.remaining <= 0) break;
+                    }
+                } catch (err) {
+                    console.error('Error geocoding streets:', err);
+                    if (statusEl) statusEl.textContent = 'Geocoding stopped early: ' + err.message;
+                } finally {
+                    geocodeRunning = false;
+                    if (btn) btn.disabled = false;
+                }
+            }
+
+            async function loadSearchActivity() {
+                try {
+                    var res = await authedFetch('/.netlify/functions/admin-search-activity');
+                    var data = await res.json();
+                    if (!res.ok) throw new Error(data.error || 'Could not load search activity');
+                    renderSearchActivity(data);
+                } catch (err) {
+                    console.error('Error loading search activity:', err);
+                    document.getElementById('searchActivityLoading').textContent = "Couldn't load search activity — please try refreshing.";
+                }
+            }
+
+            function renderSearchActivity(data) {
+                document.getElementById('searchActivityLoading').classList.add('admin-hidden');
+                var container = document.getElementById('searchActivityContent');
+                container.innerHTML = '';
+
+                var stats = document.createElement('div');
+                stats.className = 'search-stats-row';
+                [
+                    ['Total searches', data.totals.total],
+                    ['No match found', data.totals.noMatch],
+                    ['Last 7 days', data.totals.last7Days]
+                ].forEach(function(pair) {
+                    var stat = document.createElement('div');
+                    stat.className = 'search-stat';
+                    stat.innerHTML = '<div class="search-stat-value">' + pair[1] + '</div><div class="search-stat-label">' + escapeHtml(pair[0]) + '</div>';
+                    stats.appendChild(stat);
+                });
+                container.appendChild(stats);
+
+                var noMatchTitle = document.createElement('div');
+                noMatchTitle.className = 'search-activity-subtitle';
+                noMatchTitle.textContent = 'Top searches with no match';
+                container.appendChild(noMatchTitle);
+
+                if (data.topNoMatchTerms.length === 0) {
+                    var empty = document.createElement('p');
+                    empty.className = 'no-match-empty';
+                    empty.textContent = 'None yet.';
+                    container.appendChild(empty);
+                } else {
+                    var list = document.createElement('ul');
+                    list.className = 'no-match-list';
+                    data.topNoMatchTerms.forEach(function(t) {
+                        var li = document.createElement('li');
+                        li.textContent = '"' + t.term + '" — ' + t.count + (t.count === 1 ? ' time' : ' times');
+                        list.appendChild(li);
+                    });
+                    container.appendChild(list);
+                }
+
+                var recentTitle = document.createElement('div');
+                recentTitle.className = 'search-activity-subtitle';
+                recentTitle.textContent = 'Recent searches';
+                container.appendChild(recentTitle);
+
+                if (data.recent.length === 0) {
+                    var emptyRecent = document.createElement('p');
+                    emptyRecent.className = 'no-match-empty';
+                    emptyRecent.textContent = 'No searches logged yet.';
+                    container.appendChild(emptyRecent);
+                    return;
+                }
+
+                var table = document.createElement('table');
+                table.className = 'admin-table';
+                table.innerHTML = '<thead><tr>' +
+                    '<th class="sa-col-time">When</th>' +
+                    '<th class="sa-col-term">Search</th>' +
+                    '<th class="sa-col-match">Match?</th>' +
+                    '<th class="sa-col-street">Matched street</th>' +
+                    '<th class="sa-col-results">Results</th>' +
+                    '</tr></thead>';
+                var tbody = document.createElement('tbody');
+                data.recent.forEach(function(r) {
+                    var tr = document.createElement('tr');
+                    var when = new Date(r.createdAt).toLocaleString('en-GB', {
+                        day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'
+                    });
+                    tr.innerHTML =
+                        '<td>' + escapeHtml(when) + '</td>' +
+                        '<td class="truncate">' + escapeHtml(r.searchTerm || '—') + '</td>' +
+                        '<td>' + (r.matchFound ? '✅' : '❌') + '</td>' +
+                        '<td class="truncate">' + escapeHtml(r.matchedStreet || '—') + '</td>' +
+                        '<td>' + r.resultsCount + '</td>';
+                    tbody.appendChild(tr);
+                });
+                table.appendChild(tbody);
+                var tableScroll = document.createElement('div');
+                tableScroll.className = 'table-scroll';
+                tableScroll.appendChild(table);
+                container.appendChild(tableScroll);
             }
 
             function formatDateLabel(iso) {
@@ -725,6 +973,8 @@
                 });
             });
 
+            document.getElementById('geocodeStreetsBtn').addEventListener('click', runGeocodeStreets);
+
             // ---- Season Settings ----
 
             function renderSettings() {
@@ -861,7 +1111,7 @@
                 btn.addEventListener('click', function() {
                     document.querySelectorAll('.admin-tabs .tab-btn').forEach(function(b) { b.classList.remove('active'); });
                     btn.classList.add('active');
-                    ['routes', 'settings', 'volunteers'].forEach(function(tab) {
+                    ['routes', 'settings', 'volunteers', 'search-activity'].forEach(function(tab) {
                         document.getElementById('tab-' + tab).classList.toggle('admin-hidden', tab !== btn.dataset.tab);
                     });
                 });

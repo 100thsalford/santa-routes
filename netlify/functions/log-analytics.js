@@ -1,78 +1,41 @@
-// FILE: netlify/functions/log-analytics.js
-// UPDATED: Now sends data to both Netlify logs AND Google Sheets for permanent storage
+// Logs a general site analytics event (page views, tab switches, donation
+// clicks, sighting reports, time-on-page pings, etc.) from analytics.js
+// into the analytics_events table. This used to POST to a Google Sheets
+// webhook (GOOGLE_SHEETS_ANALYTICS_WEBHOOK_URL) with only a 24-hour Netlify
+// function log as fallback -- moved onto the same Postgres DB as the rest
+// of the site. Fire-and-forget from the client, so failures here should
+// never surface to the visitor.
 
-exports.handler = async (event, context) => {
-    // Only allow POST requests
-    if (event.httpMethod !== 'POST') {
-        return {
-            statusCode: 405,
-            body: JSON.stringify({ error: 'Method not allowed' })
-        };
-    }
+import { getDatabase } from '@netlify/database';
 
-    try {
-        const data = JSON.parse(event.body);
-        const timestamp = new Date().toISOString();
-        
-        // Get user info
-        const userAgent = event.headers['user-agent'] || 'Unknown';
-        const referer = event.headers['referer'] || 'Direct';
-        const ip = event.headers['x-forwarded-for'] || event.headers['client-ip'] || 'Unknown';
-        
-        // Build the log entry
-        const logEntry = {
-            timestamp,
-            eventType: data.eventType,
-            eventData: data.eventData,
-            page: data.page,
-            userAgent,
-            referer,
-            ip: ip.split(',')[0] // First IP in case of multiple
-        };
+const headers = { 'Content-Type': 'application/json' };
 
-        // Log to Netlify console (24-hour retention)
-        console.log('ANALYTICS EVENT:', JSON.stringify(logEntry, null, 2));
+export default async (req, context) => {
+  if (req.method !== 'POST') {
+    return new Response(JSON.stringify({ error: 'Method not allowed' }), { status: 405, headers });
+  }
 
-        // 🆕 SEND TO GOOGLE SHEETS for permanent storage
-        // The webhook URL is stored as an environment variable in Netlify
-        const GOOGLE_SHEETS_ANALYTICS_URL = process.env.GOOGLE_SHEETS_ANALYTICS_WEBHOOK_URL;
-        
-        if (GOOGLE_SHEETS_ANALYTICS_URL) {
-            try {
-                const sheetsResponse = await fetch(GOOGLE_SHEETS_ANALYTICS_URL, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(logEntry)
-                });
-                
-                if (sheetsResponse.ok) {
-                    console.log('✅ Successfully sent to Google Sheets');
-                } else {
-                    console.warn('⚠️ Google Sheets response not OK:', sheetsResponse.status);
-                }
-            } catch (sheetsError) {
-                console.error('❌ Failed to send to Google Sheets:', sheetsError.message);
-                // Don't fail the whole request if Google Sheets fails
-                // The data is still logged to Netlify console
-            }
-        } else {
-            console.log('ℹ️ GOOGLE_SHEETS_ANALYTICS_WEBHOOK_URL not configured - skipping Google Sheets logging');
-        }
+  try {
+    const data = await req.json();
+    const db = getDatabase();
 
-        return {
-            statusCode: 200,
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ success: true })
-        };
-    } catch (error) {
-        console.error('Analytics error:', error);
-        return {
-            statusCode: 500,
-            body: JSON.stringify({ error: 'Failed to log event' })
-        };
-    }
+    const userAgent = req.headers.get('user-agent') || 'Unknown';
+    const referer = req.headers.get('referer') || 'Direct';
+    const ip = context.ip
+      || (req.headers.get('x-forwarded-for') || '').split(',')[0].trim()
+      || 'Unknown';
+
+    await db.sql`
+      INSERT INTO analytics_events (event_type, event_data, page, user_agent, referer, ip)
+      VALUES (
+        ${data.eventType || 'unknown'}, ${JSON.stringify(data.eventData || {})}::jsonb,
+        ${data.page || 'Unknown'}, ${userAgent}, ${referer}, ${ip}
+      )
+    `;
+
+    return new Response(JSON.stringify({ success: true }), { status: 200, headers });
+  } catch (error) {
+    console.error('Analytics error:', error);
+    return new Response(JSON.stringify({ error: 'Failed to log event' }), { status: 500, headers });
+  }
 };
