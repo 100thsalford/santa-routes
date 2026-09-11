@@ -333,7 +333,13 @@
                 showLoggedOut();
             });
 
-            netlifyIdentity.init();
+            // Do NOT call netlifyIdentity.init() here -- the widget script
+            // already calls it automatically on DOMContentLoaded. Calling it
+            // a second time causes duplicate modal/iframe rendering and can
+            // interfere with one-time hash tokens (invite/recovery/confirm),
+            // since init() clears location.hash after processing a token --
+            // a second call finds nothing there and can stomp on the first
+            // call's in-progress modal state.
         })();
     </script>
 
