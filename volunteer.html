@@ -127,6 +127,130 @@
             margin-top: 0.35rem;
         }
 
+        .risk-banner {
+            display: none;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+            background: #FFF4E5;
+            border: 1px solid #F4C97B;
+            border-radius: 10px;
+            padding: 0.75rem 1rem;
+            margin-bottom: 1.25rem;
+            text-align: left;
+        }
+
+        .risk-banner.visible {
+            display: flex;
+        }
+
+        .risk-banner span {
+            color: #7a4c00;
+            font-size: 0.9rem;
+        }
+
+        .risk-banner button {
+            background: var(--santa-green);
+            color: white;
+            border: none;
+            border-radius: 999px;
+            padding: 0.4rem 1rem;
+            font-size: 0.85rem;
+            font-weight: bold;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        .risk-modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.55);
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+            z-index: 1000;
+        }
+
+        .risk-modal-overlay.visible {
+            display: flex;
+        }
+
+        .risk-modal {
+            background: white;
+            border-radius: 16px;
+            padding: 1.75rem 1.5rem;
+            max-width: 440px;
+            width: 100%;
+            text-align: left;
+            max-height: 85vh;
+            overflow-y: auto;
+        }
+
+        .risk-modal h2 {
+            color: var(--santa-red);
+            margin: 0 0 0.75rem;
+            font-size: 1.2rem;
+        }
+
+        .risk-modal p {
+            color: var(--text-dark);
+            line-height: 1.6;
+            margin: 0 0 0.75rem;
+            white-space: pre-wrap;
+        }
+
+        .risk-modal a {
+            color: var(--santa-green);
+            font-weight: bold;
+        }
+
+        .risk-modal-checkbox {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.5rem;
+            margin: 1rem 0;
+            font-size: 0.9rem;
+            color: var(--text-dark);
+        }
+
+        .risk-modal-checkbox input {
+            margin-top: 0.2rem;
+        }
+
+        .risk-modal-actions {
+            display: flex;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        .risk-modal-actions button {
+            border-radius: 999px;
+            padding: 0.7rem 1.2rem;
+            font-size: 0.9rem;
+            font-weight: bold;
+            cursor: pointer;
+            border: none;
+        }
+
+        .risk-ack-btn {
+            background: var(--santa-green);
+            color: white;
+            flex: 1;
+        }
+
+        .risk-ack-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .risk-later-btn {
+            background: none;
+            color: #777;
+            border: 1px solid #ccc !important;
+        }
+
         .shift-row-cancel-btn {
             background: none;
             border: 1px solid var(--santa-red);
@@ -336,6 +460,11 @@
             <div class="volunteer-welcome">
                 <p id="welcomeText" class="volunteer-loading">Loading your profile...</p>
 
+                <div class="risk-banner" id="riskBanner">
+                    <span>⚠️ Please review our safety guidance before your next shift.</span>
+                    <button type="button" id="riskBannerBtn">Review &amp; acknowledge</button>
+                </div>
+
                 <div class="block-title">🗓️ My Shifts</div>
                 <div id="shiftsContent" class="shifts-empty">
                     No shifts assigned yet — check back once this year's routes and dates are finalised.
@@ -369,6 +498,22 @@
         <p>🎄 Supporting <a href="https://www.facebook.com/100thsalford" target="_blank" rel="noopener noreferrer" class="footer-link">100th Salford Scout Group</a> 🎄</p>
     </footer>
 
+    <div class="risk-modal-overlay" id="riskModalOverlay">
+        <div class="risk-modal">
+            <h2>🦺 Safety guidance</h2>
+            <p id="riskModalText">Loading...</p>
+            <p id="riskModalLinkRow" style="display:none;"><a id="riskModalLink" href="#" target="_blank" rel="noopener noreferrer">View the full risk assessment document</a></p>
+            <label class="risk-modal-checkbox">
+                <input type="checkbox" id="riskAckCheckbox">
+                <span>I've read and understood this safety guidance.</span>
+            </label>
+            <div class="risk-modal-actions">
+                <button type="button" class="risk-ack-btn" id="riskAckBtn" disabled>I acknowledge</button>
+                <button type="button" class="risk-later-btn" id="riskLaterBtn">Remind me later</button>
+            </div>
+        </div>
+    </div>
+
     <script type="text/javascript" src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
     <script>
         (function() {
@@ -382,6 +527,15 @@
             var openShiftsStatus = document.getElementById('openShiftsStatus');
             var reminderToggle = document.getElementById('reminderToggle');
             var saveStatus = document.getElementById('saveStatus');
+            var riskBanner = document.getElementById('riskBanner');
+            var riskBannerBtn = document.getElementById('riskBannerBtn');
+            var riskModalOverlay = document.getElementById('riskModalOverlay');
+            var riskModalText = document.getElementById('riskModalText');
+            var riskModalLinkRow = document.getElementById('riskModalLinkRow');
+            var riskModalLink = document.getElementById('riskModalLink');
+            var riskAckCheckbox = document.getElementById('riskAckCheckbox');
+            var riskAckBtn = document.getElementById('riskAckBtn');
+            var riskLaterBtn = document.getElementById('riskLaterBtn');
 
             var currentProfile = null;
             var saveTimer = null;
@@ -422,6 +576,58 @@
                 return fetch(url, options);
             }
 
+            function updateRiskUI(profile) {
+                var acknowledged = !!profile.riskAckAt;
+                riskBanner.classList.toggle('visible', !acknowledged);
+                if (!acknowledged) {
+                    var text = (profile.riskAssessment && profile.riskAssessment.text) ||
+                        'Please take a moment to review our safety guidance before your next shift.';
+                    riskModalText.textContent = text;
+                    var url = profile.riskAssessment && profile.riskAssessment.url;
+                    if (url) {
+                        riskModalLink.href = url;
+                        riskModalLinkRow.style.display = '';
+                    } else {
+                        riskModalLinkRow.style.display = 'none';
+                    }
+                }
+            }
+
+            function showRiskModal() {
+                riskAckCheckbox.checked = false;
+                riskAckBtn.disabled = true;
+                riskModalOverlay.classList.add('visible');
+            }
+
+            function hideRiskModal() {
+                riskModalOverlay.classList.remove('visible');
+            }
+
+            riskAckCheckbox.addEventListener('change', function() {
+                riskAckBtn.disabled = !riskAckCheckbox.checked;
+            });
+
+            riskBannerBtn.addEventListener('click', showRiskModal);
+            riskLaterBtn.addEventListener('click', hideRiskModal);
+
+            riskAckBtn.addEventListener('click', async function() {
+                riskAckBtn.disabled = true;
+                riskAckBtn.textContent = 'Saving...';
+                try {
+                    var res = await authedFetch('/.netlify/functions/acknowledge-risk-assessment', { method: 'POST' });
+                    var data = await res.json();
+                    if (!res.ok) throw new Error(data.error || 'Could not save');
+                    if (currentProfile) currentProfile.riskAckAt = data.riskAckAt;
+                    riskBanner.classList.remove('visible');
+                    hideRiskModal();
+                } catch (err) {
+                    console.error('Error acknowledging risk assessment:', err);
+                    riskAckBtn.disabled = false;
+                } finally {
+                    riskAckBtn.textContent = 'I acknowledge';
+                }
+            });
+
             async function loadProfile() {
                 welcomeText.textContent = 'Loading your profile...';
                 welcomeText.classList.add('volunteer-loading');
@@ -437,6 +643,9 @@
                     welcomeText.classList.remove('volunteer-loading');
 
                     reminderToggle.checked = !!profile.reminderEmailOptIn;
+
+                    updateRiskUI(profile);
+                    if (!profile.riskAckAt) showRiskModal();
 
                     if (profile.shifts && profile.shifts.length > 0) {
                         shiftsContent.innerHTML = '';
