@@ -54,6 +54,7 @@
             width: 100%;
             border-collapse: collapse;
             margin: 0.75rem 0 1rem;
+            table-layout: fixed;
         }
 
         table.admin-table th, table.admin-table td {
@@ -71,6 +72,19 @@
             border-radius: 6px;
             font-size: 0.9rem;
         }
+
+        /* Named width classes (instead of inline styles) so the mobile
+           media query below can actually override them -- an inline
+           style="width:..." always wins over any stylesheet rule, which
+           previously left the Street column squeezed unreadably narrow
+           on phones no matter what the media query said. */
+        .col-seq { width: 4rem; }
+        .col-time { width: 9rem; }
+        .col-actions { width: 4rem; }
+        .field-narrow { width: 8rem; box-sizing: border-box; }
+        .field-date { width: 10rem; box-sizing: border-box; }
+        .field-amount { width: 7rem; box-sizing: border-box; }
+        .field-seq { width: 4rem; box-sizing: border-box; }
 
         .route-block, .date-block {
             border: 1px solid #eee;
@@ -191,42 +205,57 @@
                 padding: 0.75rem;
             }
 
-            .date-block-header input[type="date"] {
-                width: 9rem;
+            .field-date {
+                width: 8.5rem;
             }
 
-            .date-block-header input[type="number"] {
+            .field-amount {
                 width: 5.5rem;
             }
 
             table.admin-table th, table.admin-table td {
-                padding: 0.4rem 0.35rem;
+                padding: 0.4rem 0.3rem;
                 font-size: 0.85rem;
             }
 
-            table.admin-table th:first-child, table.admin-table td:first-child {
-                width: 3rem;
+            /* These override the base .col-seq/.col-time/.col-actions rules
+               above (same selector weight, later in the cascade) -- unlike
+               the old style="width:...rem" attributes they replaced, these
+               classes CAN be overridden here. Without this, the fixed
+               desktop widths (4rem + 9rem + 4rem = 17rem) leave almost
+               nothing for the Street name column on a ~320-375px phone. */
+            .col-seq {
+                width: 2.5rem;
             }
 
-            table.admin-table th:nth-child(3), table.admin-table td:nth-child(3) {
-                width: 6.5rem;
+            .col-time {
+                width: 5rem;
+            }
+
+            .col-actions {
+                width: 2.25rem;
+            }
+
+            table.admin-table input, table.admin-table select {
+                padding: 0.35rem 0.3rem;
+                font-size: 0.85rem;
             }
 
             .add-row-form {
                 gap: 0.4rem;
             }
 
-            .add-row-form select,
-            .add-row-form input[type="text"] {
+            .add-row-form > input,
+            .add-row-form > select,
+            .add-row-form > button {
                 flex: 1 1 100%;
                 width: 100%;
                 box-sizing: border-box;
                 min-width: 0;
             }
 
-            .add-row-form input[type="date"] {
-                flex: 1 1 auto;
-                min-width: 0;
+            .field-seq {
+                width: 5rem;
             }
         }
     </style>
@@ -268,7 +297,7 @@
                 <div id="routesContent"></div>
                 <div class="add-row-form">
                     <input type="text" id="newRouteName" placeholder="New route name">
-                    <input type="number" id="newRouteOrder" placeholder="Display order" style="width: 8rem;">
+                    <input type="number" id="newRouteOrder" placeholder="Display order" class="field-narrow">
                     <button class="admin-btn small" id="addRouteBtn">+ Add Route</button>
                 </div>
                 <div class="admin-status" id="routesStatus"></div>
@@ -530,7 +559,7 @@
                 var dateInput = document.createElement('input');
                 dateInput.type = 'date';
                 dateInput.value = date.eventDate;
-                dateInput.style.width = '10rem';
+                dateInput.className = 'field-date';
                 header.appendChild(dateInput);
 
                 var amountLabel = document.createElement('span');
@@ -542,7 +571,7 @@
                 amountInput.step = '0.01';
                 amountInput.min = '0';
                 amountInput.placeholder = 'collected';
-                amountInput.style.width = '7rem';
+                amountInput.className = 'field-amount';
                 amountInput.value = date.amountCollected != null ? date.amountCollected : '';
                 header.appendChild(amountInput);
 
@@ -565,7 +594,7 @@
 
                 var table = document.createElement('table');
                 table.className = 'admin-table';
-                table.innerHTML = '<thead><tr><th style="width:4rem;">Seq</th><th>Street</th><th style="width:9rem;">Time</th><th style="width:4rem;"></th></tr></thead>';
+                table.innerHTML = '<thead><tr><th class="col-seq">Seq</th><th>Street</th><th class="col-time">Time</th><th class="col-actions"></th></tr></thead>';
                 var tbody = document.createElement('tbody');
 
                 date.streets.forEach(function(street) {
@@ -583,7 +612,7 @@
                 var seqInput = document.createElement('input');
                 seqInput.type = 'number';
                 seqInput.placeholder = 'Seq';
-                seqInput.style.width = '4rem';
+                seqInput.className = 'field-seq';
                 var nameInput = document.createElement('input');
                 nameInput.type = 'text';
                 nameInput.placeholder = 'Street name';
