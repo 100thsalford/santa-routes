@@ -89,8 +89,14 @@ export default async (req, context) => {
         const volunteerCapacity = body.volunteerCapacity != null && String(body.volunteerCapacity).trim() !== ''
           ? parseInt(body.volunteerCapacity, 10)
           : null;
+        const what3words = body.what3words != null && String(body.what3words).trim() !== ''
+          ? String(body.what3words).trim().replace(/^\/+/, '')
+          : null;
+        const notes = body.notes != null && String(body.notes).trim() !== '' ? String(body.notes).trim() : null;
         await db.sql`
-          UPDATE route_dates SET event_date = ${eventDate}, amount_collected = ${amountCollected}, volunteer_capacity = ${volunteerCapacity}
+          UPDATE route_dates
+          SET event_date = ${eventDate}, amount_collected = ${amountCollected}, volunteer_capacity = ${volunteerCapacity},
+              what3words = ${what3words}, notes = ${notes}
           WHERE id = ${id}
         `;
         return ok();

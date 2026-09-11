@@ -99,6 +99,17 @@
         .shift-status-badge.urgent { background: #fdecea; color: #c62828; }
         .shift-status-badge.full { background: #e8f0fe; color: #1a56b0; }
 
+        .date-block-details {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            margin: 0.5rem 0;
+        }
+        .field-w3w { width: 14rem; box-sizing: border-box; }
+        .field-notes { flex: 1; min-width: 12rem; box-sizing: border-box; }
+        .route-map-status { color: #555; font-size: 0.9rem; }
+
         .route-block, .date-block {
             border: 1px solid #eee;
             border-radius: 10px;
@@ -871,7 +882,8 @@
                 saveDateBtn.textContent = 'Save';
                 saveDateBtn.onclick = function() {
                     runOp('/.netlify/functions/admin-routes', {
-                        op: 'update-date', id: date.id, eventDate: dateInput.value, amountCollected: amountInput.value, volunteerCapacity: capacityInput.value
+                        op: 'update-date', id: date.id, eventDate: dateInput.value, amountCollected: amountInput.value,
+                        volunteerCapacity: capacityInput.value, what3words: w3wInput.value, notes: notesInput.value
                     }, 'routesStatus');
                 };
                 header.appendChild(saveDateBtn);
@@ -882,6 +894,63 @@
                 delBtn.onclick = function() { deleteDate(date); };
                 header.appendChild(delBtn);
                 block.appendChild(header);
+
+                var detailsRow = document.createElement('div');
+                detailsRow.className = 'date-block-details';
+
+                var w3wInput = document.createElement('input');
+                w3wInput.type = 'text';
+                w3wInput.placeholder = 'what3words, e.g. yappy.looks.occurs';
+                w3wInput.className = 'field-w3w';
+                w3wInput.value = date.what3words || '';
+                detailsRow.appendChild(w3wInput);
+
+                var notesInput = document.createElement('input');
+                notesInput.type = 'text';
+                notesInput.placeholder = 'Notes for volunteers (optional)';
+                notesInput.className = 'field-notes';
+                notesInput.value = date.notes || '';
+                detailsRow.appendChild(notesInput);
+
+                block.appendChild(detailsRow);
+
+                var mapRow = document.createElement('div');
+                mapRow.className = 'date-block-details';
+
+                var mapStatus = document.createElement('span');
+                mapStatus.className = 'route-map-status';
+                mapStatus.textContent = date.routeMapFilename ? ('📎 ' + date.routeMapFilename) : 'No route map uploaded';
+                mapRow.appendChild(mapStatus);
+
+                if (date.routeMapFilename) {
+                    var viewMapBtn = document.createElement('button');
+                    viewMapBtn.className = 'admin-btn small';
+                    viewMapBtn.textContent = 'View';
+                    viewMapBtn.onclick = function() { viewRouteMap(date.id, 'routesStatus'); };
+                    mapRow.appendChild(viewMapBtn);
+
+                    var removeMapBtn = document.createElement('button');
+                    removeMapBtn.className = 'admin-btn small danger';
+                    removeMapBtn.textContent = 'Remove Map';
+                    removeMapBtn.onclick = function() { removeRouteMap(date.id, 'routesStatus'); };
+                    mapRow.appendChild(removeMapBtn);
+                }
+
+                var mapFileInput = document.createElement('input');
+                mapFileInput.type = 'file';
+                mapFileInput.accept = '.jpg,.jpeg,.png,.pdf,image/jpeg,image/png,application/pdf';
+                mapRow.appendChild(mapFileInput);
+
+                var uploadMapBtn = document.createElement('button');
+                uploadMapBtn.className = 'admin-btn small';
+                uploadMapBtn.textContent = date.routeMapFilename ? 'Replace Map' : 'Upload Map';
+                uploadMapBtn.onclick = function() {
+                    if (!mapFileInput.files || !mapFileInput.files[0]) return;
+                    uploadRouteMap(date.id, mapFileInput.files[0], 'routesStatus');
+                };
+                mapRow.appendChild(uploadMapBtn);
+
+                block.appendChild(mapRow);
 
                 var table = document.createElement('table');
                 table.className = 'admin-table';
@@ -1140,6 +1209,49 @@
                     console.error('Error saving:', err);
                     statusEl.textContent = "Couldn't save: " + err.message;
                     throw err;
+                }
+            }
+
+            async function uploadRouteMap(routeDateId, file, statusElId) {
+                var statusEl = document.getElementById(statusElId);
+                statusEl.textContent = 'Uploading map...';
+                try {
+                    var form = new FormData();
+                    form.append('routeDateId', routeDateId);
+                    form.append('file', file);
+                    // No Content-Type header here -- letting fetch set the
+                    // multipart boundary itself is required for the server
+                    // to parse it via req.formData().
+                    var res = await authedFetch('/.netlify/functions/admin-route-map', { method: 'POST', body: form });
+                    var data = await res.json();
+                    if (!res.ok) throw new Error(data.error || 'Upload failed');
+                    statusEl.textContent = 'Map uploaded.';
+                    setTimeout(function() { statusEl.textContent = ''; }, 2000);
+                    await loadAll();
+                } catch (err) {
+                    console.error('Error uploading route map:', err);
+                    statusEl.textContent = "Couldn't upload map: " + err.message;
+                }
+            }
+
+            async function removeRouteMap(routeDateId, statusElId) {
+                runOp('/.netlify/functions/admin-route-map', { op: 'delete', routeDateId: routeDateId }, statusElId);
+            }
+
+            async function viewRouteMap(routeDateId, statusElId) {
+                var statusEl = document.getElementById(statusElId);
+                try {
+                    var res = await authedFetch('/.netlify/functions/get-route-map?routeDateId=' + routeDateId);
+                    if (!res.ok) {
+                        var data = await res.json();
+                        throw new Error(data.error || 'Could not load map');
+                    }
+                    var blob = await res.blob();
+                    var url = URL.createObjectURL(blob);
+                    window.open(url, '_blank');
+                } catch (err) {
+                    console.error('Error viewing route map:', err);
+                    statusEl.textContent = "Couldn't open map: " + err.message;
                 }
             }
 
