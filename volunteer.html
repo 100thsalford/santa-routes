@@ -70,6 +70,19 @@
             text-align: left;
         }
 
+        .shift-row {
+            background: #f4f4f4;
+            border-radius: 10px;
+            padding: 0.75rem 1rem;
+            margin-bottom: 0.5rem;
+            text-align: left;
+            color: var(--text-dark);
+        }
+
+        .shift-row:last-child {
+            margin-bottom: 0;
+        }
+
         .preference-row {
             display: flex;
             align-items: center;
@@ -267,8 +280,19 @@
                     reminderToggle.checked = !!profile.reminderEmailOptIn;
 
                     if (profile.shifts && profile.shifts.length > 0) {
-                        shiftsContent.textContent = JSON.stringify(profile.shifts);
+                        shiftsContent.innerHTML = '';
+                        shiftsContent.classList.remove('shifts-empty');
+                        profile.shifts.forEach(function(shift) {
+                            var row = document.createElement('div');
+                            row.className = 'shift-row';
+                            var dateLabel = new Date(shift.eventDate + 'T00:00:00').toLocaleDateString('en-GB', {
+                                weekday: 'short', day: 'numeric', month: 'short'
+                            });
+                            row.textContent = dateLabel + ' — ' + shift.routeName + (shift.role ? ' (' + shift.role + ')' : '');
+                            shiftsContent.appendChild(row);
+                        });
                     } else {
+                        shiftsContent.classList.add('shifts-empty');
                         shiftsContent.textContent = "No shifts assigned yet — check back once this year's routes and dates are finalised.";
                     }
                 } catch (err) {

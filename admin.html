@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex">
+    <meta name="description" content="Admin screens for Santa Super Sleigh Salford routes, dates, settings and volunteer shifts.">
+    <title>Admin | Santa Super Sleigh Salford</title>
+    <link rel="stylesheet" href="styles.css?v=20260911">
+    <style>
+        .admin-card {
+            background: white;
+            border-radius: 16px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+        }
+
+        .admin-hidden { display: none; }
+
+        .admin-login-btn, .admin-btn {
+            display: inline-block;
+            background: var(--santa-green);
+            color: white;
+            border: none;
+            border-radius: 999px;
+            padding: 0.6rem 1.4rem;
+            font-size: 0.95rem;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .admin-btn.danger {
+            background: var(--santa-red);
+        }
+
+        .admin-btn.small {
+            padding: 0.35rem 0.9rem;
+            font-size: 0.85rem;
+            font-weight: normal;
+            border-radius: 6px;
+        }
+
+        .admin-btn:disabled {
+            opacity: 0.5;
+            cursor: default;
+        }
+
+        .admin-tabs {
+            margin-bottom: 1.5rem;
+        }
+
+        table.admin-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 0.75rem 0 1rem;
+        }
+
+        table.admin-table th, table.admin-table td {
+            text-align: left;
+            padding: 0.5rem 0.5rem;
+            border-bottom: 1px solid #eee;
+            font-size: 0.9rem;
+        }
+
+        table.admin-table input, table.admin-table select {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 0.4rem 0.5rem;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 0.9rem;
+        }
+
+        .route-block, .date-block {
+            border: 1px solid #eee;
+            border-radius: 10px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .route-block-header, .date-block-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            flex-wrap: wrap;
+            margin-bottom: 0.5rem;
+        }
+
+        .route-block-title, .date-block-title {
+            font-weight: bold;
+            color: var(--santa-green);
+        }
+
+        .add-row-form {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            align-items: center;
+            margin-top: 0.5rem;
+        }
+
+        .add-row-form input {
+            padding: 0.4rem 0.5rem;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 0.9rem;
+        }
+
+        .settings-form {
+            display: grid;
+            gap: 1rem;
+            max-width: 420px;
+        }
+
+        .settings-form label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 0.25rem;
+            color: var(--text-dark);
+            font-size: 0.9rem;
+        }
+
+        .settings-form input {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 0.5rem 0.6rem;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+        }
+
+        .admin-status {
+            font-size: 0.85rem;
+            color: var(--santa-green);
+            margin-top: 0.5rem;
+            min-height: 1.2em;
+        }
+
+        .volunteer-block {
+            border: 1px solid #eee;
+            border-radius: 10px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .shift-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: #f4f4f4;
+            border-radius: 999px;
+            padding: 0.3rem 0.4rem 0.3rem 0.8rem;
+            font-size: 0.85rem;
+            margin: 0.25rem 0.5rem 0.25rem 0;
+        }
+
+        .shift-chip button {
+            background: none;
+            border: none;
+            color: var(--santa-red);
+            cursor: pointer;
+            font-size: 0.9rem;
+            line-height: 1;
+        }
+
+        .admin-loading { color: #777; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🛠️ Admin</h1>
+        <p>100th Salford Scout Group | Santa Super Sleigh Salford</p>
+    </div>
+
+    <div class="container">
+        <a href="index.html" class="back-btn">← Back to Home</a>
+
+        <div class="admin-card" id="loggedOutCard">
+            <p>Log in with an admin account to manage routes, streets, dates, season settings and volunteer shifts.</p>
+            <button class="admin-login-btn" id="loginBtn">Log In</button>
+        </div>
+
+        <div class="admin-card admin-hidden" id="notAdminCard">
+            <p>You're logged in, but this account doesn't have admin access. Ask an existing admin to add the <code>admin</code> role to your account in the Netlify dashboard.</p>
+            <button class="admin-btn danger" id="logoutBtnNotAdmin">Log Out</button>
+        </div>
+
+        <div id="adminArea" class="admin-hidden">
+            <div class="admin-tabs tab-buttons">
+                <button class="tab-btn active" data-tab="routes">🗺️ Routes &amp; Streets</button>
+                <button class="tab-btn" data-tab="settings">⚙️ Season Settings</button>
+                <button class="tab-btn" data-tab="volunteers">👥 Volunteer Shifts</button>
+            </div>
+
+            <!-- Routes & Streets -->
+            <div class="admin-card" id="tab-routes">
+                <p id="routesLoading" class="admin-loading">Loading routes...</p>
+                <div id="routesContent"></div>
+                <div class="add-row-form">
+                    <input type="text" id="newRouteName" placeholder="New route name">
+                    <input type="number" id="newRouteOrder" placeholder="Display order" style="width: 8rem;">
+                    <button class="admin-btn small" id="addRouteBtn">+ Add Route</button>
+                </div>
+                <div class="admin-status" id="routesStatus"></div>
+            </div>
+
+            <!-- Season Settings -->
+            <div class="admin-card admin-hidden" id="tab-settings">
+                <p id="settingsLoading" class="admin-loading">Loading settings...</p>
+                <form class="settings-form admin-hidden" id="settingsForm">
+                    <div>
+                        <label for="seasonLeadDays">Days before the first route date that live-tracking nav appears</label>
+                        <input type="number" id="seasonLeadDays" min="0">
+                    </div>
+                    <div>
+                        <label for="seasonTrailDays">Days after the last route date before the season switches off</label>
+                        <input type="number" id="seasonTrailDays" min="0">
+                    </div>
+                    <div>
+                        <label for="sightingsWindowStart">Sightings window start (24hr, e.g. 17:00)</label>
+                        <input type="text" id="sightingsWindowStart" placeholder="17:00">
+                    </div>
+                    <div>
+                        <label for="sightingsWindowEnd">Sightings window end (24hr, e.g. 22:00)</label>
+                        <input type="text" id="sightingsWindowEnd" placeholder="22:00">
+                    </div>
+                    <button type="submit" class="admin-btn">Save Settings</button>
+                </form>
+                <div class="admin-status" id="settingsStatus"></div>
+            </div>
+
+            <!-- Volunteer Shifts -->
+            <div class="admin-card admin-hidden" id="tab-volunteers">
+                <p id="volunteersLoading" class="admin-loading">Loading volunteers...</p>
+                <div id="volunteersContent"></div>
+                <div class="admin-status" id="volunteersStatus"></div>
+            </div>
+
+            <div style="text-align: right;">
+                <button class="admin-btn danger" id="logoutBtn">Log Out</button>
+            </div>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <p>🎄 Admin tools for <a href="https://www.facebook.com/100thsalford" target="_blank" rel="noopener noreferrer" class="footer-link">100th Salford Scout Group</a> 🎄</p>
+    </footer>
+
+    <script type="text/javascript" src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
+    <script>
+        (function() {
+            'use strict';
+
+            var loggedOutCard = document.getElementById('loggedOutCard');
+            var notAdminCard = document.getElementById('notAdminCard');
+            var adminArea = document.getElementById('adminArea');
+
+            var adminData = null; // last fetch of admin-data.js
+
+            function isAdmin(user) {
+                return !!(user && user.roles && user.roles.indexOf('admin') !== -1);
+            }
+
+            function showState(user) {
+                loggedOutCard.classList.add('admin-hidden');
+                notAdminCard.classList.add('admin-hidden');
+                adminArea.classList.add('admin-hidden');
+
+                if (!user) {
+                    loggedOutCard.classList.remove('admin-hidden');
+                } else if (!isAdmin(user)) {
+                    notAdminCard.classList.remove('admin-hidden');
+                } else {
+                    adminArea.classList.remove('admin-hidden');
+                    loadAll();
+                }
+            }
+
+            async function authedFetch(url, options) {
+                var user = netlifyIdentity.currentUser();
+                if (!user) throw new Error('Not logged in');
+                var token = await user.jwt();
+                options = options || {};
+                options.headers = Object.assign({}, options.headers, {
+                    'Authorization': 'Bearer ' + token
+                });
+                return fetch(url, options);
+            }
+
+            async function postOp(url, body) {
+                var res = await authedFetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                });
+                var data = await res.json();
+                if (!res.ok) throw new Error(data.error || 'Request failed');
+                return data;
+            }
+
+            // ---- Data loading ----
+
+            async function loadAll() {
+                try {
+                    var res = await authedFetch('/.netlify/functions/admin-data');
+                    var data = await res.json();
+                    if (!res.ok) throw new Error(data.error || 'Could not load admin data');
+                    adminData = data;
+                    renderRoutes();
+                    renderSettings();
+                    renderVolunteers();
+                } catch (err) {
+                    console.error('Error loading admin data:', err);
+                    document.getElementById('routesLoading').textContent = "Couldn't load data — please try refreshing.";
+                }
+            }
+
+            function formatDateLabel(iso) {
+                return new Date(iso + 'T00:00:00').toLocaleDateString('en-GB', {
+                    weekday: 'short', day: 'numeric', month: 'short', year: 'numeric'
+                });
+            }
+
+            // ---- Routes & Streets ----
+
+            function renderRoutes() {
+                document.getElementById('routesLoading').classList.add('admin-hidden');
+                var container = document.getElementById('routesContent');
+                container.innerHTML = '';
+
+                adminData.routes.forEach(function(route) {
+                    var block = document.createElement('div');
+                    block.className = 'route-block';
+
+                    var header = document.createElement('div');
+                    header.className = 'route-block-header';
+                    header.innerHTML =
+                        '<span class="route-block-title">' + escapeHtml(route.name) +
+                        ' <span style="color:#999; font-weight: normal;">(order ' + (route.displayOrder ?? '—') + ')</span></span>';
+
+                    var actions = document.createElement('span');
+
+                    var renameBtn = document.createElement('button');
+                    renameBtn.className = 'admin-btn small';
+                    renameBtn.textContent = 'Rename / Reorder';
+                    renameBtn.onclick = function() { renameRoute(route); };
+                    actions.appendChild(renameBtn);
+
+                    var delBtn = document.createElement('button');
+                    delBtn.className = 'admin-btn small danger';
+                    delBtn.style.marginLeft = '0.5rem';
+                    delBtn.textContent = 'Delete Route';
+                    delBtn.onclick = function() { deleteRoute(route); };
+                    actions.appendChild(delBtn);
+
+                    header.appendChild(actions);
+                    block.appendChild(header);
+
+                    route.dates.forEach(function(date) {
+                        block.appendChild(renderDateBlock(route, date));
+                    });
+
+                    var addDateForm = document.createElement('div');
+                    addDateForm.className = 'add-row-form';
+                    var dateInput = document.createElement('input');
+                    dateInput.type = 'date';
+                    var addDateBtn = document.createElement('button');
+                    addDateBtn.className = 'admin-btn small';
+                    addDateBtn.textContent = '+ Add Date';
+                    addDateBtn.onclick = function() {
+                        if (!dateInput.value) return;
+                        runOp('/.netlify/functions/admin-routes', { op: 'create-date', routeId: route.id, eventDate: dateInput.value }, 'routesStatus');
+                    };
+                    addDateForm.appendChild(dateInput);
+                    addDateForm.appendChild(addDateBtn);
+                    block.appendChild(addDateForm);
+
+                    container.appendChild(block);
+                });
+            }
+
+            function renderDateBlock(route, date) {
+                var block = document.createElement('div');
+                block.className = 'date-block';
+
+                var header = document.createElement('div');
+                header.className = 'date-block-header';
+                header.innerHTML = '<span class="date-block-title">📅 ' + formatDateLabel(date.eventDate) + '</span>';
+
+                var delBtn = document.createElement('button');
+                delBtn.className = 'admin-btn small danger';
+                delBtn.textContent = 'Delete Date';
+                delBtn.onclick = function() { deleteDate(date); };
+                header.appendChild(delBtn);
+                block.appendChild(header);
+
+                var table = document.createElement('table');
+                table.className = 'admin-table';
+                table.innerHTML = '<thead><tr><th style="width:4rem;">Seq</th><th>Street</th><th style="width:9rem;">Time</th><th style="width:4rem;"></th></tr></thead>';
+                var tbody = document.createElement('tbody');
+
+                date.streets.forEach(function(street) {
+                    tbody.appendChild(renderStreetRow(street));
+                });
+
+                table.appendChild(tbody);
+                block.appendChild(table);
+
+                var addForm = document.createElement('div');
+                addForm.className = 'add-row-form';
+                var seqInput = document.createElement('input');
+                seqInput.type = 'number';
+                seqInput.placeholder = 'Seq';
+                seqInput.style.width = '4rem';
+                var nameInput = document.createElement('input');
+                nameInput.type = 'text';
+                nameInput.placeholder = 'Street name';
+                var timeInput = document.createElement('input');
+                timeInput.type = 'text';
+                timeInput.placeholder = 'e.g. 1800-1830';
+                var addBtn = document.createElement('button');
+                addBtn.className = 'admin-btn small';
+                addBtn.textContent = '+ Add Street';
+                addBtn.onclick = function() {
+                    if (!nameInput.value.trim()) return;
+                    runOp('/.netlify/functions/admin-routes', {
+                        op: 'create-street',
+                        routeDateId: date.id,
+                        sequence: seqInput.value || 0,
+                        name: nameInput.value.trim(),
+                        timeRange: timeInput.value.trim()
+                    }, 'routesStatus');
+                };
+                addForm.appendChild(seqInput);
+                addForm.appendChild(nameInput);
+                addForm.appendChild(timeInput);
+                addForm.appendChild(addBtn);
+                block.appendChild(addForm);
+
+                return block;
+            }
+
+            function renderStreetRow(street) {
+                var tr = document.createElement('tr');
+
+                var seqTd = document.createElement('td');
+                var seqInput = document.createElement('input');
+                seqInput.type = 'number';
+                seqInput.value = street.sequence;
+                seqTd.appendChild(seqInput);
+
+                var nameTd = document.createElement('td');
+                var nameInput = document.createElement('input');
+                nameInput.type = 'text';
+                nameInput.value = street.name;
+                nameTd.appendChild(nameInput);
+
+                var timeTd = document.createElement('td');
+                var timeInput = document.createElement('input');
+                timeInput.type = 'text';
+                timeInput.value = street.timeRange || '';
+                timeTd.appendChild(timeInput);
+
+                var actionsTd = document.createElement('td');
+                var saveBtn = document.createElement('button');
+                saveBtn.className = 'admin-btn small';
+                saveBtn.textContent = 'Save';
+                saveBtn.onclick = function() {
+                    runOp('/.netlify/functions/admin-routes', {
+                        op: 'update-street',
+                        id: street.id,
+                        sequence: seqInput.value || 0,
+                        name: nameInput.value.trim(),
+                        timeRange: timeInput.value.trim()
+                    }, 'routesStatus');
+                };
+                var delBtn = document.createElement('button');
+                delBtn.className = 'admin-btn small danger';
+                delBtn.style.marginLeft = '0.25rem';
+                delBtn.textContent = '✕';
+                delBtn.onclick = function() {
+                    runOp('/.netlify/functions/admin-routes', { op: 'delete-street', id: street.id }, 'routesStatus');
+                };
+                actionsTd.appendChild(saveBtn);
+                actionsTd.appendChild(delBtn);
+
+                tr.appendChild(seqTd);
+                tr.appendChild(nameTd);
+                tr.appendChild(timeTd);
+                tr.appendChild(actionsTd);
+
+                return tr;
+            }
+
+            function renameRoute(route) {
+                var name = prompt('Route name', route.name);
+                if (name === null) return;
+                var order = prompt('Display order (blank for none)', route.displayOrder ?? '');
+                if (order === null) return;
+                runOp('/.netlify/functions/admin-routes', {
+                    op: 'update-route', id: route.id, name: name.trim(), displayOrder: order.trim() || null
+                }, 'routesStatus');
+            }
+
+            function deleteRoute(route) {
+                if (!confirm('Delete route "' + route.name + '" and all its dates/streets? This cannot be undone.')) return;
+                runOp('/.netlify/functions/admin-routes', { op: 'delete-route', id: route.id }, 'routesStatus');
+            }
+
+            function deleteDate(date) {
+                if (!confirm('Delete this date and all its streets? This cannot be undone.')) return;
+                runOp('/.netlify/functions/admin-routes', { op: 'delete-date', id: date.id }, 'routesStatus');
+            }
+
+            document.getElementById('addRouteBtn').addEventListener('click', function() {
+                var nameInput = document.getElementById('newRouteName');
+                var orderInput = document.getElementById('newRouteOrder');
+                if (!nameInput.value.trim()) return;
+                runOp('/.netlify/functions/admin-routes', {
+                    op: 'create-route', name: nameInput.value.trim(), displayOrder: orderInput.value || null
+                }, 'routesStatus').then(function() {
+                    nameInput.value = '';
+                    orderInput.value = '';
+                });
+            });
+
+            // ---- Season Settings ----
+
+            function renderSettings() {
+                document.getElementById('settingsLoading').classList.add('admin-hidden');
+                var form = document.getElementById('settingsForm');
+                form.classList.remove('admin-hidden');
+                document.getElementById('seasonLeadDays').value = adminData.settings.season_lead_days || '';
+                document.getElementById('seasonTrailDays').value = adminData.settings.season_trail_days || '';
+                document.getElementById('sightingsWindowStart').value = adminData.settings.sightings_window_start || '';
+                document.getElementById('sightingsWindowEnd').value = adminData.settings.sightings_window_end || '';
+            }
+
+            document.getElementById('settingsForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                runOp('/.netlify/functions/admin-settings', {
+                    season_lead_days: document.getElementById('seasonLeadDays').value,
+                    season_trail_days: document.getElementById('seasonTrailDays').value,
+                    sightings_window_start: document.getElementById('sightingsWindowStart').value,
+                    sightings_window_end: document.getElementById('sightingsWindowEnd').value
+                }, 'settingsStatus');
+            });
+
+            // ---- Volunteer Shifts ----
+
+            function flattenRouteDates() {
+                var out = [];
+                adminData.routes.forEach(function(route) {
+                    route.dates.forEach(function(date) {
+                        out.push({ id: date.id, label: route.name + ' — ' + formatDateLabel(date.eventDate) });
+                    });
+                });
+                return out;
+            }
+
+            function renderVolunteers() {
+                document.getElementById('volunteersLoading').classList.add('admin-hidden');
+                var container = document.getElementById('volunteersContent');
+                container.innerHTML = '';
+                var routeDates = flattenRouteDates();
+
+                if (adminData.volunteers.length === 0) {
+                    container.textContent = 'No volunteers have logged in yet.';
+                    return;
+                }
+
+                adminData.volunteers.forEach(function(vol) {
+                    var block = document.createElement('div');
+                    block.className = 'volunteer-block';
+
+                    var title = document.createElement('div');
+                    title.style.fontWeight = 'bold';
+                    title.style.marginBottom = '0.5rem';
+                    title.textContent = vol.email;
+                    block.appendChild(title);
+
+                    var chips = document.createElement('div');
+                    vol.shifts.forEach(function(shift) {
+                        var chip = document.createElement('span');
+                        chip.className = 'shift-chip';
+                        chip.innerHTML = '<span>' + escapeHtml(shift.routeName) + ' — ' + formatDateLabel(shift.eventDate) +
+                            (shift.role ? ' (' + escapeHtml(shift.role) + ')' : '') + '</span>';
+                        var removeBtn = document.createElement('button');
+                        removeBtn.textContent = '✕';
+                        removeBtn.onclick = function() {
+                            runOp('/.netlify/functions/admin-assign-shift', {
+                                op: 'unassign', routeDateId: shift.routeDateId, volunteerId: vol.id
+                            }, 'volunteersStatus');
+                        };
+                        chip.appendChild(removeBtn);
+                        chips.appendChild(chip);
+                    });
+                    block.appendChild(chips);
+
+                    var addForm = document.createElement('div');
+                    addForm.className = 'add-row-form';
+                    var select = document.createElement('select');
+                    routeDates.forEach(function(rd) {
+                        var opt = document.createElement('option');
+                        opt.value = rd.id;
+                        opt.textContent = rd.label;
+                        select.appendChild(opt);
+                    });
+                    var roleInput = document.createElement('input');
+                    roleInput.type = 'text';
+                    roleInput.placeholder = 'Role (optional, e.g. driver)';
+                    var assignBtn = document.createElement('button');
+                    assignBtn.className = 'admin-btn small';
+                    assignBtn.textContent = '+ Assign Shift';
+                    assignBtn.disabled = routeDates.length === 0;
+                    assignBtn.onclick = function() {
+                        runOp('/.netlify/functions/admin-assign-shift', {
+                            op: 'assign',
+                            routeDateId: select.value,
+                            volunteerId: vol.id,
+                            role: roleInput.value.trim()
+                        }, 'volunteersStatus');
+                    };
+                    addForm.appendChild(select);
+                    addForm.appendChild(roleInput);
+                    addForm.appendChild(assignBtn);
+                    block.appendChild(addForm);
+
+                    container.appendChild(block);
+                });
+            }
+
+            // ---- Shared op runner ----
+
+            async function runOp(url, body, statusElId) {
+                var statusEl = document.getElementById(statusElId);
+                statusEl.textContent = 'Saving...';
+                try {
+                    var result = await postOp(url, body);
+                    statusEl.textContent = 'Saved.';
+                    setTimeout(function() { statusEl.textContent = ''; }, 2000);
+                    await loadAll();
+                    return result;
+                } catch (err) {
+                    console.error('Error saving:', err);
+                    statusEl.textContent = "Couldn't save: " + err.message;
+                    throw err;
+                }
+            }
+
+            function escapeHtml(str) {
+                var div = document.createElement('div');
+                div.textContent = str == null ? '' : String(str);
+                return div.innerHTML;
+            }
+
+            // ---- Tabs ----
+
+            document.querySelectorAll('.admin-tabs .tab-btn').forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    document.querySelectorAll('.admin-tabs .tab-btn').forEach(function(b) { b.classList.remove('active'); });
+                    btn.classList.add('active');
+                    ['routes', 'settings', 'volunteers'].forEach(function(tab) {
+                        document.getElementById('tab-' + tab).classList.toggle('admin-hidden', tab !== btn.dataset.tab);
+                    });
+                });
+            });
+
+            // ---- Auth wiring ----
+
+            document.getElementById('loginBtn').addEventListener('click', function() {
+                netlifyIdentity.open('login');
+            });
+            document.getElementById('logoutBtn').addEventListener('click', function() {
+                netlifyIdentity.logout();
+            });
+            document.getElementById('logoutBtnNotAdmin').addEventListener('click', function() {
+                netlifyIdentity.logout();
+            });
+
+            netlifyIdentity.on('init', function(user) { showState(user); });
+            netlifyIdentity.on('login', function(user) { showState(user); netlifyIdentity.close(); });
+            netlifyIdentity.on('logout', function() { adminData = null; showState(null); });
+
+            // No explicit netlifyIdentity.init() call here -- the widget
+            // script already self-initializes on DOMContentLoaded. See the
+            // comment in volunteer.html for why a second call is harmful.
+        })();
+    </script>
+</body>
+</html>

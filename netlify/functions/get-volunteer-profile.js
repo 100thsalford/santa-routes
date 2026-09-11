@@ -2,10 +2,9 @@
 // first access. Requires a valid Netlify Identity JWT in the Authorization
 // header (sent automatically by netlify-identity-widget once logged in).
 //
-// Shift/route assignment isn't stored yet -- `shifts` is always empty until
-// the admin route/street/date management screens (step 4) exist to assign
-// volunteers to routes. The front-end shows a "no shifts yet" placeholder
-// for an empty array.
+// `shifts` comes from shift_assignments, populated by the admin "Volunteer
+// Shifts" screen (step 4) -- an empty array just means nothing's been
+// assigned to this volunteer yet.
 
 import { getUser } from '@netlify/identity';
 import { getDatabase } from '@netlify/database';
@@ -22,7 +21,7 @@ export default async (req, context) => {
     const db = getDatabase();
 
     let rows = await db.sql`
-      SELECT identity_user_id, email, reminder_email_opt_in, preferred_email
+      SELECT id, identity_user_id, email, reminder_email_opt_in, preferred_email
       FROM volunteers WHERE identity_user_id = ${user.id}
     `;
 
@@ -31,17 +30,32 @@ export default async (req, context) => {
         INSERT INTO volunteers (identity_user_id, email)
         VALUES (${user.id}, ${user.email})
         ON CONFLICT (identity_user_id) DO UPDATE SET email = EXCLUDED.email
-        RETURNING identity_user_id, email, reminder_email_opt_in, preferred_email
+        RETURNING id, identity_user_id, email, reminder_email_opt_in, preferred_email
       `;
     }
 
     const profile = rows[0];
 
+    const shiftRows = await db.sql`
+      SELECT sa.role, r.name AS route_name, to_char(rd.event_date, 'YYYY-MM-DD') AS event_date
+      FROM shift_assignments sa
+      JOIN route_dates rd ON sa.route_date_id = rd.id
+      JOIN routes r ON rd.route_id = r.id
+      WHERE sa.volunteer_id = ${profile.id}
+      ORDER BY rd.event_date
+    `;
+
+    const shifts = shiftRows.map((s) => ({
+      routeName: s.route_name,
+      eventDate: s.event_date,
+      role: s.role
+    }));
+
     return new Response(JSON.stringify({
       email: profile.email,
       reminderEmailOptIn: profile.reminder_email_opt_in,
       preferredEmail: profile.preferred_email,
-      shifts: []
+      shifts
     }), { status: 200, headers });
   } catch (error) {
     console.error('Error fetching volunteer profile:', error);
