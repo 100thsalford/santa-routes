@@ -160,12 +160,62 @@
             font-size: 0.9rem;
         }
 
-        .settings-form input {
+        .settings-form input,
+        .settings-form textarea,
+        .broadcast-form input,
+        .broadcast-form textarea,
+        .broadcast-form select {
             width: 100%;
             box-sizing: border-box;
             padding: 0.5rem 0.6rem;
             border: 1px solid #ccc;
             border-radius: 6px;
+            font-family: inherit;
+        }
+
+        .settings-form textarea {
+            resize: vertical;
+        }
+
+        .reminders-panel {
+            border-top: 1px solid #eee;
+            margin-top: 1.5rem;
+            padding-top: 1.5rem;
+            max-width: 420px;
+        }
+
+        .reminders-panel h3 {
+            margin: 0 0 0.5rem;
+            font-size: 1rem;
+            color: var(--text-dark);
+        }
+
+        .reminders-panel p {
+            color: #666;
+            font-size: 0.85rem;
+            margin: 0 0 0.75rem;
+        }
+
+        .reminders-panel .add-row-form {
+            margin-bottom: 0;
+        }
+
+        .broadcast-form {
+            display: grid;
+            gap: 1rem;
+            max-width: 560px;
+        }
+
+        .broadcast-form label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 0.25rem;
+            color: var(--text-dark);
+            font-size: 0.9rem;
+        }
+
+        .broadcast-form textarea {
+            resize: vertical;
         }
 
         .admin-status {
@@ -393,6 +443,7 @@
                 <button class="tab-btn" data-tab="settings">⚙️ Season Settings</button>
                 <button class="tab-btn" data-tab="volunteers">👥 Volunteer Shifts</button>
                 <button class="tab-btn" data-tab="search-activity">🔍 Search Activity</button>
+                <button class="tab-btn" data-tab="broadcast">📣 Broadcast</button>
             </div>
 
             <!-- Routes & Streets -->
@@ -436,9 +487,27 @@
                         <label for="sightingsWindowEnd">Sightings window end (24hr, e.g. 22:00)</label>
                         <input type="text" id="sightingsWindowEnd" placeholder="22:00">
                     </div>
+                    <div>
+                        <label for="riskAssessmentText">Safety guidance shown to volunteers (risk assessment acknowledgment)</label>
+                        <textarea id="riskAssessmentText" rows="4" placeholder="Safety guidance volunteers see and acknowledge before their first shift..."></textarea>
+                    </div>
+                    <div>
+                        <label for="riskAssessmentUrl">Full risk assessment document link (optional)</label>
+                        <input type="url" id="riskAssessmentUrl" placeholder="https://...">
+                    </div>
                     <button type="submit" class="admin-btn">Save Settings</button>
                 </form>
                 <div class="admin-status" id="settingsStatus"></div>
+
+                <div class="reminders-panel">
+                    <h3>✉️ Send tonight's shift reminders now</h3>
+                    <p>Normally sent automatically at 7am every day of the event window. Use this to send early, resend, or send for a different date.</p>
+                    <div class="add-row-form">
+                        <input type="date" id="manualReminderDate" class="field-date">
+                        <button class="admin-btn small" id="sendRemindersBtn" type="button">Send Reminders</button>
+                    </div>
+                    <div class="admin-status" id="remindersStatus"></div>
+                </div>
             </div>
 
             <!-- Volunteer Shifts -->
@@ -452,6 +521,34 @@
             <div class="admin-card admin-hidden" id="tab-search-activity">
                 <p id="searchActivityLoading" class="admin-loading">Loading search activity...</p>
                 <div id="searchActivityContent"></div>
+            </div>
+
+            <!-- Broadcast -->
+            <div class="admin-card admin-hidden" id="tab-broadcast">
+                <p style="color:#666; font-size:0.9rem; margin-top:0;">Send a one-off email to volunteers — a schedule change, a weather cancellation, anything outside the automatic nightly shift reminder.</p>
+                <form class="broadcast-form" id="broadcastForm">
+                    <div>
+                        <label for="broadcastSubject">Subject</label>
+                        <input type="text" id="broadcastSubject" required>
+                    </div>
+                    <div>
+                        <label for="broadcastMessage">Message</label>
+                        <textarea id="broadcastMessage" rows="6" required></textarea>
+                    </div>
+                    <div>
+                        <label for="broadcastScope">Send to</label>
+                        <select id="broadcastScope">
+                            <option value="all">All volunteers</option>
+                            <option value="event">Volunteers signed up to one date</option>
+                        </select>
+                    </div>
+                    <div id="broadcastEventRow" class="admin-hidden">
+                        <label for="broadcastEvent">Which date</label>
+                        <select id="broadcastEvent"></select>
+                    </div>
+                    <button type="submit" class="admin-btn">Send Broadcast</button>
+                </form>
+                <div class="admin-status" id="broadcastStatus"></div>
             </div>
 
             <div style="text-align: right;">
@@ -533,6 +630,7 @@
                     renderRoutes();
                     renderSettings();
                     renderVolunteers();
+                    renderBroadcast();
                 } catch (err) {
                     console.error('Error loading admin data:', err);
                     document.getElementById('routesLoading').textContent = "Couldn't load data — please try refreshing.";
@@ -1097,6 +1195,8 @@
                 document.getElementById('seasonTrailDays').value = adminData.settings.season_trail_days || '';
                 document.getElementById('sightingsWindowStart').value = adminData.settings.sightings_window_start || '';
                 document.getElementById('sightingsWindowEnd').value = adminData.settings.sightings_window_end || '';
+                document.getElementById('riskAssessmentText').value = adminData.settings.risk_assessment_text || '';
+                document.getElementById('riskAssessmentUrl').value = adminData.settings.risk_assessment_url || '';
             }
 
             document.getElementById('settingsForm').addEventListener('submit', function(e) {
@@ -1105,8 +1205,82 @@
                     season_lead_days: document.getElementById('seasonLeadDays').value,
                     season_trail_days: document.getElementById('seasonTrailDays').value,
                     sightings_window_start: document.getElementById('sightingsWindowStart').value,
-                    sightings_window_end: document.getElementById('sightingsWindowEnd').value
+                    sightings_window_end: document.getElementById('sightingsWindowEnd').value,
+                    risk_assessment_text: document.getElementById('riskAssessmentText').value,
+                    risk_assessment_url: document.getElementById('riskAssessmentUrl').value
                 }, 'settingsStatus');
+            });
+
+            // ---- Manual reminder send ----
+
+            document.getElementById('sendRemindersBtn').addEventListener('click', async function() {
+                var btn = this;
+                var statusEl = document.getElementById('remindersStatus');
+                var dateInput = document.getElementById('manualReminderDate');
+                btn.disabled = true;
+                statusEl.textContent = 'Sending...';
+                try {
+                    var body = {};
+                    if (dateInput.value) body.date = dateInput.value;
+                    var result = await postOp('/.netlify/functions/admin-send-reminders', body);
+                    if (result.volunteersEmailed === 0) {
+                        statusEl.textContent = 'No shifts found for ' + result.date + ' — nothing sent.';
+                    } else {
+                        statusEl.textContent = 'Sent to ' + result.volunteersEmailed + ' volunteer(s) for ' + result.date +
+                            (result.errors && result.errors.length ? ' (' + result.errors.length + ' failed)' : '.');
+                    }
+                } catch (err) {
+                    console.error('Error sending reminders:', err);
+                    statusEl.textContent = "Couldn't send: " + err.message;
+                } finally {
+                    btn.disabled = false;
+                }
+            });
+
+            // ---- Broadcast ----
+
+            function renderBroadcast() {
+                var select = document.getElementById('broadcastEvent');
+                var current = select.value;
+                select.innerHTML = '';
+                flattenRouteDates().forEach(function(rd) {
+                    var opt = document.createElement('option');
+                    opt.value = rd.id;
+                    opt.textContent = rd.label;
+                    select.appendChild(opt);
+                });
+                if (current) select.value = current;
+            }
+
+            document.getElementById('broadcastScope').addEventListener('change', function() {
+                document.getElementById('broadcastEventRow').classList.toggle('admin-hidden', this.value !== 'event');
+            });
+
+            document.getElementById('broadcastForm').addEventListener('submit', async function(e) {
+                e.preventDefault();
+                var statusEl = document.getElementById('broadcastStatus');
+                var scope = document.getElementById('broadcastScope').value;
+                var body = {
+                    subject: document.getElementById('broadcastSubject').value,
+                    message: document.getElementById('broadcastMessage').value,
+                    scope: scope
+                };
+                if (scope === 'event') {
+                    body.routeDateId = document.getElementById('broadcastEvent').value;
+                }
+                statusEl.textContent = 'Sending...';
+                try {
+                    var result = await postOp('/.netlify/functions/admin-broadcast-email', body);
+                    statusEl.textContent = 'Sent to ' + result.sent + ' of ' + result.recipientCount + ' volunteer(s).' +
+                        (result.errors && result.errors.length ? ' (' + result.errors.length + ' failed)' : '');
+                    if (result.sent > 0) {
+                        document.getElementById('broadcastForm').reset();
+                        document.getElementById('broadcastEventRow').classList.add('admin-hidden');
+                    }
+                } catch (err) {
+                    console.error('Error sending broadcast:', err);
+                    statusEl.textContent = "Couldn't send: " + err.message;
+                }
             });
 
             // ---- Volunteer Shifts ----
@@ -1267,7 +1441,7 @@
                 btn.addEventListener('click', function() {
                     document.querySelectorAll('.admin-tabs .tab-btn').forEach(function(b) { b.classList.remove('active'); });
                     btn.classList.add('active');
-                    ['routes', 'settings', 'volunteers', 'search-activity'].forEach(function(tab) {
+                    ['routes', 'settings', 'volunteers', 'search-activity', 'broadcast'].forEach(function(tab) {
                         document.getElementById('tab-' + tab).classList.toggle('admin-hidden', tab !== btn.dataset.tab);
                     });
                 });
