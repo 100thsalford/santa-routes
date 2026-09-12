@@ -49,10 +49,11 @@ export default async (req, context) => {
 
     const db = getDatabase();
 
+    const fullName = (user.user_metadata && user.user_metadata.full_name) || null;
     const volRows = await db.sql`
-      INSERT INTO volunteers (identity_user_id, email)
-      VALUES (${user.id}, ${user.email})
-      ON CONFLICT (identity_user_id) DO UPDATE SET email = EXCLUDED.email
+      INSERT INTO volunteers (identity_user_id, email, full_name)
+      VALUES (${user.id}, ${user.email}, ${fullName})
+      ON CONFLICT (identity_user_id) DO UPDATE SET email = EXCLUDED.email, full_name = COALESCE(EXCLUDED.full_name, volunteers.full_name)
       RETURNING id
     `;
     const volunteerId = volRows[0].id;

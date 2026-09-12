@@ -169,6 +169,29 @@ export default async (req, context) => {
         return ok();
       }
 
+      // Sets (or clears, when volunteerId is null/absent) who's playing
+      // Santa/Safety Walker/Driver for one route_date. Kept in its own
+      // event_role_assignments table rather than shift_assignments -- these
+      // slots don't count toward that date's volunteer-capacity total
+      // (matches the Replit reference app: a date can show "0/8 volunteers"
+      // while still having a Santa assigned).
+      case 'set-event-role': {
+        const routeDateId = parseInt(body.routeDateId, 10);
+        const role = String(body.role || '');
+        if (!routeDateId || !['santa', 'safety_walker', 'driver'].includes(role)) {
+          return badRequest('routeDateId and a valid role (santa/safety_walker/driver) are required');
+        }
+        const volunteerId = body.volunteerId != null && String(body.volunteerId).trim() !== ''
+          ? parseInt(body.volunteerId, 10)
+          : null;
+        await db.sql`
+          INSERT INTO event_role_assignments (route_date_id, role, volunteer_id)
+          VALUES (${routeDateId}, ${role}, ${volunteerId})
+          ON CONFLICT (route_date_id, role) DO UPDATE SET volunteer_id = EXCLUDED.volunteer_id
+        `;
+        return ok();
+      }
+
       default:
         return badRequest('Unknown op: ' + body.op);
     }
