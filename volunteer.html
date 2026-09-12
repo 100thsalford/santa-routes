@@ -269,87 +269,6 @@
             border: 1px solid #ccc !important;
         }
 
-        .whatsapp-banner {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 0.75rem;
-            flex-wrap: wrap;
-            background: #E7F7EE;
-            border: 1px solid #A6E4C2;
-            border-radius: 10px;
-            padding: 0.75rem 1rem;
-            margin-bottom: 1.25rem;
-            text-align: left;
-        }
-
-        .whatsapp-banner span {
-            color: #146c3a;
-            font-size: 0.9rem;
-        }
-
-        .whatsapp-banner a.whatsapp-join-btn {
-            display: inline-block;
-            background: #25D366;
-            color: white;
-            border: none;
-            border-radius: 999px;
-            padding: 0.4rem 1rem;
-            font-size: 0.85rem;
-            font-weight: bold;
-            text-decoration: none;
-            white-space: nowrap;
-        }
-
-        .donation-qr-section {
-            text-align: left;
-        }
-
-        .donation-qr-section p {
-            color: #666;
-            font-size: 0.85rem;
-            margin: 0 0 0.75rem;
-        }
-
-        .donation-qr-toggle-btn {
-            background: var(--santa-green);
-            color: white;
-            border: none;
-            border-radius: 999px;
-            padding: 0.6rem 1.2rem;
-            font-size: 0.9rem;
-            font-weight: bold;
-            cursor: pointer;
-        }
-
-        .donation-qr-box {
-            display: none;
-            margin-top: 1rem;
-            text-align: center;
-            background: #f4f4f4;
-            border-radius: 10px;
-            padding: 1.25rem;
-        }
-
-        .donation-qr-box.visible {
-            display: block;
-        }
-
-        .donation-qr-box img {
-            background: white;
-            padding: 0.5rem;
-            border-radius: 8px;
-        }
-
-        .donation-qr-box a {
-            display: block;
-            margin-top: 0.75rem;
-            color: var(--santa-green);
-            font-weight: bold;
-            font-size: 0.85rem;
-            word-break: break-all;
-        }
-
         .shift-row-cancel-btn {
             background: none;
             border: 1px solid var(--santa-red);
@@ -527,6 +446,145 @@
             color: #777;
         }
 
+        /* Phase 9: Events / My Schedule tabs, replacing one long stacked
+           page with a lighter two-view split (matches the Replit
+           reference app's own top nav). */
+        .volunteer-tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1.25rem;
+            border-bottom: 1px solid #eee;
+        }
+
+        .volunteer-tabs .tab-btn {
+            background: none;
+            border: none;
+            border-bottom: 3px solid transparent;
+            padding: 0.6rem 0.25rem;
+            font-size: 0.95rem;
+            font-weight: bold;
+            color: #777;
+            cursor: pointer;
+        }
+
+        .volunteer-tabs .tab-btn.active {
+            color: var(--santa-green);
+            border-bottom-color: var(--santa-green);
+        }
+
+        .tab-panel.tab-hidden {
+            display: none;
+        }
+
+        /* Phase 9: small utility entry points (WhatsApp / Donate / Safety
+           Brief / FAQs) replacing the always-open WhatsApp banner and
+           donation section -- opened on demand instead of taking up
+           permanent page space. */
+        .utility-row {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            margin-bottom: 1.25rem;
+        }
+
+        .utility-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            background: #f4f4f4;
+            border: 1px solid #e0e0e0;
+            border-radius: 999px;
+            padding: 0.5rem 1rem;
+            font-size: 0.85rem;
+            font-weight: bold;
+            color: var(--text-dark);
+            cursor: pointer;
+            text-decoration: none;
+        }
+
+        .utility-btn:hover {
+            background: #ececec;
+        }
+
+        .info-modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.55);
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+            z-index: 1000;
+        }
+
+        .info-modal-overlay.visible {
+            display: flex;
+        }
+
+        .info-modal {
+            background: white;
+            border-radius: 16px;
+            padding: 1.75rem 1.5rem;
+            max-width: 460px;
+            width: 100%;
+            text-align: left;
+            max-height: 85vh;
+            overflow-y: auto;
+        }
+
+        .info-modal h2 {
+            color: var(--santa-green);
+            margin: 0 0 1rem;
+            font-size: 1.2rem;
+        }
+
+        .info-modal .faq-item {
+            margin-bottom: 1rem;
+        }
+
+        .info-modal .faq-q {
+            font-weight: bold;
+            color: var(--text-dark);
+            margin-bottom: 0.25rem;
+        }
+
+        .info-modal .faq-a {
+            color: #555;
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        .info-modal-close-btn {
+            display: block;
+            width: 100%;
+            margin-top: 1rem;
+            background: none;
+            border: 1px solid #ccc;
+            color: #777;
+            border-radius: 999px;
+            padding: 0.7rem 1.2rem;
+            font-size: 0.9rem;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .donation-modal-img {
+            display: block;
+            margin: 0 auto 1rem;
+            background: white;
+            padding: 0.5rem;
+            border-radius: 8px;
+        }
+
+        .donation-modal a {
+            display: block;
+            text-align: center;
+            color: var(--santa-green);
+            font-weight: bold;
+            font-size: 0.85rem;
+            word-break: break-all;
+        }
+
         /* Mobile polish */
         @media (max-width: 480px) {
             .volunteer-card {
@@ -564,43 +622,47 @@
                     <button type="button" id="riskBannerBtn">Review &amp; acknowledge</button>
                 </div>
 
-                <div class="whatsapp-banner">
-                    <span>📱 Join the volunteer WhatsApp group for last-minute updates.</span>
-                    <a class="whatsapp-join-btn" href="https://chat.whatsapp.com/BcxtgyZBZ4B42NltCxmyM4?mode=gi_t" target="_blank" rel="noopener noreferrer">Join WhatsApp</a>
+                <!-- Phase 9: WhatsApp / Donate / Safety Brief / FAQs as small
+                     on-demand utility buttons (matching the Replit reference
+                     app) instead of an always-open banner + section. -->
+                <div class="utility-row">
+                    <a class="utility-btn" href="https://chat.whatsapp.com/BcxtgyZBZ4B42NltCxmyM4?mode=gi_t" target="_blank" rel="noopener noreferrer">📱 WhatsApp Group</a>
+                    <button type="button" class="utility-btn" id="donateUtilityBtn">💝 Scan to Donate</button>
+                    <button type="button" class="utility-btn" id="safetyBriefUtilityBtn">🦺 Safety Brief</button>
+                    <button type="button" class="utility-btn" id="faqUtilityBtn">❓ FAQs</button>
                 </div>
 
-                <div class="block-title">🗓️ My Shifts</div>
-                <div id="shiftsContent" class="shifts-empty">
-                    No shifts assigned yet — check back once this year's routes and dates are finalised.
+                <div class="volunteer-tabs">
+                    <button class="tab-btn active" data-tab="events">🎄 Events</button>
+                    <button class="tab-btn" data-tab="myschedule">🗓️ My Schedule</button>
                 </div>
 
-                <div class="block-title">🙋 Open Shifts</div>
-                <div id="openShiftsContent" class="shifts-empty">
-                    Loading open shifts...
-                </div>
-                <div class="volunteer-save-status" id="openShiftsStatus"></div>
-
-                <div class="block-title">✉️ Reminder Emails</div>
-                <div class="preference-row">
-                    <span class="preference-label">
-                        Send me a reminder on the day of my shift
-                        <span class="preference-hint">Sent the morning of any route/date you're assigned to.</span>
-                    </span>
-                    <label class="toggle-switch">
-                        <input type="checkbox" id="reminderToggle">
-                        <span class="toggle-slider"></span>
-                    </label>
-                </div>
-                <div class="volunteer-save-status" id="saveStatus"></div>
-
-                <div class="block-title">💝 Collecting Donations</div>
-                <div class="donation-qr-section">
-                    <p>Show this QR code to a resident who wants to donate on the spot — it goes straight to our donation page.</p>
-                    <button type="button" class="donation-qr-toggle-btn" id="donationQrToggleBtn">Show donation QR</button>
-                    <div class="donation-qr-box" id="donationQrBox">
-                        <img src="https://api.qrserver.com/v1/create-qr-code/?size=240x240&amp;data=https%3A%2F%2Fcheckout.square.site%2Fmerchant%2FMLHCM2TZHZ9NA%2Fcheckout%2FE4KKJFETD5BQZJYHETXWV6S2" width="240" height="240" alt="QR code linking to the Santa Sleigh donation page" loading="lazy">
-                        <a href="https://checkout.square.site/merchant/MLHCM2TZHZ9NA/checkout/E4KKJFETD5BQZJYHETXWV6S2" target="_blank" rel="noopener noreferrer">checkout.square.site/merchant/&hellip;</a>
+                <div class="tab-panel" id="tab-events">
+                    <div class="block-title" style="margin-top: 0;">🙋 Available Sleigh Nights</div>
+                    <div id="openShiftsContent" class="shifts-empty">
+                        Loading open shifts...
                     </div>
+                    <div class="volunteer-save-status" id="openShiftsStatus"></div>
+                </div>
+
+                <div class="tab-panel tab-hidden" id="tab-myschedule">
+                    <div class="block-title" style="margin-top: 0;">🗓️ My Shifts</div>
+                    <div id="shiftsContent" class="shifts-empty">
+                        No shifts assigned yet — check back once this year's routes and dates are finalised.
+                    </div>
+
+                    <div class="block-title">✉️ Reminder Emails</div>
+                    <div class="preference-row">
+                        <span class="preference-label">
+                            Send me a reminder on the day of my shift
+                            <span class="preference-hint">Sent the morning of any route/date you're assigned to.</span>
+                        </span>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="reminderToggle">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                    <div class="volunteer-save-status" id="saveStatus"></div>
                 </div>
             </div>
 
@@ -617,7 +679,7 @@
             <h2>🦺 Safety guidance</h2>
             <p id="riskModalText">Loading...</p>
             <p id="riskModalLinkRow" style="display:none;"><a id="riskModalLink" href="#" target="_blank" rel="noopener noreferrer">View the full risk assessment document</a></p>
-            <label class="risk-modal-checkbox">
+            <label class="risk-modal-checkbox" id="riskModalCheckboxRow">
                 <input type="checkbox" id="riskAckCheckbox">
                 <span>I've read and understood this safety guidance.</span>
             </label>
@@ -625,6 +687,25 @@
                 <button type="button" class="risk-ack-btn" id="riskAckBtn" disabled>I acknowledge</button>
                 <button type="button" class="risk-later-btn" id="riskLaterBtn">Remind me later</button>
             </div>
+        </div>
+    </div>
+
+    <!-- Phase 9: on-demand info modals for the utility row above -->
+    <div class="info-modal-overlay" id="donateModalOverlay">
+        <div class="info-modal" style="text-align:center;">
+            <h2 style="text-align:left;">💝 Scan to Donate</h2>
+            <img class="donation-modal-img" src="https://api.qrserver.com/v1/create-qr-code/?size=240x240&amp;data=https%3A%2F%2Fcheckout.square.site%2Fmerchant%2FMLHCM2TZHZ9NA%2Fcheckout%2FE4KKJFETD5BQZJYHETXWV6S2" width="240" height="240" alt="QR code linking to the Santa Sleigh donation page" loading="lazy">
+            <p style="text-align:left; color:#666; font-size:0.9rem;">Show this to a resident who wants to donate on the spot — it goes straight to our donation page.</p>
+            <a href="https://checkout.square.site/merchant/MLHCM2TZHZ9NA/checkout/E4KKJFETD5BQZJYHETXWV6S2" target="_blank" rel="noopener noreferrer">checkout.square.site/merchant/&hellip;</a>
+            <button type="button" class="info-modal-close-btn" data-close-modal="donateModalOverlay">Close</button>
+        </div>
+    </div>
+
+    <div class="info-modal-overlay" id="faqModalOverlay">
+        <div class="info-modal">
+            <h2>❓ Volunteer FAQs</h2>
+            <div id="faqContent"></div>
+            <button type="button" class="info-modal-close-btn" data-close-modal="faqModalOverlay">Close</button>
         </div>
     </div>
 
@@ -650,6 +731,7 @@
             var riskAckCheckbox = document.getElementById('riskAckCheckbox');
             var riskAckBtn = document.getElementById('riskAckBtn');
             var riskLaterBtn = document.getElementById('riskLaterBtn');
+            var riskModalCheckboxRow = document.getElementById('riskModalCheckboxRow');
 
             var currentProfile = null;
             var saveTimer = null;
@@ -707,9 +789,23 @@
                 }
             }
 
-            function showRiskModal() {
-                riskAckCheckbox.checked = false;
-                riskAckBtn.disabled = true;
+            // readOnly=true is for the "Safety Brief" utility button, which
+            // any volunteer can open at any time just to re-read the
+            // guidance -- shows the text without re-demanding the
+            // checkbox/acknowledge flow that's only needed the first time.
+            function showRiskModal(readOnly) {
+                var alreadyAcked = !!(currentProfile && currentProfile.riskAckAt);
+                if (readOnly && alreadyAcked) {
+                    riskModalCheckboxRow.style.display = 'none';
+                    riskAckBtn.style.display = 'none';
+                    riskLaterBtn.textContent = 'Close';
+                } else {
+                    riskModalCheckboxRow.style.display = '';
+                    riskAckBtn.style.display = '';
+                    riskLaterBtn.textContent = 'Remind me later';
+                    riskAckCheckbox.checked = false;
+                    riskAckBtn.disabled = true;
+                }
                 riskModalOverlay.classList.add('visible');
             }
 
@@ -721,14 +817,62 @@
                 riskAckBtn.disabled = !riskAckCheckbox.checked;
             });
 
-            riskBannerBtn.addEventListener('click', showRiskModal);
+            riskBannerBtn.addEventListener('click', function() { showRiskModal(false); });
             riskLaterBtn.addEventListener('click', hideRiskModal);
+            document.getElementById('safetyBriefUtilityBtn').addEventListener('click', function() { showRiskModal(true); });
 
-            var donationQrToggleBtn = document.getElementById('donationQrToggleBtn');
-            var donationQrBox = document.getElementById('donationQrBox');
-            donationQrToggleBtn.addEventListener('click', function() {
-                var showing = donationQrBox.classList.toggle('visible');
-                donationQrToggleBtn.textContent = showing ? 'Hide donation QR' : 'Show donation QR';
+            // ---- Phase 9: on-demand info modals (Donate / FAQ) ----
+
+            function openModal(id) { document.getElementById(id).classList.add('visible'); }
+            function closeModal(id) { document.getElementById(id).classList.remove('visible'); }
+
+            document.getElementById('donateUtilityBtn').addEventListener('click', function() { openModal('donateModalOverlay'); });
+            document.getElementById('faqUtilityBtn').addEventListener('click', function() { openModal('faqModalOverlay'); });
+            document.querySelectorAll('[data-close-modal]').forEach(function(btn) {
+                btn.addEventListener('click', function() { closeModal(btn.dataset.closeModal); });
+            });
+
+            var FAQ_ITEMS = [
+                ['Can my child(ren) help?', "Yes, however, they must remain under your care and are entirely your responsibility during the evening. Please keep in mind, sometimes routes run long (we've had finishes at 9.30pm in the past). Children will need you stood with them whilst collecting."],
+                ['Can my friend/colleague/family member help?', 'Absolutely! Please have them register on this portal so that they can see all the details and safety information.'],
+                ["I can't make a night, can I cancel?", 'We understand things change. Please cancel your shift from My Schedule if it’s more than 24 hours away, or contact an admin if it’s sooner.'],
+                ['Can I be Santa?', "Obviously, the big man himself comes out every night! But sometimes, in Hollywood fashion, we do have to use a lookalike. We've got a few regulars, but if we're short and you're up for it, let an admin know."],
+                ['Can people donate by card/online?', 'Yes! Use the "Scan to Donate" button above — load it on your phone and show the QR code for the donor to scan and donate online. They can also donate via santasleighsalford.co.uk.'],
+                ['What do I wear?', 'First, dress for the weather — rain, snow, wind, cold, whatever it may be. Second, dress festive if you want! From Santa hats and elf ears to full-blown Christmas trees and lights, it’s all about spreading joy!'],
+                ['What do we do?', "Ensure you've got a high-vis jacket, a lanyard and a collection pot or tub first from the Safety Lead for the night. We aim to set off on time, so make sure you arrive in good time. Follow the route map under the guidance of the Safety Lead. We ask volunteers to split between each side of the street and 'bunny hop' knocking on doors, keeping about 5 houses ahead of the Sleigh."],
+                ['What do we say?', '"Merry Christmas! We’re just knocking to let you know Santa is passing by shortly if you want to see him, and we’re also collecting donations for the 100th Salford Scout Group."'],
+                ["Where's the money go?", 'At the end of the night, return all pots to the Safety Lead to be secured. The funds raised are invested into the Scout group, to either keep subs down, subsidise trips/camps, or cover leader event costs instead of increasing the cost for Scouts.'],
+                ['I have more questions!', 'Get in touch with an admin via the WhatsApp group.']
+            ];
+
+            function renderFaq() {
+                var container = document.getElementById('faqContent');
+                container.innerHTML = '';
+                FAQ_ITEMS.forEach(function(item) {
+                    var div = document.createElement('div');
+                    div.className = 'faq-item';
+                    div.innerHTML = '<div class="faq-q">' + escapeHtml(item[0]) + '</div><div class="faq-a">' + escapeHtml(item[1]) + '</div>';
+                    container.appendChild(div);
+                });
+            }
+            renderFaq();
+
+            function escapeHtml(str) {
+                var div = document.createElement('div');
+                div.textContent = str == null ? '' : String(str);
+                return div.innerHTML;
+            }
+
+            // ---- Phase 9: Events / My Schedule tabs ----
+
+            document.querySelectorAll('.volunteer-tabs .tab-btn').forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    document.querySelectorAll('.volunteer-tabs .tab-btn').forEach(function(b) { b.classList.remove('active'); });
+                    btn.classList.add('active');
+                    ['events', 'myschedule'].forEach(function(tab) {
+                        document.getElementById('tab-' + tab).classList.toggle('tab-hidden', tab !== btn.dataset.tab);
+                    });
+                });
             });
 
             riskAckBtn.addEventListener('click', async function() {
@@ -934,6 +1078,28 @@
                             openW3w.className = 'shift-detail';
                             openW3w.textContent = '📍 ///' + shift.what3words;
                             info.appendChild(openW3w);
+                        }
+
+                        // Phase 9: named signups + Santa/Safety Walker/Driver,
+                        // shown to any logged-in volunteer (superseding the
+                        // earlier aggregate-count-only privacy decision).
+                        if (shift.signupNames && shift.signupNames.length > 0) {
+                            var namesEl = document.createElement('span');
+                            namesEl.className = 'shift-detail';
+                            namesEl.textContent = '🙋 Signed up: ' + shift.signupNames.join(', ');
+                            info.appendChild(namesEl);
+                        }
+                        if (shift.roles) {
+                            var roleLabels = [];
+                            if (shift.roles.santa) roleLabels.push('🎅 Santa: ' + shift.roles.santa);
+                            if (shift.roles.safety_walker) roleLabels.push('🦺 Safety Walker: ' + shift.roles.safety_walker);
+                            if (shift.roles.driver) roleLabels.push('🚗 Driver: ' + shift.roles.driver);
+                            if (roleLabels.length > 0) {
+                                var rolesEl = document.createElement('span');
+                                rolesEl.className = 'shift-detail';
+                                rolesEl.textContent = roleLabels.join(' · ');
+                                info.appendChild(rolesEl);
+                            }
                         }
 
                         row.appendChild(info);
