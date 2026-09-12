@@ -269,6 +269,87 @@
             border: 1px solid #ccc !important;
         }
 
+        .whatsapp-banner {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+            background: #E7F7EE;
+            border: 1px solid #A6E4C2;
+            border-radius: 10px;
+            padding: 0.75rem 1rem;
+            margin-bottom: 1.25rem;
+            text-align: left;
+        }
+
+        .whatsapp-banner span {
+            color: #146c3a;
+            font-size: 0.9rem;
+        }
+
+        .whatsapp-banner a.whatsapp-join-btn {
+            display: inline-block;
+            background: #25D366;
+            color: white;
+            border: none;
+            border-radius: 999px;
+            padding: 0.4rem 1rem;
+            font-size: 0.85rem;
+            font-weight: bold;
+            text-decoration: none;
+            white-space: nowrap;
+        }
+
+        .donation-qr-section {
+            text-align: left;
+        }
+
+        .donation-qr-section p {
+            color: #666;
+            font-size: 0.85rem;
+            margin: 0 0 0.75rem;
+        }
+
+        .donation-qr-toggle-btn {
+            background: var(--santa-green);
+            color: white;
+            border: none;
+            border-radius: 999px;
+            padding: 0.6rem 1.2rem;
+            font-size: 0.9rem;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .donation-qr-box {
+            display: none;
+            margin-top: 1rem;
+            text-align: center;
+            background: #f4f4f4;
+            border-radius: 10px;
+            padding: 1.25rem;
+        }
+
+        .donation-qr-box.visible {
+            display: block;
+        }
+
+        .donation-qr-box img {
+            background: white;
+            padding: 0.5rem;
+            border-radius: 8px;
+        }
+
+        .donation-qr-box a {
+            display: block;
+            margin-top: 0.75rem;
+            color: var(--santa-green);
+            font-weight: bold;
+            font-size: 0.85rem;
+            word-break: break-all;
+        }
+
         .shift-row-cancel-btn {
             background: none;
             border: 1px solid var(--santa-red);
@@ -483,6 +564,11 @@
                     <button type="button" id="riskBannerBtn">Review &amp; acknowledge</button>
                 </div>
 
+                <div class="whatsapp-banner">
+                    <span>📱 Join the volunteer WhatsApp group for last-minute updates.</span>
+                    <a class="whatsapp-join-btn" href="https://chat.whatsapp.com/BcxtgyZBZ4B42NltCxmyM4?mode=gi_t" target="_blank" rel="noopener noreferrer">Join WhatsApp</a>
+                </div>
+
                 <div class="block-title">🗓️ My Shifts</div>
                 <div id="shiftsContent" class="shifts-empty">
                     No shifts assigned yet — check back once this year's routes and dates are finalised.
@@ -506,6 +592,16 @@
                     </label>
                 </div>
                 <div class="volunteer-save-status" id="saveStatus"></div>
+
+                <div class="block-title">💝 Collecting Donations</div>
+                <div class="donation-qr-section">
+                    <p>Show this QR code to a resident who wants to donate on the spot — it goes straight to our donation page.</p>
+                    <button type="button" class="donation-qr-toggle-btn" id="donationQrToggleBtn">Show donation QR</button>
+                    <div class="donation-qr-box" id="donationQrBox">
+                        <img src="https://api.qrserver.com/v1/create-qr-code/?size=240x240&amp;data=https%3A%2F%2Fcheckout.square.site%2Fmerchant%2FMLHCM2TZHZ9NA%2Fcheckout%2FE4KKJFETD5BQZJYHETXWV6S2" width="240" height="240" alt="QR code linking to the Santa Sleigh donation page" loading="lazy">
+                        <a href="https://checkout.square.site/merchant/MLHCM2TZHZ9NA/checkout/E4KKJFETD5BQZJYHETXWV6S2" target="_blank" rel="noopener noreferrer">checkout.square.site/merchant/&hellip;</a>
+                    </div>
+                </div>
             </div>
 
             <button class="volunteer-logout-btn" id="logoutBtn">Log Out</button>
@@ -627,6 +723,13 @@
 
             riskBannerBtn.addEventListener('click', showRiskModal);
             riskLaterBtn.addEventListener('click', hideRiskModal);
+
+            var donationQrToggleBtn = document.getElementById('donationQrToggleBtn');
+            var donationQrBox = document.getElementById('donationQrBox');
+            donationQrToggleBtn.addEventListener('click', function() {
+                var showing = donationQrBox.classList.toggle('visible');
+                donationQrToggleBtn.textContent = showing ? 'Hide donation QR' : 'Show donation QR';
+            });
 
             riskAckBtn.addEventListener('click', async function() {
                 riskAckBtn.disabled = true;
