@@ -9,11 +9,12 @@
     <link rel="stylesheet" href="styles.css?v=20260911b">
     <style>
         .volunteer-card {
-            background: white;
-            border-radius: 16px;
+            background: var(--surface);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-lg);
             padding: 2rem 1.5rem;
             margin-bottom: 1.5rem;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            box-shadow: var(--shadow-sm);
             text-align: center;
         }
 
@@ -33,10 +34,11 @@
             font-size: 1rem;
             font-weight: bold;
             cursor: pointer;
+            transition: background 0.15s ease;
         }
 
         .volunteer-login-btn:hover {
-            opacity: 0.9;
+            background: #163F30;
         }
 
         .volunteer-dashboard {
@@ -63,16 +65,16 @@
         }
 
         .shifts-empty {
-            background: #f4f4f4;
-            border-radius: 10px;
+            background: var(--surface-muted);
+            border-radius: var(--radius-md);
             padding: 1rem;
-            color: #555;
+            color: var(--ink-soft);
             text-align: left;
         }
 
         .shift-row {
-            background: #f4f4f4;
-            border-radius: 10px;
+            background: var(--surface-muted);
+            border-radius: var(--radius-md);
             padding: 0.75rem 1rem;
             margin-bottom: 0.5rem;
             text-align: left;
@@ -93,7 +95,7 @@
         .shift-detail {
             display: block;
             font-size: 0.85rem;
-            color: #666;
+            color: var(--ink-soft);
             margin-top: 0.35rem;
         }
 
@@ -196,14 +198,15 @@
         }
 
         .risk-modal {
-            background: white;
-            border-radius: 16px;
+            background: var(--surface);
+            border-radius: var(--radius-lg);
             padding: 1.75rem 1.5rem;
             max-width: 440px;
             width: 100%;
             text-align: left;
             max-height: 85vh;
             overflow-y: auto;
+            box-shadow: var(--shadow-lg);
         }
 
         .risk-modal h2 {
@@ -265,8 +268,8 @@
 
         .risk-later-btn {
             background: none;
-            color: #777;
-            border: 1px solid #ccc !important;
+            color: var(--ink-soft);
+            border: 1px solid var(--border-subtle) !important;
         }
 
         .shift-row-cancel-btn {
@@ -288,13 +291,13 @@
         .shift-row-note {
             display: block;
             font-size: 0.8rem;
-            color: #777;
+            color: var(--ink-soft);
             margin-top: 0.2rem;
         }
 
         .open-shift-row {
-            background: #f4f4f4;
-            border-radius: 10px;
+            background: var(--surface-muted);
+            border-radius: var(--radius-md);
             padding: 0.75rem 1rem;
             margin-bottom: 0.5rem;
             text-align: left;
@@ -346,7 +349,7 @@
         }
 
         .shift-claim-btn:disabled {
-            background: #ccc;
+            background: var(--border-subtle);
             cursor: default;
         }
 
@@ -357,7 +360,7 @@
             gap: 1rem;
             text-align: left;
             padding: 0.75rem 0;
-            border-bottom: 1px solid #eee;
+            border-bottom: 1px solid var(--border-subtle);
         }
 
         .preference-row:last-of-type {
@@ -371,7 +374,7 @@
         .preference-hint {
             display: block;
             font-size: 0.85rem;
-            color: #777;
+            color: var(--ink-soft);
             margin-top: 0.15rem;
         }
 
@@ -428,7 +431,7 @@
 
         .volunteer-logout-btn {
             background: none;
-            border: 2px solid var(--santa-red);
+            border: 1px solid var(--santa-red);
             color: var(--santa-red);
             border-radius: 999px;
             padding: 0.5rem 1.25rem;
@@ -443,7 +446,7 @@
         }
 
         .volunteer-loading {
-            color: #777;
+            color: var(--ink-soft);
         }
 
         /* Phase 9: Events / My Schedule tabs, replacing one long stacked
@@ -451,20 +454,21 @@
            reference app's own top nav). */
         .volunteer-tabs {
             display: flex;
-            gap: 0.5rem;
+            gap: 1.25rem;
             margin-bottom: 1.25rem;
-            border-bottom: 1px solid #eee;
+            border-bottom: 1px solid var(--border-subtle);
         }
 
         .volunteer-tabs .tab-btn {
             background: none;
             border: none;
-            border-bottom: 3px solid transparent;
-            padding: 0.6rem 0.25rem;
+            border-bottom: 2px solid transparent;
+            padding: 0.6rem 0.1rem;
             font-size: 0.95rem;
             font-weight: bold;
-            color: #777;
+            color: var(--ink-soft);
             cursor: pointer;
+            transition: color 0.15s ease, border-color 0.15s ease;
         }
 
         .volunteer-tabs .tab-btn.active {
@@ -491,8 +495,8 @@
             display: inline-flex;
             align-items: center;
             gap: 0.4rem;
-            background: #f4f4f4;
-            border: 1px solid #e0e0e0;
+            background: var(--surface-muted);
+            border: 1px solid var(--border-subtle);
             border-radius: 999px;
             padding: 0.5rem 1rem;
             font-size: 0.85rem;
@@ -500,10 +504,12 @@
             color: var(--text-dark);
             cursor: pointer;
             text-decoration: none;
+            transition: background 0.15s ease, border-color 0.15s ease;
         }
 
         .utility-btn:hover {
-            background: #ececec;
+            background: var(--surface);
+            border-color: var(--santa-green);
         }
 
         .info-modal-overlay {
@@ -522,14 +528,15 @@
         }
 
         .info-modal {
-            background: white;
-            border-radius: 16px;
+            background: var(--surface);
+            border-radius: var(--radius-lg);
             padding: 1.75rem 1.5rem;
             max-width: 460px;
             width: 100%;
             text-align: left;
             max-height: 85vh;
             overflow-y: auto;
+            box-shadow: var(--shadow-lg);
         }
 
         .info-modal h2 {
@@ -549,7 +556,7 @@
         }
 
         .info-modal .faq-a {
-            color: #555;
+            color: var(--ink-soft);
             font-size: 0.9rem;
             line-height: 1.5;
         }
@@ -559,8 +566,8 @@
             width: 100%;
             margin-top: 1rem;
             background: none;
-            border: 1px solid #ccc;
-            color: #777;
+            border: 1px solid var(--border-subtle);
+            color: var(--ink-soft);
             border-radius: 999px;
             padding: 0.7rem 1.2rem;
             font-size: 0.9rem;

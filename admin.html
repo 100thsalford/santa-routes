@@ -9,11 +9,12 @@
     <link rel="stylesheet" href="styles.css?v=20260911b">
     <style>
         .admin-card {
-            background: white;
-            border-radius: 16px;
+            background: var(--surface);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-lg);
             padding: 1.5rem;
             margin-bottom: 1.5rem;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            box-shadow: var(--shadow-sm);
         }
 
         .admin-hidden { display: none; }
@@ -28,10 +29,19 @@
             font-size: 0.95rem;
             font-weight: bold;
             cursor: pointer;
+            transition: background 0.15s ease, transform 0.15s ease;
+        }
+
+        .admin-login-btn:hover, .admin-btn:hover {
+            background: #163F30;
         }
 
         .admin-btn.danger {
             background: var(--santa-red);
+        }
+
+        .admin-btn.danger:hover {
+            background: #8C2D25;
         }
 
         .admin-btn.small {
@@ -60,17 +70,26 @@
         table.admin-table th, table.admin-table td {
             text-align: left;
             padding: 0.5rem 0.5rem;
-            border-bottom: 1px solid #eee;
+            border-bottom: 1px solid var(--border-subtle);
             font-size: 0.9rem;
+        }
+
+        table.admin-table th {
+            color: var(--ink-soft);
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+            font-weight: 600;
         }
 
         table.admin-table input, table.admin-table select {
             width: 100%;
             box-sizing: border-box;
             padding: 0.4rem 0.5rem;
-            border: 1px solid #ccc;
-            border-radius: 6px;
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-sm);
             font-size: 0.9rem;
+            font-family: inherit;
         }
 
         /* Named width classes (instead of inline styles) so the mobile
@@ -108,11 +127,11 @@
         }
         .field-w3w { width: 14rem; box-sizing: border-box; }
         .field-notes { flex: 1; min-width: 12rem; box-sizing: border-box; }
-        .route-map-status { color: #555; font-size: 0.9rem; }
+        .route-map-status { color: var(--ink-soft); font-size: 0.9rem; }
 
         .route-block, .date-block {
-            border: 1px solid #eee;
-            border-radius: 10px;
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
             padding: 1rem;
             margin-bottom: 1rem;
         }
@@ -141,9 +160,10 @@
 
         .add-row-form input {
             padding: 0.4rem 0.5rem;
-            border: 1px solid #ccc;
-            border-radius: 6px;
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-sm);
             font-size: 0.9rem;
+            font-family: inherit;
         }
 
         .settings-form {
@@ -168,8 +188,8 @@
             width: 100%;
             box-sizing: border-box;
             padding: 0.5rem 0.6rem;
-            border: 1px solid #ccc;
-            border-radius: 6px;
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-sm);
             font-family: inherit;
         }
 
@@ -178,7 +198,7 @@
         }
 
         .reminders-panel {
-            border-top: 1px solid #eee;
+            border-top: 1px solid var(--border-subtle);
             margin-top: 1.5rem;
             padding-top: 1.5rem;
             max-width: 420px;
@@ -191,7 +211,7 @@
         }
 
         .reminders-panel p {
-            color: #666;
+            color: var(--ink-soft);
             font-size: 0.85rem;
             margin: 0 0 0.75rem;
         }
@@ -226,8 +246,8 @@
         }
 
         .volunteer-block {
-            border: 1px solid #eee;
-            border-radius: 10px;
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
             padding: 1rem;
             margin-bottom: 1rem;
         }
@@ -236,7 +256,7 @@
             display: inline-flex;
             align-items: center;
             gap: 0.5rem;
-            background: #f4f4f4;
+            background: var(--surface-muted);
             border-radius: 999px;
             padding: 0.3rem 0.4rem 0.3rem 0.8rem;
             font-size: 0.85rem;
@@ -252,7 +272,7 @@
             line-height: 1;
         }
 
-        .admin-loading { color: #777; }
+        .admin-loading { color: var(--ink-soft); }
 
         .search-stats-row {
             display: flex;
@@ -262,8 +282,8 @@
         }
 
         .search-stat {
-            background: #f4f4f4;
-            border-radius: 10px;
+            background: var(--surface-muted);
+            border-radius: var(--radius-md);
             padding: 0.75rem 1rem;
             flex: 1 1 140px;
             text-align: center;
@@ -277,7 +297,7 @@
 
         .search-stat-label {
             font-size: 0.8rem;
-            color: #666;
+            color: var(--ink-soft);
         }
 
         .search-activity-subtitle {
@@ -296,7 +316,7 @@
         }
 
         .no-match-empty {
-            color: #777;
+            color: var(--ink-soft);
             font-size: 0.9rem;
             margin: 0 0 1.5rem;
         }
@@ -327,8 +347,8 @@
         }
 
         .stat-card {
-            background: #f8f8f8;
-            border-radius: 12px;
+            background: var(--surface-muted);
+            border-radius: var(--radius-md);
             padding: 1rem 1.25rem;
         }
 
@@ -339,15 +359,22 @@
         }
 
         .stat-card-label {
-            font-size: 0.85rem;
-            color: #666;
+            font-size: 0.8rem;
+            color: var(--ink-soft);
             margin-top: 0.15rem;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
         }
 
         .dashboard-section-title {
             font-weight: bold;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
             color: var(--santa-green);
             margin: 1.5rem 0 0.75rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid var(--border-subtle);
         }
 
         .dashboard-section-title:first-of-type {
@@ -371,20 +398,21 @@
 
         .event-role-field label {
             font-size: 0.75rem;
-            color: #777;
+            color: var(--ink-soft);
         }
 
         .event-role-field select {
             padding: 0.3rem 0.4rem;
-            border: 1px solid #ccc;
-            border-radius: 6px;
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-sm);
             font-size: 0.85rem;
             min-width: 9rem;
+            font-family: inherit;
         }
 
         .signup-names {
             font-size: 0.85rem;
-            color: #555;
+            color: var(--ink-soft);
             margin: 0.4rem 0;
         }
 
