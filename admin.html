@@ -6,7 +6,7 @@
     <meta name="robots" content="noindex">
     <meta name="description" content="Admin screens for Santa Super Sleigh Salford routes, dates, settings and volunteer shifts.">
     <title>Admin | Santa Super Sleigh Salford</title>
-    <link rel="stylesheet" href="styles.css?v=20260911b">
+    <link rel="stylesheet" href="styles.css?v=20260912a">
     <style>
         .admin-card {
             background: var(--surface);
@@ -17,7 +17,16 @@
             box-shadow: var(--shadow-sm);
         }
 
-        .admin-hidden { display: none; }
+        /* !important: this is a utility "hidden" class applied alongside
+           other classes that set their own `display` (e.g. .settings-form's
+           display:grid) -- without it, a same-specificity single-class rule
+           defined later in the cascade silently wins and the element stays
+           visible. Found via live verification: #settingsForm was showing
+           through (with "Loading settings..." still above it) before its
+           real data had loaded, because .settings-form{display:grid} (line
+           ~170) was overriding this rule (line ~20) even while admin-hidden
+           was applied. */
+        .admin-hidden { display: none !important; }
 
         .admin-login-btn, .admin-btn {
             display: inline-block;
