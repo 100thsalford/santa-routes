@@ -21,7 +21,7 @@ export default async (req, context) => {
     const db = getDatabase();
 
     let rows = await db.sql`
-      SELECT id, identity_user_id, email, reminder_email_opt_in, preferred_email
+      SELECT id, identity_user_id, email, reminder_email_opt_in, preferred_email, risk_ack_at
       FROM volunteers WHERE identity_user_id = ${user.id}
     `;
 
@@ -30,14 +30,22 @@ export default async (req, context) => {
         INSERT INTO volunteers (identity_user_id, email)
         VALUES (${user.id}, ${user.email})
         ON CONFLICT (identity_user_id) DO UPDATE SET email = EXCLUDED.email
-        RETURNING id, identity_user_id, email, reminder_email_opt_in, preferred_email
+        RETURNING id, identity_user_id, email, reminder_email_opt_in, preferred_email, risk_ack_at
       `;
     }
 
     const profile = rows[0];
 
+    const settingsRows = await db.sql`
+      SELECT key, value FROM settings
+      WHERE key IN ('risk_assessment_text', 'risk_assessment_url', 'sightings_window_start', 'sightings_window_end')
+    `;
+    const settingsByKey = {};
+    for (const row of settingsRows) settingsByKey[row.key] = row.value;
+
     const shiftRows = await db.sql`
-      SELECT sa.role, r.name AS route_name, to_char(rd.event_date, 'YYYY-MM-DD') AS event_date
+      SELECT sa.route_date_id, sa.role, r.name AS route_name, to_char(rd.event_date, 'YYYY-MM-DD') AS event_date,
+             rd.what3words, rd.notes, rd.route_map_filename
       FROM shift_assignments sa
       JOIN route_dates rd ON sa.route_date_id = rd.id
       JOIN routes r ON rd.route_id = r.id
@@ -46,15 +54,30 @@ export default async (req, context) => {
     `;
 
     const shifts = shiftRows.map((s) => ({
+      routeDateId: s.route_date_id,
       routeName: s.route_name,
       eventDate: s.event_date,
-      role: s.role
+      role: s.role,
+      what3words: s.what3words,
+      notes: s.notes,
+      hasRouteMap: !!s.route_map_filename
     }));
 
     return new Response(JSON.stringify({
       email: profile.email,
       reminderEmailOptIn: profile.reminder_email_opt_in,
       preferredEmail: profile.preferred_email,
+      riskAckAt: profile.risk_ack_at,
+      riskAssessment: {
+        text: settingsByKey.risk_assessment_text || '',
+        url: settingsByKey.risk_assessment_url || ''
+      },
+      // Same "route usually starts/ends at" proxy already used for the
+      // 24h self-cancel cutoff (route_dates has no per-shift start time
+      // of its own) -- reused here so "Add to calendar" has a start/end
+      // time to put in the .ics file.
+      sightingsWindowStart: settingsByKey.sightings_window_start || '17:00',
+      sightingsWindowEnd: settingsByKey.sightings_window_end || '22:00',
       shifts
     }), { status: 200, headers });
   } catch (error) {

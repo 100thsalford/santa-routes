@@ -86,6 +86,30 @@
         .field-amount { width: 7rem; box-sizing: border-box; }
         .field-seq { width: 4rem; box-sizing: border-box; }
 
+        .shift-status-badge {
+            display: inline-block;
+            font-size: 0.75rem;
+            font-weight: bold;
+            padding: 0.2rem 0.6rem;
+            border-radius: 999px;
+            white-space: nowrap;
+        }
+        .shift-status-badge.uncapped { background: #eee; color: #666; }
+        .shift-status-badge.open { background: #e3f2e6; color: #2e7d32; }
+        .shift-status-badge.urgent { background: #fdecea; color: #c62828; }
+        .shift-status-badge.full { background: #e8f0fe; color: #1a56b0; }
+
+        .date-block-details {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            margin: 0.5rem 0;
+        }
+        .field-w3w { width: 14rem; box-sizing: border-box; }
+        .field-notes { flex: 1; min-width: 12rem; box-sizing: border-box; }
+        .route-map-status { color: #555; font-size: 0.9rem; }
+
         .route-block, .date-block {
             border: 1px solid #eee;
             border-radius: 10px;
@@ -136,12 +160,62 @@
             font-size: 0.9rem;
         }
 
-        .settings-form input {
+        .settings-form input,
+        .settings-form textarea,
+        .broadcast-form input,
+        .broadcast-form textarea,
+        .broadcast-form select {
             width: 100%;
             box-sizing: border-box;
             padding: 0.5rem 0.6rem;
             border: 1px solid #ccc;
             border-radius: 6px;
+            font-family: inherit;
+        }
+
+        .settings-form textarea {
+            resize: vertical;
+        }
+
+        .reminders-panel {
+            border-top: 1px solid #eee;
+            margin-top: 1.5rem;
+            padding-top: 1.5rem;
+            max-width: 420px;
+        }
+
+        .reminders-panel h3 {
+            margin: 0 0 0.5rem;
+            font-size: 1rem;
+            color: var(--text-dark);
+        }
+
+        .reminders-panel p {
+            color: #666;
+            font-size: 0.85rem;
+            margin: 0 0 0.75rem;
+        }
+
+        .reminders-panel .add-row-form {
+            margin-bottom: 0;
+        }
+
+        .broadcast-form {
+            display: grid;
+            gap: 1rem;
+            max-width: 560px;
+        }
+
+        .broadcast-form label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 0.25rem;
+            color: var(--text-dark);
+            font-size: 0.9rem;
+        }
+
+        .broadcast-form textarea {
+            resize: vertical;
         }
 
         .admin-status {
@@ -369,6 +443,7 @@
                 <button class="tab-btn" data-tab="settings">⚙️ Season Settings</button>
                 <button class="tab-btn" data-tab="volunteers">👥 Volunteer Shifts</button>
                 <button class="tab-btn" data-tab="search-activity">🔍 Search Activity</button>
+                <button class="tab-btn" data-tab="broadcast">📣 Broadcast</button>
             </div>
 
             <!-- Routes & Streets -->
@@ -412,9 +487,27 @@
                         <label for="sightingsWindowEnd">Sightings window end (24hr, e.g. 22:00)</label>
                         <input type="text" id="sightingsWindowEnd" placeholder="22:00">
                     </div>
+                    <div>
+                        <label for="riskAssessmentText">Safety guidance shown to volunteers (risk assessment acknowledgment)</label>
+                        <textarea id="riskAssessmentText" rows="4" placeholder="Safety guidance volunteers see and acknowledge before their first shift..."></textarea>
+                    </div>
+                    <div>
+                        <label for="riskAssessmentUrl">Full risk assessment document link (optional)</label>
+                        <input type="url" id="riskAssessmentUrl" placeholder="https://...">
+                    </div>
                     <button type="submit" class="admin-btn">Save Settings</button>
                 </form>
                 <div class="admin-status" id="settingsStatus"></div>
+
+                <div class="reminders-panel">
+                    <h3>✉️ Send tonight's shift reminders now</h3>
+                    <p>Normally sent automatically at 7am every day of the event window. Use this to send early, resend, or send for a different date.</p>
+                    <div class="add-row-form">
+                        <input type="date" id="manualReminderDate" class="field-date">
+                        <button class="admin-btn small" id="sendRemindersBtn" type="button">Send Reminders</button>
+                    </div>
+                    <div class="admin-status" id="remindersStatus"></div>
+                </div>
             </div>
 
             <!-- Volunteer Shifts -->
@@ -428,6 +521,34 @@
             <div class="admin-card admin-hidden" id="tab-search-activity">
                 <p id="searchActivityLoading" class="admin-loading">Loading search activity...</p>
                 <div id="searchActivityContent"></div>
+            </div>
+
+            <!-- Broadcast -->
+            <div class="admin-card admin-hidden" id="tab-broadcast">
+                <p style="color:#666; font-size:0.9rem; margin-top:0;">Send a one-off email to volunteers — a schedule change, a weather cancellation, anything outside the automatic nightly shift reminder.</p>
+                <form class="broadcast-form" id="broadcastForm">
+                    <div>
+                        <label for="broadcastSubject">Subject</label>
+                        <input type="text" id="broadcastSubject" required>
+                    </div>
+                    <div>
+                        <label for="broadcastMessage">Message</label>
+                        <textarea id="broadcastMessage" rows="6" required></textarea>
+                    </div>
+                    <div>
+                        <label for="broadcastScope">Send to</label>
+                        <select id="broadcastScope">
+                            <option value="all">All volunteers</option>
+                            <option value="event">Volunteers signed up to one date</option>
+                        </select>
+                    </div>
+                    <div id="broadcastEventRow" class="admin-hidden">
+                        <label for="broadcastEvent">Which date</label>
+                        <select id="broadcastEvent"></select>
+                    </div>
+                    <button type="submit" class="admin-btn">Send Broadcast</button>
+                </form>
+                <div class="admin-status" id="broadcastStatus"></div>
             </div>
 
             <div style="text-align: right;">
@@ -509,6 +630,7 @@
                     renderRoutes();
                     renderSettings();
                     renderVolunteers();
+                    renderBroadcast();
                 } catch (err) {
                     console.error('Error loading admin data:', err);
                     document.getElementById('routesLoading').textContent = "Couldn't load data — please try refreshing.";
@@ -674,6 +796,21 @@
                 });
             }
 
+            // Mirrors the status logic in netlify/functions/get-shift-openings.js
+            // (kept in sync manually -- see the note there about this codebase's
+            // per-function self-contained-helpers convention).
+            function shiftStatusClass(capacity, signupCount) {
+                if (capacity == null) return 'uncapped';
+                if (signupCount >= capacity) return 'full';
+                if (signupCount === 0 || signupCount / capacity <= 0.5) return 'urgent';
+                return 'open';
+            }
+
+            function shiftStatusLabel(capacity, signupCount) {
+                if (capacity == null) return signupCount + ' signed up';
+                return signupCount + ' / ' + capacity + ' volunteers';
+            }
+
             // ---- Routes & Streets ----
 
             var selectedYear = null;
@@ -823,12 +960,28 @@
                 amountInput.value = date.amountCollected != null ? date.amountCollected : '';
                 header.appendChild(amountInput);
 
+                var capacityInput = document.createElement('input');
+                capacityInput.type = 'number';
+                capacityInput.step = '1';
+                capacityInput.min = '0';
+                capacityInput.placeholder = 'volunteers needed';
+                capacityInput.className = 'field-narrow';
+                capacityInput.title = 'Volunteer capacity for self-serve signup (leave blank to not track one)';
+                capacityInput.value = date.volunteerCapacity != null ? date.volunteerCapacity : '';
+                header.appendChild(capacityInput);
+
+                var shiftBadge = document.createElement('span');
+                shiftBadge.className = 'shift-status-badge ' + shiftStatusClass(date.volunteerCapacity, date.signupCount);
+                shiftBadge.textContent = shiftStatusLabel(date.volunteerCapacity, date.signupCount);
+                header.appendChild(shiftBadge);
+
                 var saveDateBtn = document.createElement('button');
                 saveDateBtn.className = 'admin-btn small';
                 saveDateBtn.textContent = 'Save';
                 saveDateBtn.onclick = function() {
                     runOp('/.netlify/functions/admin-routes', {
-                        op: 'update-date', id: date.id, eventDate: dateInput.value, amountCollected: amountInput.value
+                        op: 'update-date', id: date.id, eventDate: dateInput.value, amountCollected: amountInput.value,
+                        volunteerCapacity: capacityInput.value, what3words: w3wInput.value, notes: notesInput.value
                     }, 'routesStatus');
                 };
                 header.appendChild(saveDateBtn);
@@ -839,6 +992,63 @@
                 delBtn.onclick = function() { deleteDate(date); };
                 header.appendChild(delBtn);
                 block.appendChild(header);
+
+                var detailsRow = document.createElement('div');
+                detailsRow.className = 'date-block-details';
+
+                var w3wInput = document.createElement('input');
+                w3wInput.type = 'text';
+                w3wInput.placeholder = 'what3words, e.g. yappy.looks.occurs';
+                w3wInput.className = 'field-w3w';
+                w3wInput.value = date.what3words || '';
+                detailsRow.appendChild(w3wInput);
+
+                var notesInput = document.createElement('input');
+                notesInput.type = 'text';
+                notesInput.placeholder = 'Notes for volunteers (optional)';
+                notesInput.className = 'field-notes';
+                notesInput.value = date.notes || '';
+                detailsRow.appendChild(notesInput);
+
+                block.appendChild(detailsRow);
+
+                var mapRow = document.createElement('div');
+                mapRow.className = 'date-block-details';
+
+                var mapStatus = document.createElement('span');
+                mapStatus.className = 'route-map-status';
+                mapStatus.textContent = date.routeMapFilename ? ('📎 ' + date.routeMapFilename) : 'No route map uploaded';
+                mapRow.appendChild(mapStatus);
+
+                if (date.routeMapFilename) {
+                    var viewMapBtn = document.createElement('button');
+                    viewMapBtn.className = 'admin-btn small';
+                    viewMapBtn.textContent = 'View';
+                    viewMapBtn.onclick = function() { viewRouteMap(date.id, 'routesStatus'); };
+                    mapRow.appendChild(viewMapBtn);
+
+                    var removeMapBtn = document.createElement('button');
+                    removeMapBtn.className = 'admin-btn small danger';
+                    removeMapBtn.textContent = 'Remove Map';
+                    removeMapBtn.onclick = function() { removeRouteMap(date.id, 'routesStatus'); };
+                    mapRow.appendChild(removeMapBtn);
+                }
+
+                var mapFileInput = document.createElement('input');
+                mapFileInput.type = 'file';
+                mapFileInput.accept = '.jpg,.jpeg,.png,.pdf,image/jpeg,image/png,application/pdf';
+                mapRow.appendChild(mapFileInput);
+
+                var uploadMapBtn = document.createElement('button');
+                uploadMapBtn.className = 'admin-btn small';
+                uploadMapBtn.textContent = date.routeMapFilename ? 'Replace Map' : 'Upload Map';
+                uploadMapBtn.onclick = function() {
+                    if (!mapFileInput.files || !mapFileInput.files[0]) return;
+                    uploadRouteMap(date.id, mapFileInput.files[0], 'routesStatus');
+                };
+                mapRow.appendChild(uploadMapBtn);
+
+                block.appendChild(mapRow);
 
                 var table = document.createElement('table');
                 table.className = 'admin-table';
@@ -985,6 +1195,8 @@
                 document.getElementById('seasonTrailDays').value = adminData.settings.season_trail_days || '';
                 document.getElementById('sightingsWindowStart').value = adminData.settings.sightings_window_start || '';
                 document.getElementById('sightingsWindowEnd').value = adminData.settings.sightings_window_end || '';
+                document.getElementById('riskAssessmentText').value = adminData.settings.risk_assessment_text || '';
+                document.getElementById('riskAssessmentUrl').value = adminData.settings.risk_assessment_url || '';
             }
 
             document.getElementById('settingsForm').addEventListener('submit', function(e) {
@@ -993,8 +1205,82 @@
                     season_lead_days: document.getElementById('seasonLeadDays').value,
                     season_trail_days: document.getElementById('seasonTrailDays').value,
                     sightings_window_start: document.getElementById('sightingsWindowStart').value,
-                    sightings_window_end: document.getElementById('sightingsWindowEnd').value
+                    sightings_window_end: document.getElementById('sightingsWindowEnd').value,
+                    risk_assessment_text: document.getElementById('riskAssessmentText').value,
+                    risk_assessment_url: document.getElementById('riskAssessmentUrl').value
                 }, 'settingsStatus');
+            });
+
+            // ---- Manual reminder send ----
+
+            document.getElementById('sendRemindersBtn').addEventListener('click', async function() {
+                var btn = this;
+                var statusEl = document.getElementById('remindersStatus');
+                var dateInput = document.getElementById('manualReminderDate');
+                btn.disabled = true;
+                statusEl.textContent = 'Sending...';
+                try {
+                    var body = {};
+                    if (dateInput.value) body.date = dateInput.value;
+                    var result = await postOp('/.netlify/functions/admin-send-reminders', body);
+                    if (result.volunteersEmailed === 0) {
+                        statusEl.textContent = 'No shifts found for ' + result.date + ' — nothing sent.';
+                    } else {
+                        statusEl.textContent = 'Sent to ' + result.volunteersEmailed + ' volunteer(s) for ' + result.date +
+                            (result.errors && result.errors.length ? ' (' + result.errors.length + ' failed)' : '.');
+                    }
+                } catch (err) {
+                    console.error('Error sending reminders:', err);
+                    statusEl.textContent = "Couldn't send: " + err.message;
+                } finally {
+                    btn.disabled = false;
+                }
+            });
+
+            // ---- Broadcast ----
+
+            function renderBroadcast() {
+                var select = document.getElementById('broadcastEvent');
+                var current = select.value;
+                select.innerHTML = '';
+                flattenRouteDates().forEach(function(rd) {
+                    var opt = document.createElement('option');
+                    opt.value = rd.id;
+                    opt.textContent = rd.label;
+                    select.appendChild(opt);
+                });
+                if (current) select.value = current;
+            }
+
+            document.getElementById('broadcastScope').addEventListener('change', function() {
+                document.getElementById('broadcastEventRow').classList.toggle('admin-hidden', this.value !== 'event');
+            });
+
+            document.getElementById('broadcastForm').addEventListener('submit', async function(e) {
+                e.preventDefault();
+                var statusEl = document.getElementById('broadcastStatus');
+                var scope = document.getElementById('broadcastScope').value;
+                var body = {
+                    subject: document.getElementById('broadcastSubject').value,
+                    message: document.getElementById('broadcastMessage').value,
+                    scope: scope
+                };
+                if (scope === 'event') {
+                    body.routeDateId = document.getElementById('broadcastEvent').value;
+                }
+                statusEl.textContent = 'Sending...';
+                try {
+                    var result = await postOp('/.netlify/functions/admin-broadcast-email', body);
+                    statusEl.textContent = 'Sent to ' + result.sent + ' of ' + result.recipientCount + ' volunteer(s).' +
+                        (result.errors && result.errors.length ? ' (' + result.errors.length + ' failed)' : '');
+                    if (result.sent > 0) {
+                        document.getElementById('broadcastForm').reset();
+                        document.getElementById('broadcastEventRow').classList.add('admin-hidden');
+                    }
+                } catch (err) {
+                    console.error('Error sending broadcast:', err);
+                    statusEl.textContent = "Couldn't send: " + err.message;
+                }
             });
 
             // ---- Volunteer Shifts ----
@@ -1035,7 +1321,8 @@
                         var chip = document.createElement('span');
                         chip.className = 'shift-chip';
                         chip.innerHTML = '<span>' + escapeHtml(shift.routeName) + ' — ' + formatDateLabel(shift.eventDate) +
-                            (shift.role ? ' (' + escapeHtml(shift.role) + ')' : '') + '</span>';
+                            (shift.role ? ' (' + escapeHtml(shift.role) + ')' : '') +
+                            (shift.source === 'self' ? ' <em>· self-signed up</em>' : '') + '</span>';
                         var removeBtn = document.createElement('button');
                         removeBtn.textContent = '✕';
                         removeBtn.onclick = function() {
@@ -1099,6 +1386,49 @@
                 }
             }
 
+            async function uploadRouteMap(routeDateId, file, statusElId) {
+                var statusEl = document.getElementById(statusElId);
+                statusEl.textContent = 'Uploading map...';
+                try {
+                    var form = new FormData();
+                    form.append('routeDateId', routeDateId);
+                    form.append('file', file);
+                    // No Content-Type header here -- letting fetch set the
+                    // multipart boundary itself is required for the server
+                    // to parse it via req.formData().
+                    var res = await authedFetch('/.netlify/functions/admin-route-map', { method: 'POST', body: form });
+                    var data = await res.json();
+                    if (!res.ok) throw new Error(data.error || 'Upload failed');
+                    statusEl.textContent = 'Map uploaded.';
+                    setTimeout(function() { statusEl.textContent = ''; }, 2000);
+                    await loadAll();
+                } catch (err) {
+                    console.error('Error uploading route map:', err);
+                    statusEl.textContent = "Couldn't upload map: " + err.message;
+                }
+            }
+
+            async function removeRouteMap(routeDateId, statusElId) {
+                runOp('/.netlify/functions/admin-route-map', { op: 'delete', routeDateId: routeDateId }, statusElId);
+            }
+
+            async function viewRouteMap(routeDateId, statusElId) {
+                var statusEl = document.getElementById(statusElId);
+                try {
+                    var res = await authedFetch('/.netlify/functions/get-route-map?routeDateId=' + routeDateId);
+                    if (!res.ok) {
+                        var data = await res.json();
+                        throw new Error(data.error || 'Could not load map');
+                    }
+                    var blob = await res.blob();
+                    var url = URL.createObjectURL(blob);
+                    window.open(url, '_blank');
+                } catch (err) {
+                    console.error('Error viewing route map:', err);
+                    statusEl.textContent = "Couldn't open map: " + err.message;
+                }
+            }
+
             function escapeHtml(str) {
                 var div = document.createElement('div');
                 div.textContent = str == null ? '' : String(str);
@@ -1111,7 +1441,7 @@
                 btn.addEventListener('click', function() {
                     document.querySelectorAll('.admin-tabs .tab-btn').forEach(function(b) { b.classList.remove('active'); });
                     btn.classList.add('active');
-                    ['routes', 'settings', 'volunteers', 'search-activity'].forEach(function(tab) {
+                    ['routes', 'settings', 'volunteers', 'search-activity', 'broadcast'].forEach(function(tab) {
                         document.getElementById('tab-' + tab).classList.toggle('admin-hidden', tab !== btn.dataset.tab);
                     });
                 });
