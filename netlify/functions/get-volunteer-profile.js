@@ -37,7 +37,8 @@ export default async (req, context) => {
     const profile = rows[0];
 
     const settingsRows = await db.sql`
-      SELECT key, value FROM settings WHERE key IN ('risk_assessment_text', 'risk_assessment_url')
+      SELECT key, value FROM settings
+      WHERE key IN ('risk_assessment_text', 'risk_assessment_url', 'sightings_window_start', 'sightings_window_end')
     `;
     const settingsByKey = {};
     for (const row of settingsRows) settingsByKey[row.key] = row.value;
@@ -71,6 +72,12 @@ export default async (req, context) => {
         text: settingsByKey.risk_assessment_text || '',
         url: settingsByKey.risk_assessment_url || ''
       },
+      // Same "route usually starts/ends at" proxy already used for the
+      // 24h self-cancel cutoff (route_dates has no per-shift start time
+      // of its own) -- reused here so "Add to calendar" has a start/end
+      // time to put in the .ics file.
+      sightingsWindowStart: settingsByKey.sightings_window_start || '17:00',
+      sightingsWindowEnd: settingsByKey.sightings_window_end || '22:00',
       shifts
     }), { status: 200, headers });
   } catch (error) {

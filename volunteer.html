@@ -118,6 +118,24 @@
             opacity: 0.9;
         }
 
+        .shift-ics-btn {
+            background: none;
+            border: 1px solid var(--santa-green);
+            color: var(--santa-green);
+            border-radius: 999px;
+            padding: 0.3rem 0.9rem;
+            font-size: 0.8rem;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 0.4rem;
+            margin-right: 0.5rem;
+        }
+
+        .shift-ics-btn:hover {
+            background: var(--santa-green);
+            color: white;
+        }
+
         .shift-map-warning {
             display: flex;
             align-items: center;
@@ -628,6 +646,64 @@
                 }
             });
 
+            // Builds a .ics file for a shift using the site's sightings-window
+            // setting as a stand-in start/end time (route_dates has no
+            // per-shift time of its own -- same proxy the 24h cancel
+            // cutoff already relies on). Assumes the volunteer's browser
+            // is in the Europe/London timezone, same as the event itself,
+            // which holds true for this portal's actual users -- avoids
+            // needing a full VTIMEZONE block just for a single-region
+            // seasonal event.
+            function escapeIcsText(str) {
+                return String(str || '').replace(/[\\;,]/g, function(c) { return '\\' + c; }).replace(/\n/g, '\\n');
+            }
+
+            function toIcsUtc(dateStr, timeStr) {
+                var d = new Date(dateStr + 'T' + timeStr + ':00');
+                return d.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+            }
+
+            function buildIcsForShift(shift) {
+                var windowStart = (currentProfile && currentProfile.sightingsWindowStart) || '17:00';
+                var windowEnd = (currentProfile && currentProfile.sightingsWindowEnd) || '22:00';
+                var start = toIcsUtc(shift.eventDate, windowStart);
+                var end = toIcsUtc(shift.eventDate, windowEnd);
+                var stamp = new Date().toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+                var summary = 'Santa Sleigh: ' + shift.routeName + (shift.role ? ' (' + shift.role + ')' : '');
+                var descriptionLines = [];
+                if (shift.what3words) descriptionLines.push('Meeting point: https://w3w.co/' + shift.what3words);
+                if (shift.notes) descriptionLines.push(shift.notes);
+
+                return [
+                    'BEGIN:VCALENDAR',
+                    'VERSION:2.0',
+                    'PRODID:-//Santa Super Sleigh Salford//Volunteer Portal//EN',
+                    'BEGIN:VEVENT',
+                    'UID:shift-' + shift.routeDateId + '@santasleighsalford.co.uk',
+                    'DTSTAMP:' + stamp,
+                    'DTSTART:' + start,
+                    'DTEND:' + end,
+                    'SUMMARY:' + escapeIcsText(summary),
+                    'DESCRIPTION:' + escapeIcsText(descriptionLines.join('\n')),
+                    'LOCATION:' + escapeIcsText(shift.what3words ? '///' + shift.what3words : ''),
+                    'END:VEVENT',
+                    'END:VCALENDAR'
+                ].join('\r\n');
+            }
+
+            function downloadIcsForShift(shift) {
+                var ics = buildIcsForShift(shift);
+                var blob = new Blob([ics], { type: 'text/calendar' });
+                var url = URL.createObjectURL(blob);
+                var a = document.createElement('a');
+                a.href = url;
+                a.download = 'santa-sleigh-' + shift.eventDate + '.ics';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                setTimeout(function() { URL.revokeObjectURL(url); }, 1000);
+            }
+
             async function loadProfile() {
                 welcomeText.textContent = 'Loading your profile...';
                 welcomeText.classList.add('volunteer-loading');
@@ -671,6 +747,12 @@
                             top.appendChild(cancelBtn);
 
                             row.appendChild(top);
+
+                            var icsBtn = document.createElement('button');
+                            icsBtn.className = 'shift-ics-btn';
+                            icsBtn.textContent = '📅 Add to calendar';
+                            icsBtn.onclick = function() { downloadIcsForShift(shift); };
+                            row.appendChild(icsBtn);
 
                             if (shift.what3words) {
                                 var w3w = document.createElement('span');
