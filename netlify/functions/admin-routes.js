@@ -93,10 +93,13 @@ export default async (req, context) => {
           ? String(body.what3words).trim().replace(/^\/+/, '')
           : null;
         const notes = body.notes != null && String(body.notes).trim() !== '' ? String(body.notes).trim() : null;
+        const gatheringTime = body.gatheringTime != null && String(body.gatheringTime).trim() !== ''
+          ? String(body.gatheringTime).trim()
+          : null;
         await db.sql`
           UPDATE route_dates
           SET event_date = ${eventDate}, amount_collected = ${amountCollected}, volunteer_capacity = ${volunteerCapacity},
-              what3words = ${what3words}, notes = ${notes}
+              what3words = ${what3words}, notes = ${notes}, gathering_time = ${gatheringTime}
           WHERE id = ${id}
         `;
         return ok();

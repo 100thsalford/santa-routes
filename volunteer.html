@@ -925,6 +925,7 @@
                 var stamp = new Date().toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
                 var summary = 'Santa Sleigh: ' + shift.routeName + (shift.role ? ' (' + shift.role + ')' : '');
                 var descriptionLines = [];
+                if (shift.gatheringTime) descriptionLines.push('Gather at: ' + shift.gatheringTime);
                 if (shift.what3words) descriptionLines.push('Meeting point: https://w3w.co/' + shift.what3words);
                 if (shift.notes) descriptionLines.push(shift.notes);
 
@@ -1008,6 +1009,13 @@
                             icsBtn.onclick = function() { downloadIcsForShift(shift); };
                             row.appendChild(icsBtn);
 
+                            if (shift.gatheringTime) {
+                                var gatherTime = document.createElement('span');
+                                gatherTime.className = 'shift-detail';
+                                gatherTime.textContent = '⏰ Gather at: ' + shift.gatheringTime;
+                                row.appendChild(gatherTime);
+                            }
+
                             if (shift.what3words) {
                                 var w3w = document.createElement('span');
                                 w3w.className = 'shift-detail';
@@ -1080,11 +1088,25 @@
                         info.textContent = dateLabel + ' — ' + shift.routeName + ' ';
                         info.appendChild(badge);
 
+                        if (shift.gatheringTime) {
+                            var openGatherTime = document.createElement('span');
+                            openGatherTime.className = 'shift-detail';
+                            openGatherTime.textContent = '⏰ Gather at: ' + shift.gatheringTime;
+                            info.appendChild(openGatherTime);
+                        }
+
                         if (shift.what3words) {
                             var openW3w = document.createElement('span');
                             openW3w.className = 'shift-detail';
                             openW3w.textContent = '📍 ///' + shift.what3words;
                             info.appendChild(openW3w);
+                        }
+
+                        if (shift.notes) {
+                            var openNotes = document.createElement('span');
+                            openNotes.className = 'shift-detail';
+                            openNotes.textContent = shift.notes;
+                            info.appendChild(openNotes);
                         }
 
                         // Phase 9: named signups + Santa/Safety Walker/Driver,
@@ -1113,7 +1135,7 @@
 
                         var claimBtn = document.createElement('button');
                         claimBtn.className = 'shift-claim-btn';
-                        claimBtn.textContent = shift.status === 'full' ? 'Full' : 'Claim shift';
+                        claimBtn.textContent = shift.status === 'full' ? 'Full' : 'Sign up to help';
                         claimBtn.disabled = shift.status === 'full';
                         claimBtn.onclick = function() { claimShift(shift.id, claimBtn); };
                         row.appendChild(claimBtn);
@@ -1154,7 +1176,7 @@
 
             async function claimShift(routeDateId, btn) {
                 btn.disabled = true;
-                openShiftsStatus.textContent = 'Claiming shift...';
+                openShiftsStatus.textContent = 'Signing you up...';
                 try {
                     var res = await authedFetch('/.netlify/functions/volunteer-shift-signup', {
                         method: 'POST',
@@ -1163,7 +1185,7 @@
                     });
                     var result = await res.json();
                     if (!res.ok) throw new Error(result.message || result.error || 'Could not claim shift');
-                    openShiftsStatus.textContent = 'Shift claimed — see it under My Shifts.';
+                    openShiftsStatus.textContent = "You're signed up — see it under My Shifts.";
                     setTimeout(function() { openShiftsStatus.textContent = ''; }, 4000);
                     loadProfile();
                     loadOpenShifts();

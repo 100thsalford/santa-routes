@@ -135,6 +135,7 @@
             margin: 0.5rem 0;
         }
         .field-w3w { width: 14rem; box-sizing: border-box; }
+        .field-gathering-time { width: 12rem; box-sizing: border-box; }
         .field-notes { flex: 1; min-width: 12rem; box-sizing: border-box; }
         .route-map-status { color: var(--ink-soft); font-size: 0.9rem; }
 
@@ -1156,7 +1157,8 @@
                 saveDateBtn.onclick = function() {
                     runOp('/.netlify/functions/admin-routes', {
                         op: 'update-date', id: date.id, eventDate: dateInput.value, amountCollected: amountInput.value,
-                        volunteerCapacity: capacityInput.value, what3words: w3wInput.value, notes: notesInput.value
+                        volunteerCapacity: capacityInput.value, what3words: w3wInput.value, notes: notesInput.value,
+                        gatheringTime: gatheringTimeInput.value
                     }, 'routesStatus');
                 };
                 header.appendChild(saveDateBtn);
@@ -1238,6 +1240,14 @@
                 w3wInput.className = 'field-w3w';
                 w3wInput.value = date.what3words || '';
                 detailsRow.appendChild(w3wInput);
+
+                var gatheringTimeInput = document.createElement('input');
+                gatheringTimeInput.type = 'text';
+                gatheringTimeInput.placeholder = 'Gathering time, e.g. 5:45pm';
+                gatheringTimeInput.className = 'field-gathering-time';
+                gatheringTimeInput.title = 'When volunteers should gather at the meeting point, shown alongside what3words';
+                gatheringTimeInput.value = date.gatheringTime || '';
+                detailsRow.appendChild(gatheringTimeInput);
 
                 var notesInput = document.createElement('input');
                 notesInput.type = 'text';

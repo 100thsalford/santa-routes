@@ -27,7 +27,7 @@ export default async (req, context) => {
 
     const [routeRows, dateRows, streetRows, settingsRows, volunteerRows, assignmentRows, roleRows] = await Promise.all([
       db.sql`SELECT id, name, display_order FROM routes ORDER BY display_order NULLS LAST, name`,
-      db.sql`SELECT id, route_id, to_char(event_date, 'YYYY-MM-DD') AS event_date, amount_collected, volunteer_capacity, what3words, notes, route_map_filename, route_map_content_type FROM route_dates ORDER BY event_date`,
+      db.sql`SELECT id, route_id, to_char(event_date, 'YYYY-MM-DD') AS event_date, amount_collected, volunteer_capacity, what3words, notes, gathering_time, route_map_filename, route_map_content_type FROM route_dates ORDER BY event_date`,
       db.sql`SELECT id, route_date_id, sequence, name, time_range FROM streets ORDER BY route_date_id, sequence`,
       db.sql`SELECT key, value FROM settings`,
       db.sql`SELECT id, email, full_name, reminder_email_opt_in, can_be_santa, can_be_safety_walker, can_be_driver FROM volunteers ORDER BY email`,
@@ -91,6 +91,7 @@ export default async (req, context) => {
         },
         what3words: d.what3words,
         notes: d.notes,
+        gatheringTime: d.gathering_time,
         routeMapFilename: d.route_map_filename,
         routeMapContentType: d.route_map_content_type,
         streets: streetsByDate[d.id] || []
