@@ -91,6 +91,7 @@
             align-items: center;
             justify-content: space-between;
             gap: 0.75rem;
+            flex-wrap: wrap;
         }
 
         .shift-detail {
@@ -307,30 +308,31 @@
             margin-bottom: 0.5rem;
             text-align: left;
             color: var(--text-dark);
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 0.75rem;
-            flex-wrap: wrap;
         }
 
         .open-shift-row:last-child {
             margin-bottom: 0;
         }
 
-        .open-shift-info {
-            flex: 1;
-            min-width: 0;
+        /* Groups the capacity badge and Sign Up button together at the
+           top of the row -- the pair a volunteer most needs to notice,
+           so both stay prominent rather than getting lost among the
+           detail lines below. */
+        .open-shift-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex-shrink: 0;
+            flex-wrap: wrap;
         }
 
         .shift-status-badge {
             display: inline-block;
-            font-size: 0.75rem;
+            font-size: 0.8rem;
             font-weight: bold;
-            padding: 0.2rem 0.6rem;
+            padding: 0.3rem 0.7rem;
             border-radius: 999px;
             white-space: nowrap;
-            margin-left: 0.5rem;
         }
         .shift-status-badge.uncapped { background: #eee; color: #666; }
         .shift-status-badge.open { background: #e3f2e6; color: #2e7d32; }
@@ -342,8 +344,8 @@
             color: white;
             border: none;
             border-radius: 999px;
-            padding: 0.4rem 1rem;
-            font-size: 0.85rem;
+            padding: 0.55rem 1.3rem;
+            font-size: 0.95rem;
             font-weight: bold;
             cursor: pointer;
             flex-shrink: 0;
@@ -432,6 +434,59 @@
             margin-top: 0.5rem;
             min-height: 1.2em;
             text-align: left;
+        }
+
+        /* Corner toast notifications for save/sign-up/cancel actions --
+           the inline status text above is kept, but this is the clearer,
+           harder-to-miss "did that work?" signal: fixed to the corner,
+           auto-dismisses after 5s, closable early via the x. */
+        .toast-container {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            z-index: 2000;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            max-width: min(22rem, calc(100vw - 2rem));
+        }
+
+        .toast {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.5rem;
+            background: var(--surface);
+            border-left: 4px solid var(--santa-green);
+            border-radius: var(--radius-sm, 6px);
+            box-shadow: var(--shadow-md, 0 4px 12px rgba(0,0,0,0.15));
+            padding: 0.7rem 0.8rem;
+            font-size: 0.9rem;
+            color: var(--text-dark);
+            animation: toast-in 0.2s ease-out;
+        }
+
+        .toast.error {
+            border-left-color: var(--santa-red);
+        }
+
+        .toast span {
+            flex: 1;
+        }
+
+        .toast-close {
+            background: none;
+            border: none;
+            color: var(--ink-soft);
+            font-size: 1.1rem;
+            line-height: 1;
+            cursor: pointer;
+            padding: 0;
+            flex-shrink: 0;
+        }
+
+        @keyframes toast-in {
+            from { opacity: 0; transform: translateX(1rem); }
+            to { opacity: 1; transform: translateX(0); }
         }
 
         .volunteer-logout-btn {
@@ -542,6 +597,30 @@
             max-height: 85vh;
             overflow-y: auto;
             box-shadow: var(--shadow-lg);
+            position: relative;
+        }
+
+        .info-modal-x-close {
+            position: absolute;
+            top: 0.6rem;
+            right: 0.6rem;
+            width: 2rem;
+            height: 2rem;
+            border-radius: 50%;
+            border: none;
+            background: rgba(0,0,0,0.06);
+            color: var(--ink-soft);
+            font-size: 1.3rem;
+            line-height: 1;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+        }
+
+        .info-modal-x-close:hover {
+            background: rgba(0,0,0,0.12);
         }
 
         .info-modal h2 {
@@ -690,6 +769,8 @@
     </style>
 </head>
 <body>
+    <div id="toastContainer" class="toast-container"></div>
+
     <div class="header">
         <h1>🎅 Volunteer Portal</h1>
         <p>100th Salford Scout Group | Santa Super Sleigh Salford</p>
@@ -785,6 +866,7 @@
     <!-- Phase 9: on-demand info modals for the utility row above -->
     <div class="info-modal-overlay" id="donateModalOverlay">
         <div class="info-modal" style="text-align:center;">
+            <button type="button" class="info-modal-x-close" data-close-modal="donateModalOverlay" aria-label="Close">&times;</button>
             <h2 style="text-align:left;">💝 Scan to Donate</h2>
             <img class="donation-modal-img" src="https://api.qrserver.com/v1/create-qr-code/?size=240x240&amp;data=https%3A%2F%2Fcheckout.square.site%2Fmerchant%2FMLHCM2TZHZ9NA%2Fcheckout%2FE4KKJFETD5BQZJYHETXWV6S2" width="240" height="240" alt="QR code linking to the Santa Sleigh donation page" loading="lazy">
             <p style="text-align:left; color:#666; font-size:0.9rem;">Show this to a resident who wants to donate on the spot — it goes straight to our donation page.</p>
@@ -795,6 +877,7 @@
 
     <div class="info-modal-overlay" id="faqModalOverlay">
         <div class="info-modal">
+            <button type="button" class="info-modal-x-close" data-close-modal="faqModalOverlay" aria-label="Close">&times;</button>
             <h2>❓ Volunteer FAQs</h2>
             <div id="faqContent"></div>
             <button type="button" class="info-modal-close-btn" data-close-modal="faqModalOverlay">Close</button>
@@ -806,6 +889,7 @@
          Reuses the info-modal overlay pattern above, just wider. -->
     <div class="info-modal-overlay" id="routeTrackModalOverlay">
         <div class="info-modal map-modal">
+            <button type="button" class="info-modal-x-close" data-close-modal="routeTrackModalOverlay" aria-label="Close">&times;</button>
             <h2 id="routeTrackModalTitle">🗺️ Route Map</h2>
             <div id="routeTrackMap" class="route-track-map"></div>
             <button type="button" id="routeTrackLocateBtn" class="locate-btn">📍 Show my location</button>
@@ -820,6 +904,34 @@
     <script>
         (function() {
             'use strict';
+
+            // ---- Toast notifications ----
+            // Corner popup for save/sign-up/cancel actions -- auto-dismisses
+            // after 5s, closable early via the x. Inline status text next
+            // to each action is kept where it already existed, but this is
+            // the clearer, harder-to-miss "did that work?" signal.
+            function showToast(message, type) {
+                var container = document.getElementById('toastContainer');
+                if (!container) return;
+                var toast = document.createElement('div');
+                toast.className = 'toast' + (type === 'error' ? ' error' : '');
+                var text = document.createElement('span');
+                text.textContent = message;
+                toast.appendChild(text);
+                var closeBtn = document.createElement('button');
+                closeBtn.type = 'button';
+                closeBtn.className = 'toast-close';
+                closeBtn.setAttribute('aria-label', 'Dismiss');
+                closeBtn.textContent = '\u00d7';
+                var timer = setTimeout(remove, 5000);
+                function remove() {
+                    clearTimeout(timer);
+                    if (toast.parentNode) toast.parentNode.removeChild(toast);
+                }
+                closeBtn.onclick = remove;
+                toast.appendChild(closeBtn);
+                container.appendChild(toast);
+            }
 
             var loggedOutCard = document.getElementById('loggedOutCard');
             var dashboardCard = document.getElementById('dashboardCard');
@@ -1160,9 +1272,11 @@
                     if (currentProfile) currentProfile.riskAckAt = data.riskAckAt;
                     riskBanner.classList.remove('visible');
                     hideRiskModal();
+                    showToast('Safety guidance acknowledged.', 'success');
                 } catch (err) {
                     console.error('Error acknowledging risk assessment:', err);
                     riskAckBtn.disabled = false;
+                    showToast("Couldn't save — please try again.", 'error');
                 } finally {
                     riskAckBtn.textContent = 'I acknowledge';
                 }
@@ -1260,7 +1374,10 @@
                             top.className = 'shift-row-top';
 
                             var label = document.createElement('span');
-                            label.textContent = dateLabel + ' — ' + shift.routeName + (shift.role ? ' (' + shift.role + ')' : '');
+                            var dateStrong = document.createElement('strong');
+                            dateStrong.textContent = dateLabel;
+                            label.appendChild(dateStrong);
+                            label.appendChild(document.createTextNode(' — ' + shift.routeName + (shift.role ? ' (' + shift.role + ')' : '')));
                             top.appendChild(label);
 
                             var cancelBtn = document.createElement('button');
@@ -1350,39 +1467,72 @@
                     openShiftsContent.innerHTML = '';
                     openShiftsContent.classList.remove('shifts-empty');
                     shifts.forEach(function(shift) {
+                        // Restructured to match the My Shifts row layout
+                        // (bold date on a top line, details below) rather
+                        // than one run-on paragraph -- and to surface the
+                        // same route-map/interactive-map info My Shifts
+                        // shows, so a volunteer can see what a night
+                        // actually involves before deciding to sign up.
                         var row = document.createElement('div');
                         row.className = 'open-shift-row';
 
-                        var info = document.createElement('div');
-                        info.className = 'open-shift-info';
+                        var top = document.createElement('div');
+                        top.className = 'shift-row-top';
+
                         var dateLabel = new Date(shift.eventDate + 'T00:00:00').toLocaleDateString('en-GB', {
                             weekday: 'short', day: 'numeric', month: 'short'
                         });
+
+                        var label = document.createElement('span');
+                        var dateStrong = document.createElement('strong');
+                        dateStrong.textContent = dateLabel;
+                        label.appendChild(dateStrong);
+                        label.appendChild(document.createTextNode(' — ' + shift.routeName));
+                        top.appendChild(label);
+
+                        // Badge + Sign Up button grouped together and kept
+                        // prominent -- this is the pair a volunteer most
+                        // needs to notice (is there room, and how to claim
+                        // it), so they sit together at the top of the row
+                        // rather than buried among the detail lines below.
+                        var actions = document.createElement('div');
+                        actions.className = 'open-shift-actions';
+
                         var badge = document.createElement('span');
                         badge.className = 'shift-status-badge ' + shiftStatusClass(shift.capacity, shift.signupCount);
                         badge.textContent = shiftStatusLabel(shift.capacity, shift.signupCount);
-                        info.textContent = dateLabel + ' — ' + shift.routeName + ' ';
-                        info.appendChild(badge);
+                        actions.appendChild(badge);
+
+                        var claimBtn = document.createElement('button');
+                        claimBtn.className = 'shift-claim-btn';
+                        claimBtn.textContent = shift.status === 'full' ? 'Full' : 'Sign up to help';
+                        claimBtn.disabled = shift.status === 'full';
+                        claimBtn.onclick = function() { claimShift(shift.id, claimBtn); };
+                        actions.appendChild(claimBtn);
+
+                        top.appendChild(actions);
+                        row.appendChild(top);
 
                         if (shift.gatheringTime) {
                             var openGatherTime = document.createElement('span');
                             openGatherTime.className = 'shift-detail';
                             openGatherTime.textContent = '⏰ Gather at: ' + shift.gatheringTime;
-                            info.appendChild(openGatherTime);
+                            row.appendChild(openGatherTime);
                         }
 
                         if (shift.what3words) {
                             var openW3w = document.createElement('span');
                             openW3w.className = 'shift-detail';
-                            openW3w.textContent = '📍 ///' + shift.what3words;
-                            info.appendChild(openW3w);
+                            openW3w.innerHTML = '📍 Meeting point: <a href="https://w3w.co/' + encodeURIComponent(shift.what3words) +
+                                '" target="_blank" rel="noopener noreferrer">///' + shift.what3words + '</a>';
+                            row.appendChild(openW3w);
                         }
 
                         if (shift.notes) {
                             var openNotes = document.createElement('span');
                             openNotes.className = 'shift-detail';
                             openNotes.textContent = shift.notes;
-                            info.appendChild(openNotes);
+                            row.appendChild(openNotes);
                         }
 
                         // Phase 9: named signups + Santa/Safety Walker/Driver,
@@ -1392,7 +1542,7 @@
                             var namesEl = document.createElement('span');
                             namesEl.className = 'shift-detail';
                             namesEl.textContent = '🙋 Signed up: ' + shift.signupNames.join(', ');
-                            info.appendChild(namesEl);
+                            row.appendChild(namesEl);
                         }
                         if (shift.roles) {
                             var roleLabels = [];
@@ -1403,18 +1553,35 @@
                                 var rolesEl = document.createElement('span');
                                 rolesEl.className = 'shift-detail';
                                 rolesEl.textContent = roleLabels.join(' · ');
-                                info.appendChild(rolesEl);
+                                row.appendChild(rolesEl);
                             }
                         }
 
-                        row.appendChild(info);
+                        // Let a volunteer preview the route before signing
+                        // up, same as they'd see it in My Shifts once
+                        // they're on it -- both endpoints only require
+                        // being logged in, not already assigned to this
+                        // date.
+                        if (shift.hasRouteTrack) {
+                            var openTrackBtn = document.createElement('button');
+                            openTrackBtn.className = 'shift-map-btn';
+                            openTrackBtn.textContent = '🗺️ View interactive map';
+                            openTrackBtn.onclick = function() { openRouteTrackModal(shift.id, shift.routeName); };
+                            row.appendChild(openTrackBtn);
+                        }
 
-                        var claimBtn = document.createElement('button');
-                        claimBtn.className = 'shift-claim-btn';
-                        claimBtn.textContent = shift.status === 'full' ? 'Full' : 'Sign up to help';
-                        claimBtn.disabled = shift.status === 'full';
-                        claimBtn.onclick = function() { claimShift(shift.id, claimBtn); };
-                        row.appendChild(claimBtn);
+                        if (shift.hasRouteMap) {
+                            var openMapBtn = document.createElement('button');
+                            openMapBtn.className = shift.hasRouteTrack ? 'shift-ics-btn' : 'shift-map-btn';
+                            openMapBtn.textContent = shift.hasRouteTrack ? 'Printable map' : 'View route map';
+                            openMapBtn.onclick = function() { viewRouteMap(shift.id, openMapBtn); };
+                            row.appendChild(openMapBtn);
+
+                            var openWarning = document.createElement('span');
+                            openWarning.className = 'shift-map-warning';
+                            openWarning.textContent = '⚠️ Please don\'t share the route map outside the volunteer group.';
+                            row.appendChild(openWarning);
+                        }
 
                         openShiftsContent.appendChild(row);
                     });
@@ -1463,11 +1630,14 @@
                     if (!res.ok) throw new Error(result.message || result.error || 'Could not claim shift');
                     openShiftsStatus.textContent = "You're signed up — see it under My Shifts.";
                     setTimeout(function() { openShiftsStatus.textContent = ''; }, 4000);
+                    showToast("You're signed up — see it under My Shifts.", 'success');
                     loadProfile();
                     loadOpenShifts();
                 } catch (err) {
                     console.error('Error claiming shift:', err);
-                    openShiftsStatus.textContent = err.message || "Couldn't claim that shift — please try again.";
+                    var message = err.message || "Couldn't claim that shift — please try again.";
+                    openShiftsStatus.textContent = message;
+                    showToast(message, 'error');
                     btn.disabled = false;
                 }
             }
@@ -1482,6 +1652,7 @@
                     });
                     var result = await res.json();
                     if (!res.ok) throw new Error(result.message || result.error || 'Could not cancel shift');
+                    showToast('Shift cancelled.', 'success');
                     loadProfile();
                     loadOpenShifts();
                 } catch (err) {
@@ -1502,7 +1673,9 @@
                             row.appendChild(note);
                         }
                     }
-                    note.textContent = '⚠️ ' + (err.message || "Couldn't cancel — this shift is still booked. Please try again.");
+                    var cancelMessage = err.message || "Couldn't cancel — this shift is still booked. Please try again.";
+                    note.textContent = '⚠️ ' + cancelMessage;
+                    showToast(cancelMessage, 'error');
                     btn.disabled = false;
                 }
             }
@@ -1523,9 +1696,11 @@
                     currentProfile = updated;
                     saveStatus.textContent = 'Saved.';
                     setTimeout(function() { saveStatus.textContent = ''; }, 2000);
+                    showToast('Saved.', 'success');
                 } catch (err) {
                     console.error('Error saving reminder preference:', err);
                     saveStatus.textContent = "Couldn't save — please try again.";
+                    showToast("Couldn't save — please try again.", 'error');
                 }
             }
 
