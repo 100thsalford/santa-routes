@@ -158,6 +158,21 @@
             var followBtn = document.getElementById('followBtn');
             var mapEl = document.getElementById('trackMap');
 
+            // Leaflet fires 'zoomstart' (and sometimes 'dragstart') for
+            // OUR OWN programmatic recentring (fitBounds/setView below), not
+            // just for a visitor dragging/zooming by hand -- without this
+            // guard, following broke itself the instant the route first
+            // auto-fit. suppressAutoBreak is held true (and animation
+            // turned off, so the events fire synchronously) around every
+            // programmatic view change we make.
+            var suppressAutoBreak = false;
+
+            function programmaticView(fn) {
+                suppressAutoBreak = true;
+                fn();
+                suppressAutoBreak = false;
+            }
+
             function ensureMap() {
                 if (map) return map;
                 map = L.map(mapEl).setView([53.4831, -2.2913], 12); // Salford, sensible default before any data arrives
@@ -166,6 +181,7 @@
                     maxZoom: 19
                 }).addTo(map);
                 map.on('dragstart zoomstart', function() {
+                    if (suppressAutoBreak) return;
                     followMode = false;
                     followBtn.hidden = false;
                 });
@@ -176,7 +192,9 @@
                 followMode = true;
                 followBtn.hidden = true;
                 if (sleighMarker) {
-                    map.panTo(sleighMarker.getLatLng());
+                    programmaticView(function() {
+                        map.panTo(sleighMarker.getLatLng(), { animate: false });
+                    });
                 }
             });
 
@@ -195,7 +213,9 @@
                 routeLayer = L.polyline(latlngs, { color: '#1E5B45', weight: 5, opacity: 0.75, dashArray: '1, 10', lineCap: 'round' }).addTo(map);
 
                 if (followMode && !sleighMarker) {
-                    map.fitBounds(routeLayer.getBounds(), { padding: [24, 24] });
+                    programmaticView(function() {
+                        map.fitBounds(routeLayer.getBounds(), { padding: [24, 24], animate: false });
+                    });
                 }
             }
 
@@ -214,7 +234,9 @@
                     sleighMarker.setLatLng(latlng);
                 }
                 if (followMode) {
-                    map.setView(latlng, Math.max(map.getZoom(), 14));
+                    programmaticView(function() {
+                        map.setView(latlng, Math.max(map.getZoom(), 14), { animate: false });
+                    });
                 }
             }
 
