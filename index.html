@@ -379,11 +379,13 @@
         </div>
     </div>
 
-    <!-- Floating Track Santa Button -->
-    <a href="https://glympse.com/!santasleighsalford" 
-       target="_blank" 
-       rel="noopener noreferrer" 
-       class="track-santa-float date-conditional hidden-after-season"
+    <!-- Floating Track Santa Button -- links to our own live map
+         (track.html), not the old Glympse tracker. Hidden by default
+         (tracking-hidden) and shown by script.js's updateTrackSantaButton()
+         only while siteStatus.sightings.active is true, i.e. the same
+         route-night live window the sightings feature uses. -->
+    <a href="track.html"
+       class="track-santa-float tracking-hidden"
        id="trackSantaFloatBtn"
        data-tracking="track-santa-live-click"
        aria-label="Track Santa Live">

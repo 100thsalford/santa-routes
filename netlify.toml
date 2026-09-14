@@ -34,6 +34,14 @@
   [headers.values]
     Cache-Control = "public, max-age=300, s-maxage=300"
 
+# ...except the live sleigh-tracking endpoint, which must never be served
+# stale from the CDN -- this more specific rule overrides the wildcard
+# above for this one path.
+[[headers]]
+  for = "/.netlify/functions/get-tracking-data"
+  [headers.values]
+    Cache-Control = "no-store"
+
 # Redirects (if needed)
 # [[redirects]]
 #   from = "/old-path"

@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Track Santa's Sleigh live on its route around Salford tonight. 100th Salford Scout Group Christmas fundraiser.">
+    <title>Track Santa Live | Santa Super Sleigh Salford</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <style>
+        body {
+            background: var(--snow);
+        }
+
+        .track-container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 1.25rem 1rem 2rem;
+        }
+
+        .track-header {
+            text-align: center;
+            margin-bottom: 1rem;
+        }
+
+        .track-header h1 {
+            color: var(--santa-red);
+            font-size: 1.6rem;
+            margin: 0 0 0.25rem;
+        }
+
+        .track-header p {
+            color: var(--ink-soft);
+            margin: 0;
+        }
+
+        .track-status {
+            background: var(--surface);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-sm);
+            padding: 1rem 1.25rem;
+            margin-bottom: 1rem;
+            line-height: 1.5;
+        }
+
+        .track-status strong {
+            color: var(--santa-green);
+        }
+
+        #trackMap {
+            width: 100%;
+            height: 60vh;
+            min-height: 360px;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-md);
+            border: 1px solid var(--border-subtle);
+            background: var(--surface-muted);
+        }
+
+        .track-meta {
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-top: 0.75rem;
+            color: var(--ink-soft);
+            font-size: 0.9rem;
+        }
+
+        .follow-btn {
+            position: relative;
+            display: inline-block;
+            margin-top: 0.75rem;
+            background: var(--santa-green);
+            color: white;
+            border: none;
+            border-radius: 999px;
+            padding: 0.5rem 1.1rem;
+            font-size: 0.9rem;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .follow-btn[hidden] {
+            display: none;
+        }
+
+        .sleigh-marker {
+            font-size: 1.6rem;
+            line-height: 1;
+            filter: drop-shadow(0 1px 2px rgba(0,0,0,0.4));
+        }
+
+        .track-back {
+            text-align: center;
+            margin-top: 1.5rem;
+        }
+
+        @media (max-width: 480px) {
+            .track-header h1 { font-size: 1.35rem; }
+            #trackMap { height: 50vh; }
+        }
+    </style>
+</head>
+<body>
+    <div class="track-container">
+        <div class="track-header">
+            <h1>🎅 Track Santa Live</h1>
+            <p>Follow the sleigh's GPS live around tonight's route.</p>
+        </div>
+
+        <div class="track-status" id="trackStatus">Checking tonight's route&hellip;</div>
+
+        <div id="trackMap"></div>
+
+        <div class="track-meta">
+            <span id="trackRouteName"></span>
+            <span id="trackUpdatedAt"></span>
+        </div>
+        <button type="button" class="follow-btn" id="followBtn" hidden>Recentre on Santa</button>
+
+        <div class="track-back">
+            <a href="index.html" class="back-btn">Return to Home</a>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <p>🎄 Supporting <a href="https://www.facebook.com/100thsalford" target="_blank" rel="noopener noreferrer" class="footer-link">100th Salford Scout Group</a> 🎄</p>
+        <p>Donations help fund Scouting activities for young people in Salford</p>
+        <p class="footer-note"><a href="privacy.html" class="footer-link">Privacy Policy</a></p>
+    </footer>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="analytics.js"></script>
+    <!-- Cloudflare Web Analytics --><script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "3b7106934eac4fcfa830d632dc201682"}'></script><!-- End Cloudflare Web Analytics -->
+    <script>
+        // Live sleigh-tracking page. Polls get-tracking-data.js (which
+        // itself gates on tonight's route + the live sightings window, and
+        // only then calls TruTrak server-side -- see that function for
+        // why the browser never touches TruTrak credentials directly) and
+        // renders a Leaflet map with the planned route (route_track, the
+        // same GPX-derived data volunteer.html's interactive map uses) as
+        // a static overlay under a live-updating sleigh marker.
+        (function() {
+            'use strict';
+
+            var POLL_MS = 20000;
+            var map = null;
+            var routeLayer = null;
+            var sleighMarker = null;
+            var followMode = true;
+            var lastRouteKey = null; // avoids redrawing an unchanged route line every poll
+
+            var statusEl = document.getElementById('trackStatus');
+            var routeNameEl = document.getElementById('trackRouteName');
+            var updatedAtEl = document.getElementById('trackUpdatedAt');
+            var followBtn = document.getElementById('followBtn');
+            var mapEl = document.getElementById('trackMap');
+
+            function ensureMap() {
+                if (map) return map;
+                map = L.map(mapEl).setView([53.4831, -2.2913], 12); // Salford, sensible default before any data arrives
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '&copy; OpenStreetMap contributors',
+                    maxZoom: 19
+                }).addTo(map);
+                map.on('dragstart zoomstart', function() {
+                    followMode = false;
+                    followBtn.hidden = false;
+                });
+                return map;
+            }
+
+            followBtn.addEventListener('click', function() {
+                followMode = true;
+                followBtn.hidden = true;
+                if (sleighMarker) {
+                    map.panTo(sleighMarker.getLatLng());
+                }
+            });
+
+            function drawRoute(track) {
+                var key = track ? JSON.stringify(track.points && track.points.length) + '-' + (track.distanceKm || '') : null;
+                if (key === lastRouteKey) return;
+                lastRouteKey = key;
+
+                if (routeLayer) {
+                    map.removeLayer(routeLayer);
+                    routeLayer = null;
+                }
+                if (!track || !track.points || track.points.length === 0) return;
+
+                var latlngs = track.points.map(function(p) { return [p[0], p[1]]; });
+                routeLayer = L.polyline(latlngs, { color: '#1E5B45', weight: 5, opacity: 0.75, dashArray: '1, 10', lineCap: 'round' }).addTo(map);
+
+                if (followMode && !sleighMarker) {
+                    map.fitBounds(routeLayer.getBounds(), { padding: [24, 24] });
+                }
+            }
+
+            function updateSleighMarker(position) {
+                if (!position) return;
+                var latlng = [position.lat, position.lon];
+                if (!sleighMarker) {
+                    var icon = L.divIcon({
+                        className: '',
+                        html: '<div class="sleigh-marker">🛷</div>',
+                        iconSize: [32, 32],
+                        iconAnchor: [16, 16]
+                    });
+                    sleighMarker = L.marker(latlng, { icon: icon, zIndexOffset: 1000 }).addTo(map);
+                } else {
+                    sleighMarker.setLatLng(latlng);
+                }
+                if (followMode) {
+                    map.setView(latlng, Math.max(map.getZoom(), 14));
+                }
+            }
+
+            function formatUpdatedAt(iso) {
+                if (!iso) return '';
+                // TruTrak's datetimeLocal has no offset -- treat as a plain
+                // UK wall-clock time string for display purposes.
+                var m = String(iso).match(/T(\d{2}):(\d{2})/);
+                return m ? ('Last GPS update: ' + m[1] + ':' + m[2]) : '';
+            }
+
+            function render(data) {
+                ensureMap();
+                drawRoute(data.routeTrack);
+                routeNameEl.textContent = data.routeName ? ('Tonight’s route: ' + data.routeName) : '';
+
+                if (data.state === 'not-a-route-day') {
+                    statusEl.innerHTML = 'Santa isn’t out tonight. Check <a href="index.html">the home page</a> for the next scheduled route.';
+                    updatedAtEl.textContent = '';
+                    return;
+                }
+                if (data.state === 'before-window') {
+                    statusEl.innerHTML = '<strong>Tonight’s route is ' + (data.routeName || 'on') + '.</strong> Santa sets off at ' + (data.windowStart || 'the usual time') + ' — the route is shown below, check back once he’s on his way!';
+                    updatedAtEl.textContent = '';
+                    return;
+                }
+                if (data.state === 'after-window') {
+                    statusEl.innerHTML = '<strong>That’s Santa done for tonight!</strong> Thanks for following along — here’s where he went.';
+                    updatedAtEl.textContent = '';
+                    return;
+                }
+                if (data.state === 'error') {
+                    statusEl.textContent = "Something went wrong loading tracking data. We'll keep trying.";
+                    return;
+                }
+
+                // state === 'active'
+                if (data.position) {
+                    statusEl.innerHTML = '<strong>Santa is out right now!</strong> Follow the sleigh below.';
+                    updateSleighMarker(data.position);
+                    updatedAtEl.textContent = formatUpdatedAt(data.position.updatedAt);
+                } else {
+                    statusEl.textContent = data.positionError || 'Waiting for a GPS signal from the sleigh...';
+                    updatedAtEl.textContent = '';
+                }
+            }
+
+            async function poll() {
+                try {
+                    var res = await fetch('/.netlify/functions/get-tracking-data');
+                    var data = await res.json();
+                    render(data);
+                } catch (err) {
+                    console.error('Error fetching tracking data:', err);
+                    statusEl.textContent = "Couldn't reach the tracking service -- we'll keep trying.";
+                }
+            }
+
+            poll();
+            setInterval(poll, POLL_MS);
+        })();
+    </script>
+</body>
+</html>

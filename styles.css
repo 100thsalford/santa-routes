@@ -1207,6 +1207,10 @@ body {
 }
 
 /* Floating Track Santa Button */
+.track-santa-float.tracking-hidden {
+    display: none !important;
+}
+
 .track-santa-float {
     position: fixed;
     bottom: 20px;
