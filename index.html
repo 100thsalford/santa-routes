@@ -5,6 +5,23 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Find out when Santa Super Sleigh is visiting your street in Salford. 100th Salford Scout Group Christmas fundraiser.">
     <title>Santa Super Sleigh Salford 2026 | 100th Salford Scouts</title>
+    <script>
+        // Netlify Identity invite/recovery/confirmation emails always link
+        // to the site's root URL (there's no per-page setting for this in
+        // Netlify's dashboard), but the widget that actually shows the
+        // "set a password" box only runs on volunteer.html. Catch the
+        // token in the URL hash here, as early as possible, and bounce
+        // straight to volunteer.html with the hash intact so the widget's
+        // own auto-init (see volunteer.html) picks it up -- otherwise the
+        // link just loads this homepage with no visible way to complete
+        // signup or reset a password.
+        (function() {
+            var hash = window.location.hash;
+            if (hash && /(invite_token|recovery_token|confirmation_token|email_change_token)=/.test(hash)) {
+                window.location.replace('volunteer.html' + hash);
+            }
+        })();
+    </script>
     <link rel="stylesheet" href="styles.css?v=20260912a">
     <style>
         /* Additional styles for holding page */
