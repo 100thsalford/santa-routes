@@ -7,6 +7,7 @@
     <meta name="description" content="Volunteer portal for Santa Super Sleigh Salford helpers.">
     <title>Volunteer Portal | Santa Super Sleigh Salford</title>
     <link rel="stylesheet" href="styles.css?v=20260912a">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
     <style>
         .volunteer-card {
             background: var(--surface);
@@ -596,6 +597,86 @@
             word-break: break-all;
         }
 
+        .map-modal {
+            max-width: 640px;
+        }
+
+        .route-track-map {
+            width: 100%;
+            height: 280px;
+            border-radius: var(--radius-md);
+            margin-bottom: 0.75rem;
+            background: var(--surface-muted);
+        }
+
+        .locate-btn {
+            display: block;
+            width: 100%;
+            background: none;
+            border: 1px solid var(--santa-green);
+            color: var(--santa-green);
+            border-radius: 999px;
+            padding: 0.6rem 1.2rem;
+            font-size: 0.85rem;
+            font-weight: bold;
+            cursor: pointer;
+            margin-bottom: 0.5rem;
+        }
+
+        .locate-btn.active {
+            background: var(--santa-green);
+            color: white;
+        }
+
+        .route-track-status {
+            font-size: 0.8rem;
+            color: var(--ink-soft);
+            min-height: 1.1em;
+            margin-bottom: 0.5rem;
+        }
+
+        .direction-list {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            max-height: 30vh;
+            overflow-y: auto;
+            border-top: 1px solid var(--border-subtle);
+        }
+
+        .direction-item {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            padding: 0.55rem 0.25rem;
+            border-bottom: 1px solid var(--border-subtle);
+            cursor: pointer;
+            font-size: 0.85rem;
+            color: var(--text-dark);
+        }
+
+        .direction-item:hover, .direction-item.active {
+            background: var(--surface-muted);
+        }
+
+        .direction-item .direction-icon {
+            font-size: 1.1rem;
+            flex-shrink: 0;
+            width: 1.5rem;
+            text-align: center;
+        }
+
+        .direction-item .direction-km {
+            flex-shrink: 0;
+            width: 3.2rem;
+            color: var(--ink-soft);
+            font-size: 0.75rem;
+        }
+
+        .direction-item .direction-text {
+            flex: 1;
+        }
+
         /* Mobile polish */
         @media (max-width: 480px) {
             .volunteer-card {
@@ -720,6 +801,21 @@
         </div>
     </div>
 
+    <!-- Interactive route map + turn-by-turn directions, for shifts with a
+         parsed route_track (see get-route-track.js / admin-route-track.js).
+         Reuses the info-modal overlay pattern above, just wider. -->
+    <div class="info-modal-overlay" id="routeTrackModalOverlay">
+        <div class="info-modal map-modal">
+            <h2 id="routeTrackModalTitle">🗺️ Route Map</h2>
+            <div id="routeTrackMap" class="route-track-map"></div>
+            <button type="button" id="routeTrackLocateBtn" class="locate-btn">📍 Show my location</button>
+            <div id="routeTrackStatus" class="route-track-status"></div>
+            <ol id="routeTrackDirections" class="direction-list"></ol>
+            <button type="button" class="info-modal-close-btn" data-close-modal="routeTrackModalOverlay">Close</button>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script type="text/javascript" src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
     <script>
         (function() {
@@ -835,13 +931,181 @@
             // ---- Phase 9: on-demand info modals (Donate / FAQ) ----
 
             function openModal(id) { document.getElementById(id).classList.add('visible'); }
-            function closeModal(id) { document.getElementById(id).classList.remove('visible'); }
+            function closeModal(id) {
+                document.getElementById(id).classList.remove('visible');
+                if (id === 'routeTrackModalOverlay') stopLocating();
+            }
 
             document.getElementById('donateUtilityBtn').addEventListener('click', function() { openModal('donateModalOverlay'); });
             document.getElementById('faqUtilityBtn').addEventListener('click', function() { openModal('faqModalOverlay'); });
             document.querySelectorAll('[data-close-modal]').forEach(function(btn) {
                 btn.addEventListener('click', function() { closeModal(btn.dataset.closeModal); });
             });
+
+            // ---- Interactive route map (My Shifts) -- parsed from a
+            // plotaroute.com GPX export server-side by admin.html, fetched
+            // here as JSON by get-route-track.js. Falls back to the
+            // existing printable map (viewRouteMap) when a date has none.
+
+            var routeTrackMapInstance = null;
+            var routeTrackLayer = null;
+            var routeTrackMarkers = [];
+            var routeTrackLocationMarker = null;
+            var routeTrackWatchId = null;
+
+            function directionEmoji(dir, isFirst, isLast) {
+                var text = (dir.text || '').toUpperCase();
+                if (isLast || text === 'FINISH') return '🏁';
+                if (isFirst) return '🚩';
+                if (text.indexOf('HOLD') === 0) return '✋';
+                if (text.indexOf('U-TURN') !== -1 || text.indexOf('U TURN') !== -1) return '🔄';
+                var sym = dir.sym || '';
+                if (sym.indexOf('Left_sharp') === 0) return '↩️';
+                if (sym.indexOf('Right_sharp') === 0) return '↪️';
+                if (sym.indexOf('Left_slight') === 0) return '↖️';
+                if (sym.indexOf('Right_slight') === 0) return '↗️';
+                if (sym.indexOf('Left') === 0) return '⬅️';
+                if (sym.indexOf('Right') === 0) return '➡️';
+                if (sym.indexOf('Straight') === 0) return '⬆️';
+                return '📍';
+            }
+
+            function stopLocating() {
+                if (routeTrackWatchId !== null && navigator.geolocation) {
+                    navigator.geolocation.clearWatch(routeTrackWatchId);
+                    routeTrackWatchId = null;
+                }
+                if (routeTrackLocationMarker && routeTrackMapInstance) {
+                    routeTrackMapInstance.removeLayer(routeTrackLocationMarker);
+                    routeTrackLocationMarker = null;
+                }
+                var locateBtn = document.getElementById('routeTrackLocateBtn');
+                locateBtn.classList.remove('active');
+                locateBtn.textContent = '📍 Show my location';
+            }
+
+            function toggleLocating() {
+                var locateBtn = document.getElementById('routeTrackLocateBtn');
+                var statusEl = document.getElementById('routeTrackStatus');
+                if (routeTrackWatchId !== null) {
+                    stopLocating();
+                    return;
+                }
+                if (!navigator.geolocation) {
+                    statusEl.textContent = "Your browser doesn't support location.";
+                    return;
+                }
+                locateBtn.classList.add('active');
+                locateBtn.textContent = '📍 Locating...';
+                routeTrackWatchId = navigator.geolocation.watchPosition(function(pos) {
+                    locateBtn.textContent = '📍 Hide my location';
+                    statusEl.textContent = '';
+                    var latlng = [pos.coords.latitude, pos.coords.longitude];
+                    if (!routeTrackLocationMarker) {
+                        routeTrackLocationMarker = L.circleMarker(latlng, {
+                            radius: 8, color: '#fff', weight: 2, fillColor: '#2b6cb0', fillOpacity: 1
+                        }).addTo(routeTrackMapInstance);
+                    } else {
+                        routeTrackLocationMarker.setLatLng(latlng);
+                    }
+                }, function(err) {
+                    statusEl.textContent = "Couldn't get your location: " + err.message;
+                    stopLocating();
+                }, { enableHighAccuracy: true, maximumAge: 5000 });
+            }
+
+            function renderRouteTrack(track) {
+                var mapEl = document.getElementById('routeTrackMap');
+                if (!routeTrackMapInstance) {
+                    routeTrackMapInstance = L.map(mapEl);
+                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                        maxZoom: 19,
+                        attribution: '&copy; OpenStreetMap contributors'
+                    }).addTo(routeTrackMapInstance);
+                }
+
+                if (routeTrackLayer) routeTrackMapInstance.removeLayer(routeTrackLayer);
+                routeTrackMarkers.forEach(function(m) { routeTrackMapInstance.removeLayer(m); });
+                routeTrackMarkers = [];
+
+                var latlngs = track.points.map(function(p) { return [p[0], p[1]]; });
+                routeTrackLayer = L.polyline(latlngs, { color: '#c0392b', weight: 5, opacity: 0.85 }).addTo(routeTrackMapInstance);
+
+                var listEl = document.getElementById('routeTrackDirections');
+                listEl.innerHTML = '';
+
+                track.directions.forEach(function(dir, i) {
+                    var isFirst = i === 0;
+                    var isLast = i === track.directions.length - 1;
+                    var emoji = directionEmoji(dir, isFirst, isLast);
+
+                    var marker = L.marker([dir.lat, dir.lon], {
+                        icon: L.divIcon({
+                            className: 'direction-marker',
+                            html: '<div style="font-size:1.1rem; line-height:1; transform: translate(-50%,-50%);">' + emoji + '</div>',
+                            iconSize: [0, 0]
+                        })
+                    }).addTo(routeTrackMapInstance);
+                    marker.bindPopup(dir.text);
+                    routeTrackMarkers.push(marker);
+
+                    var item = document.createElement('li');
+                    item.className = 'direction-item';
+
+                    var iconSpan = document.createElement('span');
+                    iconSpan.className = 'direction-icon';
+                    iconSpan.textContent = emoji;
+                    item.appendChild(iconSpan);
+
+                    var kmSpan = document.createElement('span');
+                    kmSpan.className = 'direction-km';
+                    kmSpan.textContent = dir.km != null ? dir.km.toFixed(2) + 'km' : '';
+                    item.appendChild(kmSpan);
+
+                    var textSpan = document.createElement('span');
+                    textSpan.className = 'direction-text';
+                    textSpan.textContent = dir.text;
+                    item.appendChild(textSpan);
+
+                    item.addEventListener('click', function() {
+                        routeTrackMapInstance.setView([dir.lat, dir.lon], 18);
+                        marker.openPopup();
+                        listEl.querySelectorAll('.direction-item').forEach(function(el) { el.classList.remove('active'); });
+                        item.classList.add('active');
+                    });
+
+                    listEl.appendChild(item);
+                });
+
+                // The modal is hidden (display:none via the overlay class)
+                // while Leaflet first measures its container, so it thinks
+                // the map is 0x0 until told otherwise now that it's visible.
+                setTimeout(function() {
+                    routeTrackMapInstance.invalidateSize();
+                    routeTrackMapInstance.fitBounds(routeTrackLayer.getBounds(), { padding: [20, 20] });
+                }, 50);
+            }
+
+            async function openRouteTrackModal(routeDateId, routeName) {
+                var statusEl = document.getElementById('routeTrackStatus');
+                var titleEl = document.getElementById('routeTrackModalTitle');
+                titleEl.textContent = '🗺️ ' + (routeName || 'Route Map');
+                statusEl.textContent = 'Loading route...';
+                document.getElementById('routeTrackDirections').innerHTML = '';
+                openModal('routeTrackModalOverlay');
+                try {
+                    var res = await authedFetch('/.netlify/functions/get-route-track?routeDateId=' + routeDateId);
+                    var data = await res.json();
+                    if (!res.ok) throw new Error(data.error || 'Could not load route');
+                    statusEl.textContent = '';
+                    renderRouteTrack(data.track);
+                } catch (err) {
+                    console.error('Error loading route track:', err);
+                    statusEl.textContent = "Couldn't load the interactive map — please try again, or use the printable map instead.";
+                }
+            }
+
+            document.getElementById('routeTrackLocateBtn').addEventListener('click', toggleLocating);
 
             var FAQ_ITEMS = [
                 ['Can my child(ren) help?', "Yes, however, they must remain under your care and are entirely your responsibility during the evening. Please keep in mind, sometimes routes run long (we've had finishes at 9.30pm in the past). Children will need you stood with them whilst collecting."],
@@ -1035,10 +1299,18 @@
                                 row.appendChild(notesEl);
                             }
 
+                            if (shift.hasRouteTrack) {
+                                var trackBtn = document.createElement('button');
+                                trackBtn.className = 'shift-map-btn';
+                                trackBtn.textContent = '🗺️ View interactive map';
+                                trackBtn.onclick = function() { openRouteTrackModal(shift.routeDateId, shift.routeName); };
+                                row.appendChild(trackBtn);
+                            }
+
                             if (shift.hasRouteMap) {
                                 var mapBtn = document.createElement('button');
-                                mapBtn.className = 'shift-map-btn';
-                                mapBtn.textContent = 'View route map';
+                                mapBtn.className = shift.hasRouteTrack ? 'shift-ics-btn' : 'shift-map-btn';
+                                mapBtn.textContent = shift.hasRouteTrack ? 'Printable map' : 'View route map';
                                 mapBtn.onclick = function() { viewRouteMap(shift.routeDateId, mapBtn); };
                                 row.appendChild(mapBtn);
 

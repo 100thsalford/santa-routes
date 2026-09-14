@@ -1303,6 +1303,41 @@
 
                 block.appendChild(mapRow);
 
+                var trackRow = document.createElement('div');
+                trackRow.className = 'date-block-details';
+
+                var trackStatus = document.createElement('span');
+                trackStatus.className = 'route-map-status';
+                trackStatus.textContent = date.hasRouteTrack
+                    ? ('\uD83D\uDDFA\uFE0F Interactive route: ' + (date.routeTrackTurns != null ? date.routeTrackTurns : '?') + ' turns, ' + (date.routeTrackDistanceKm != null ? date.routeTrackDistanceKm : '?') + 'km')
+                    : 'No interactive route uploaded';
+                trackRow.appendChild(trackStatus);
+
+                if (date.hasRouteTrack) {
+                    var removeTrackBtn = document.createElement('button');
+                    removeTrackBtn.className = 'admin-btn small danger';
+                    removeTrackBtn.textContent = 'Remove Interactive Route';
+                    removeTrackBtn.onclick = function() { removeRouteTrack(date.id, 'routesStatus'); };
+                    trackRow.appendChild(removeTrackBtn);
+                }
+
+                var trackFileInput = document.createElement('input');
+                trackFileInput.type = 'file';
+                trackFileInput.accept = '.gpx';
+                trackRow.appendChild(trackFileInput);
+
+                var uploadTrackBtn = document.createElement('button');
+                uploadTrackBtn.className = 'admin-btn small';
+                uploadTrackBtn.textContent = date.hasRouteTrack ? 'Replace Interactive Route' : 'Upload GPX for Interactive Route';
+                uploadTrackBtn.title = 'From plotaroute.com: DOWNLOAD \u2192 GPX, with GPX TYPE set to Track and WAYPOINTS set to Directions';
+                uploadTrackBtn.onclick = function() {
+                    if (!trackFileInput.files || !trackFileInput.files[0]) return;
+                    uploadRouteTrack(date.id, trackFileInput.files[0], 'routesStatus');
+                };
+                trackRow.appendChild(uploadTrackBtn);
+
+                block.appendChild(trackRow);
+
                 var table = document.createElement('table');
                 table.className = 'admin-table';
                 table.innerHTML = '<thead><tr><th class="col-seq">Seq</th><th>Street</th><th class="col-time">Time</th><th class="col-actions"></th></tr></thead>';
@@ -1693,6 +1728,111 @@
 
             async function removeRouteMap(routeDateId, statusElId) {
                 runOp('/.netlify/functions/admin-route-map', { op: 'delete', routeDateId: routeDateId }, statusElId);
+            }
+
+            // ---- Interactive route track (parsed from a plotaroute.com GPX
+            // export) -- see netlify/functions/admin-route-track.js. Parsing
+            // happens entirely here in the browser (DOMParser) so the
+            // function only ever stores already-validated JSON, never raw
+            // XML from an upload.
+
+            function haversineKm(a, b) {
+                var R = 6371;
+                var dLat = (b[0] - a[0]) * Math.PI / 180;
+                var dLon = (b[1] - a[1]) * Math.PI / 180;
+                var lat1 = a[0] * Math.PI / 180, lat2 = b[0] * Math.PI / 180;
+                var h = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+                return 2 * R * Math.asin(Math.sqrt(h));
+            }
+
+            function parseGpxTrack(gpxText) {
+                var doc = new DOMParser().parseFromString(gpxText, 'application/xml');
+                if (doc.getElementsByTagName('parsererror').length) {
+                    throw new Error('That file is not valid GPX/XML');
+                }
+
+                function getEls(parent, tag) {
+                    var nsEls = parent.getElementsByTagNameNS ? parent.getElementsByTagNameNS('http://www.topografix.com/GPX/1/1', tag) : [];
+                    return nsEls.length ? nsEls : parent.getElementsByTagName(tag);
+                }
+
+                var trkpts = getEls(doc, 'trkpt');
+                var points = [];
+                for (var i = 0; i < trkpts.length; i++) {
+                    var lat = parseFloat(trkpts[i].getAttribute('lat'));
+                    var lon = parseFloat(trkpts[i].getAttribute('lon'));
+                    if (!isFinite(lat) || !isFinite(lon)) continue;
+                    var prevPt = points[points.length - 1];
+                    if (!prevPt || prevPt[0] !== lat || prevPt[1] !== lon) points.push([lat, lon]);
+                }
+                if (points.length < 2) {
+                    throw new Error('No track points found -- set GPX TYPE to "Track" when exporting from plotaroute');
+                }
+
+                // Cumulative distance along the track so each turn can carry
+                // a "Km" figure, matching the printed route sheets.
+                var cum = [0];
+                for (var p = 1; p < points.length; p++) {
+                    cum.push(cum[p - 1] + haversineKm(points[p - 1], points[p]));
+                }
+
+                function nearestIndex(lat, lon) {
+                    var best = 0, bestD = Infinity;
+                    for (var k = 0; k < points.length; k++) {
+                        var dLat = points[k][0] - lat, dLon = points[k][1] - lon;
+                        var d = dLat * dLat + dLon * dLon;
+                        if (d < bestD) { bestD = d; best = k; }
+                    }
+                    return best;
+                }
+
+                var wpts = getEls(doc, 'wpt');
+                var directions = [];
+                for (var j = 0; j < wpts.length; j++) {
+                    var w = wpts[j];
+                    var lat2 = parseFloat(w.getAttribute('lat'));
+                    var lon2 = parseFloat(w.getAttribute('lon'));
+                    if (!isFinite(lat2) || !isFinite(lon2)) continue;
+                    var cmtEl = getEls(w, 'cmt')[0] || getEls(w, 'desc')[0] || getEls(w, 'name')[0];
+                    var symEl = getEls(w, 'sym')[0];
+                    var text = cmtEl ? cmtEl.textContent.trim() : '';
+                    var sym = symEl ? symEl.textContent.trim() : '';
+                    if (!text) continue;
+                    var idx = nearestIndex(lat2, lon2);
+                    directions.push({ lat: lat2, lon: lon2, text: text, sym: sym, km: Math.round(cum[idx] * 1000) / 1000 });
+                }
+                if (directions.length === 0) {
+                    throw new Error('No turn-by-turn waypoints found -- set WAYPOINTS to "Directions" when exporting from plotaroute');
+                }
+
+                return { points: points, directions: directions, distanceKm: Math.round(cum[cum.length - 1] * 1000) / 1000 };
+            }
+
+            async function uploadRouteTrack(routeDateId, file, statusElId) {
+                var statusEl = document.getElementById(statusElId);
+                statusEl.textContent = 'Reading GPX file...';
+                try {
+                    var text = await file.text();
+                    var track = parseGpxTrack(text);
+                    statusEl.textContent = 'Saving interactive route (' + track.directions.length + ' turns, ' + track.distanceKm + 'km)...';
+                    var res = await authedFetch('/.netlify/functions/admin-route-track', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ op: 'set', routeDateId: routeDateId, track: track })
+                    });
+                    var data = await res.json();
+                    if (!res.ok) throw new Error(data.error || 'Save failed');
+                    statusEl.textContent = 'Interactive route saved.';
+                    setTimeout(function() { statusEl.textContent = ''; }, 2500);
+                    await loadAll();
+                } catch (err) {
+                    console.error('Error uploading route track:', err);
+                    statusEl.textContent = "Couldn't process that GPX file: " + err.message;
+                }
+            }
+
+            async function removeRouteTrack(routeDateId, statusElId) {
+                runOp('/.netlify/functions/admin-route-track', { op: 'delete', routeDateId: routeDateId }, statusElId);
             }
 
             async function viewRouteMap(routeDateId, statusElId) {

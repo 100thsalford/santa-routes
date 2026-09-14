@@ -59,7 +59,7 @@ export default async (req, context) => {
 
     const shiftRows = await db.sql`
       SELECT sa.route_date_id, sa.role, r.name AS route_name, to_char(rd.event_date, 'YYYY-MM-DD') AS event_date,
-             rd.what3words, rd.notes, rd.gathering_time, rd.route_map_filename
+             rd.what3words, rd.notes, rd.gathering_time, rd.route_map_filename, rd.route_track IS NOT NULL AS has_route_track
       FROM shift_assignments sa
       JOIN route_dates rd ON sa.route_date_id = rd.id
       JOIN routes r ON rd.route_id = r.id
@@ -75,7 +75,8 @@ export default async (req, context) => {
       what3words: s.what3words,
       notes: s.notes,
       gatheringTime: s.gathering_time,
-      hasRouteMap: !!s.route_map_filename
+      hasRouteMap: !!s.route_map_filename,
+      hasRouteTrack: !!s.has_route_track
     }));
 
     return new Response(JSON.stringify({
