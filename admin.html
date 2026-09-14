@@ -1151,18 +1151,6 @@
                 shiftBadge.textContent = shiftStatusLabel(date.volunteerCapacity, date.signupCount);
                 header.appendChild(shiftBadge);
 
-                var saveDateBtn = document.createElement('button');
-                saveDateBtn.className = 'admin-btn small';
-                saveDateBtn.textContent = 'Save';
-                saveDateBtn.onclick = function() {
-                    runOp('/.netlify/functions/admin-routes', {
-                        op: 'update-date', id: date.id, eventDate: dateInput.value, amountCollected: amountInput.value,
-                        volunteerCapacity: capacityInput.value, what3words: w3wInput.value, notes: notesInput.value,
-                        gatheringTime: gatheringTimeInput.value
-                    }, 'routesStatus');
-                };
-                header.appendChild(saveDateBtn);
-
                 var delBtn = document.createElement('button');
                 delBtn.className = 'admin-btn small danger';
                 delBtn.textContent = 'Delete Date';
@@ -1255,6 +1243,25 @@
                 notesInput.className = 'field-notes';
                 notesInput.value = date.notes || '';
                 detailsRow.appendChild(notesInput);
+
+                // Moved down here (next to the fields it actually saves --
+                // date, amount, capacity, what3words, gathering time, notes)
+                // so it's not confused with the many other Save buttons
+                // elsewhere on this page, and relabelled so it's clear what
+                // it covers. Delete Date stays up in the header -- a rare,
+                // destructive action that's fine to keep visually separate.
+                var saveDateBtn = document.createElement('button');
+                saveDateBtn.className = 'admin-btn small';
+                saveDateBtn.textContent = '💾 Save Night Details';
+                saveDateBtn.title = 'Saves the date, amount collected, volunteer capacity, what3words, gathering time and notes above';
+                saveDateBtn.onclick = function() {
+                    runOp('/.netlify/functions/admin-routes', {
+                        op: 'update-date', id: date.id, eventDate: dateInput.value, amountCollected: amountInput.value,
+                        volunteerCapacity: capacityInput.value, what3words: w3wInput.value, notes: notesInput.value,
+                        gatheringTime: gatheringTimeInput.value
+                    }, 'routesStatus');
+                };
+                detailsRow.appendChild(saveDateBtn);
 
                 block.appendChild(detailsRow);
 
