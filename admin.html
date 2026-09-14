@@ -672,6 +672,12 @@
                         <label for="riskAssessmentUrl">Full risk assessment document link (optional)</label>
                         <input type="url" id="riskAssessmentUrl" placeholder="https://...">
                     </div>
+                    <div>
+                        <label for="trutrakAssetRegistration">Sleigh's TruTrak vehicle registration (powers the public "Track Santa Live" map)</label>
+                        <input type="text" id="trutrakAssetRegistration" placeholder="e.g. PZ54 GDX">
+                        <button type="button" class="admin-btn small" id="lookupTrutrakAssetsBtn" style="margin-top: 0.5rem;">Look up registrations from TruTrak</button>
+                        <div id="trutrakAssetsResult" class="admin-status"></div>
+                    </div>
                     <button type="submit" class="admin-btn">Save Settings</button>
                 </form>
                 <div class="admin-status" id="settingsStatus"></div>
@@ -1542,6 +1548,7 @@
                 document.getElementById('sightingsWindowEnd').value = adminData.settings.sightings_window_end || '';
                 document.getElementById('riskAssessmentText').value = adminData.settings.risk_assessment_text || '';
                 document.getElementById('riskAssessmentUrl').value = adminData.settings.risk_assessment_url || '';
+                document.getElementById('trutrakAssetRegistration').value = adminData.settings.trutrak_asset_registration || '';
             }
 
             document.getElementById('settingsForm').addEventListener('submit', function(e) {
@@ -1552,8 +1559,42 @@
                     sightings_window_start: document.getElementById('sightingsWindowStart').value,
                     sightings_window_end: document.getElementById('sightingsWindowEnd').value,
                     risk_assessment_text: document.getElementById('riskAssessmentText').value,
-                    risk_assessment_url: document.getElementById('riskAssessmentUrl').value
+                    risk_assessment_url: document.getElementById('riskAssessmentUrl').value,
+                    trutrak_asset_registration: document.getElementById('trutrakAssetRegistration').value
                 }, 'settingsStatus', 'Settings saved.');
+            });
+
+            // "Look up registrations from TruTrak" -- calls the admin-only
+            // TruTrak asset list so Nathan doesn't have to know the exact
+            // registration string blind; clicking a result fills the input.
+            document.getElementById('lookupTrutrakAssetsBtn').addEventListener('click', async function() {
+                var btn = this;
+                var resultEl = document.getElementById('trutrakAssetsResult');
+                btn.disabled = true;
+                resultEl.textContent = 'Looking up TruTrak assets...';
+                try {
+                    var res = await authedFetch('/.netlify/functions/admin-trutrak-assets');
+                    var data = await res.json();
+                    if (!res.ok) throw new Error(data.error || 'Lookup failed');
+                    if (!data.assets || data.assets.length === 0) {
+                        resultEl.textContent = 'No assets found on the TruTrak account.';
+                    } else {
+                        resultEl.innerHTML = 'Click to use: ' + data.assets.map(function(a) {
+                            return '<a href="#" class="trutrak-asset-pick" data-reg="' + a.registration + '" style="margin-right: 0.75rem;">' + a.registration + '</a>';
+                        }).join('');
+                        resultEl.querySelectorAll('.trutrak-asset-pick').forEach(function(link) {
+                            link.addEventListener('click', function(e) {
+                                e.preventDefault();
+                                document.getElementById('trutrakAssetRegistration').value = link.dataset.reg;
+                            });
+                        });
+                    }
+                } catch (err) {
+                    resultEl.textContent = 'Error: ' + err.message;
+                    showToast("Couldn't look up TruTrak assets: " + err.message, 'error');
+                } finally {
+                    btn.disabled = false;
+                }
             });
 
             // ---- Manual reminder send ----

@@ -24,6 +24,20 @@ async function refreshSiteStatus() {
     } catch (error) {
         console.error('Error fetching site status:', error);
     }
+    updateTrackSantaButton();
+}
+
+// Shows the floating "Track Santa Live" button (linking to track.html)
+// only while siteStatus.sightings.active is true -- the same route-night
+// live window the sightings feature already uses. Re-run on every
+// refreshSiteStatus() call (initial load + the 60s interval) so the
+// button still appears/disappears correctly for a page left open across
+// a window boundary, same reasoning as the sightings feature above.
+function updateTrackSantaButton() {
+    const btn = document.getElementById('trackSantaFloatBtn');
+    if (!btn) return;
+    const active = !!(siteStatus && siteStatus.sightings && siteStatus.sightings.active);
+    btn.classList.toggle('tracking-hidden', !active);
 }
 
 // Initialize when DOM is ready

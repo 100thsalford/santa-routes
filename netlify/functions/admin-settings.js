@@ -15,7 +15,8 @@ const ALLOWED_KEYS = [
   'sightings_window_start',
   'sightings_window_end',
   'risk_assessment_text',
-  'risk_assessment_url'
+  'risk_assessment_url',
+  'trutrak_asset_registration'
 ];
 
 function requireAdmin(user) {
