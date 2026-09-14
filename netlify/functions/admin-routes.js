@@ -93,10 +93,13 @@ export default async (req, context) => {
           ? String(body.what3words).trim().replace(/^\/+/, '')
           : null;
         const notes = body.notes != null && String(body.notes).trim() !== '' ? String(body.notes).trim() : null;
+        const gatheringTime = body.gatheringTime != null && String(body.gatheringTime).trim() !== ''
+          ? String(body.gatheringTime).trim()
+          : null;
         await db.sql`
           UPDATE route_dates
           SET event_date = ${eventDate}, amount_collected = ${amountCollected}, volunteer_capacity = ${volunteerCapacity},
-              what3words = ${what3words}, notes = ${notes}
+              what3words = ${what3words}, notes = ${notes}, gathering_time = ${gatheringTime}
           WHERE id = ${id}
         `;
         return ok();
@@ -166,6 +169,29 @@ export default async (req, context) => {
         const id = parseInt(body.id, 10);
         if (!id) return badRequest('Street id is required');
         await db.sql`DELETE FROM streets WHERE id = ${id}`;
+        return ok();
+      }
+
+      // Sets (or clears, when volunteerId is null/absent) who's playing
+      // Santa/Safety Walker/Driver for one route_date. Kept in its own
+      // event_role_assignments table rather than shift_assignments -- these
+      // slots don't count toward that date's volunteer-capacity total
+      // (matches the Replit reference app: a date can show "0/8 volunteers"
+      // while still having a Santa assigned).
+      case 'set-event-role': {
+        const routeDateId = parseInt(body.routeDateId, 10);
+        const role = String(body.role || '');
+        if (!routeDateId || !['santa', 'safety_walker', 'driver'].includes(role)) {
+          return badRequest('routeDateId and a valid role (santa/safety_walker/driver) are required');
+        }
+        const volunteerId = body.volunteerId != null && String(body.volunteerId).trim() !== ''
+          ? parseInt(body.volunteerId, 10)
+          : null;
+        await db.sql`
+          INSERT INTO event_role_assignments (route_date_id, role, volunteer_id)
+          VALUES (${routeDateId}, ${role}, ${volunteerId})
+          ON CONFLICT (route_date_id, role) DO UPDATE SET volunteer_id = EXCLUDED.volunteer_id
+        `;
         return ok();
       }
 

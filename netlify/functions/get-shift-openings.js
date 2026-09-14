@@ -53,16 +53,50 @@ export default async (req, context) => {
     const rows = await db.sql`
       SELECT
         rd.id, r.name AS route_name, to_char(rd.event_date, 'YYYY-MM-DD') AS event_date,
-        rd.volunteer_capacity, rd.what3words, rd.notes, rd.route_map_filename,
+        rd.volunteer_capacity, rd.what3words, rd.notes, rd.gathering_time, rd.route_map_filename,
         COUNT(sa.id) AS signup_count,
         BOOL_OR(sa.volunteer_id = ${volunteerId}) AS viewer_signed_up
       FROM route_dates rd
       JOIN routes r ON rd.route_id = r.id
       LEFT JOIN shift_assignments sa ON sa.route_date_id = rd.id
       WHERE rd.event_date >= ${todayDate}
-      GROUP BY rd.id, r.name, rd.event_date, rd.volunteer_capacity, rd.what3words, rd.notes, rd.route_map_filename, r.display_order
+      GROUP BY rd.id, r.name, rd.event_date, rd.volunteer_capacity, rd.what3words, rd.notes, rd.gathering_time, rd.route_map_filename, r.display_order
       ORDER BY rd.event_date, r.display_order NULLS LAST, r.name
     `;
+
+    // Who's signed up, by name -- shown to any logged-in volunteer (Phase 9
+    // decision, superseding the earlier aggregate-count-only privacy call),
+    // but never to a fully anonymous request, since this endpoint doesn't
+    // itself require a login. Uses the denormalized volunteers.full_name
+    // (falling back to the email's local part) rather than a raw email
+    // address, matching Replit's name-only display without handing every
+    // volunteer's email to every other volunteer.
+    let signupsByDate = {};
+    if (user) {
+      const signupRows = await db.sql`
+        SELECT sa.route_date_id, v.full_name, v.email
+        FROM shift_assignments sa
+        JOIN volunteers v ON v.id = sa.volunteer_id
+        WHERE sa.route_date_id IN (SELECT id FROM route_dates WHERE event_date >= ${todayDate})
+      `;
+      for (const s of signupRows) {
+        const name = s.full_name || String(s.email).split('@')[0];
+        (signupsByDate[s.route_date_id] = signupsByDate[s.route_date_id] || []).push(name);
+      }
+    }
+
+    const roleRows = await db.sql`
+      SELECT era.route_date_id, era.role, era.volunteer_id, v.full_name, v.email
+      FROM event_role_assignments era
+      LEFT JOIN volunteers v ON v.id = era.volunteer_id
+      WHERE era.route_date_id IN (SELECT id FROM route_dates WHERE event_date >= ${todayDate})
+    `;
+    const rolesByDate = {};
+    for (const r of roleRows) {
+      if (!r.volunteer_id) continue;
+      (rolesByDate[r.route_date_id] = rolesByDate[r.route_date_id] || {})[r.role] =
+        r.full_name || (r.email ? String(r.email).split('@')[0] : null);
+    }
 
     const shifts = rows.map((r) => {
       const capacity = r.volunteer_capacity != null ? Number(r.volunteer_capacity) : null;
@@ -77,7 +111,10 @@ export default async (req, context) => {
         viewerSignedUp: !!r.viewer_signed_up,
         what3words: r.what3words,
         notes: r.notes,
-        hasRouteMap: !!r.route_map_filename
+        gatheringTime: r.gathering_time,
+        hasRouteMap: !!r.route_map_filename,
+        signupNames: signupsByDate[r.id] || null,
+        roles: rolesByDate[r.id] || null
       };
     });
 

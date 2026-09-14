@@ -19,18 +19,32 @@ export default async (req, context) => {
     }
 
     const db = getDatabase();
+    // Identity exposes a volunteer's chosen name at user_metadata.full_name
+    // (set via the invite/signup flow) -- denormalized onto the volunteers
+    // row so other functions (named shift-signup lists) can show a name
+    // without needing the Identity Admin API.
+    const fullName = (user.user_metadata && user.user_metadata.full_name) || null;
 
     let rows = await db.sql`
-      SELECT id, identity_user_id, email, reminder_email_opt_in, preferred_email, risk_ack_at
+      SELECT id, identity_user_id, email, full_name, reminder_email_opt_in, preferred_email, risk_ack_at,
+             can_be_santa, can_be_safety_walker, can_be_driver
       FROM volunteers WHERE identity_user_id = ${user.id}
     `;
 
     if (rows.length === 0) {
       rows = await db.sql`
-        INSERT INTO volunteers (identity_user_id, email)
-        VALUES (${user.id}, ${user.email})
-        ON CONFLICT (identity_user_id) DO UPDATE SET email = EXCLUDED.email
-        RETURNING id, identity_user_id, email, reminder_email_opt_in, preferred_email, risk_ack_at
+        INSERT INTO volunteers (identity_user_id, email, full_name)
+        VALUES (${user.id}, ${user.email}, ${fullName})
+        ON CONFLICT (identity_user_id) DO UPDATE SET email = EXCLUDED.email, full_name = COALESCE(EXCLUDED.full_name, volunteers.full_name)
+        RETURNING id, identity_user_id, email, full_name, reminder_email_opt_in, preferred_email, risk_ack_at,
+                  can_be_santa, can_be_safety_walker, can_be_driver
+      `;
+    } else if (fullName && !rows[0].full_name) {
+      // Keep the denormalized name fresh if Identity has one we didn't yet.
+      rows = await db.sql`
+        UPDATE volunteers SET full_name = ${fullName} WHERE id = ${rows[0].id}
+        RETURNING id, identity_user_id, email, full_name, reminder_email_opt_in, preferred_email, risk_ack_at,
+                  can_be_santa, can_be_safety_walker, can_be_driver
       `;
     }
 
@@ -45,7 +59,7 @@ export default async (req, context) => {
 
     const shiftRows = await db.sql`
       SELECT sa.route_date_id, sa.role, r.name AS route_name, to_char(rd.event_date, 'YYYY-MM-DD') AS event_date,
-             rd.what3words, rd.notes, rd.route_map_filename
+             rd.what3words, rd.notes, rd.gathering_time, rd.route_map_filename
       FROM shift_assignments sa
       JOIN route_dates rd ON sa.route_date_id = rd.id
       JOIN routes r ON rd.route_id = r.id
@@ -60,14 +74,21 @@ export default async (req, context) => {
       role: s.role,
       what3words: s.what3words,
       notes: s.notes,
+      gatheringTime: s.gathering_time,
       hasRouteMap: !!s.route_map_filename
     }));
 
     return new Response(JSON.stringify({
       email: profile.email,
+      fullName: profile.full_name,
       reminderEmailOptIn: profile.reminder_email_opt_in,
       preferredEmail: profile.preferred_email,
       riskAckAt: profile.risk_ack_at,
+      qualifiedRoles: {
+        santa: !!profile.can_be_santa,
+        safetyWalker: !!profile.can_be_safety_walker,
+        driver: !!profile.can_be_driver
+      },
       riskAssessment: {
         text: settingsByKey.risk_assessment_text || '',
         url: settingsByKey.risk_assessment_url || ''

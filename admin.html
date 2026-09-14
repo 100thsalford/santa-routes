@@ -6,17 +6,27 @@
     <meta name="robots" content="noindex">
     <meta name="description" content="Admin screens for Santa Super Sleigh Salford routes, dates, settings and volunteer shifts.">
     <title>Admin | Santa Super Sleigh Salford</title>
-    <link rel="stylesheet" href="styles.css?v=20260911b">
+    <link rel="stylesheet" href="styles.css?v=20260912a">
     <style>
         .admin-card {
-            background: white;
-            border-radius: 16px;
+            background: var(--surface);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-lg);
             padding: 1.5rem;
             margin-bottom: 1.5rem;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            box-shadow: var(--shadow-sm);
         }
 
-        .admin-hidden { display: none; }
+        /* !important: this is a utility "hidden" class applied alongside
+           other classes that set their own `display` (e.g. .settings-form's
+           display:grid) -- without it, a same-specificity single-class rule
+           defined later in the cascade silently wins and the element stays
+           visible. Found via live verification: #settingsForm was showing
+           through (with "Loading settings..." still above it) before its
+           real data had loaded, because .settings-form{display:grid} (line
+           ~170) was overriding this rule (line ~20) even while admin-hidden
+           was applied. */
+        .admin-hidden { display: none !important; }
 
         .admin-login-btn, .admin-btn {
             display: inline-block;
@@ -28,10 +38,19 @@
             font-size: 0.95rem;
             font-weight: bold;
             cursor: pointer;
+            transition: background 0.15s ease, transform 0.15s ease;
+        }
+
+        .admin-login-btn:hover, .admin-btn:hover {
+            background: #163F30;
         }
 
         .admin-btn.danger {
             background: var(--santa-red);
+        }
+
+        .admin-btn.danger:hover {
+            background: #8C2D25;
         }
 
         .admin-btn.small {
@@ -60,17 +79,26 @@
         table.admin-table th, table.admin-table td {
             text-align: left;
             padding: 0.5rem 0.5rem;
-            border-bottom: 1px solid #eee;
+            border-bottom: 1px solid var(--border-subtle);
             font-size: 0.9rem;
+        }
+
+        table.admin-table th {
+            color: var(--ink-soft);
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+            font-weight: 600;
         }
 
         table.admin-table input, table.admin-table select {
             width: 100%;
             box-sizing: border-box;
             padding: 0.4rem 0.5rem;
-            border: 1px solid #ccc;
-            border-radius: 6px;
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-sm);
             font-size: 0.9rem;
+            font-family: inherit;
         }
 
         /* Named width classes (instead of inline styles) so the mobile
@@ -107,12 +135,13 @@
             margin: 0.5rem 0;
         }
         .field-w3w { width: 14rem; box-sizing: border-box; }
+        .field-gathering-time { width: 12rem; box-sizing: border-box; }
         .field-notes { flex: 1; min-width: 12rem; box-sizing: border-box; }
-        .route-map-status { color: #555; font-size: 0.9rem; }
+        .route-map-status { color: var(--ink-soft); font-size: 0.9rem; }
 
         .route-block, .date-block {
-            border: 1px solid #eee;
-            border-radius: 10px;
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
             padding: 1rem;
             margin-bottom: 1rem;
         }
@@ -141,9 +170,10 @@
 
         .add-row-form input {
             padding: 0.4rem 0.5rem;
-            border: 1px solid #ccc;
-            border-radius: 6px;
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-sm);
             font-size: 0.9rem;
+            font-family: inherit;
         }
 
         .settings-form {
@@ -168,8 +198,8 @@
             width: 100%;
             box-sizing: border-box;
             padding: 0.5rem 0.6rem;
-            border: 1px solid #ccc;
-            border-radius: 6px;
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-sm);
             font-family: inherit;
         }
 
@@ -178,7 +208,7 @@
         }
 
         .reminders-panel {
-            border-top: 1px solid #eee;
+            border-top: 1px solid var(--border-subtle);
             margin-top: 1.5rem;
             padding-top: 1.5rem;
             max-width: 420px;
@@ -191,7 +221,7 @@
         }
 
         .reminders-panel p {
-            color: #666;
+            color: var(--ink-soft);
             font-size: 0.85rem;
             margin: 0 0 0.75rem;
         }
@@ -226,8 +256,8 @@
         }
 
         .volunteer-block {
-            border: 1px solid #eee;
-            border-radius: 10px;
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
             padding: 1rem;
             margin-bottom: 1rem;
         }
@@ -236,7 +266,7 @@
             display: inline-flex;
             align-items: center;
             gap: 0.5rem;
-            background: #f4f4f4;
+            background: var(--surface-muted);
             border-radius: 999px;
             padding: 0.3rem 0.4rem 0.3rem 0.8rem;
             font-size: 0.85rem;
@@ -252,7 +282,7 @@
             line-height: 1;
         }
 
-        .admin-loading { color: #777; }
+        .admin-loading { color: var(--ink-soft); }
 
         .search-stats-row {
             display: flex;
@@ -262,8 +292,8 @@
         }
 
         .search-stat {
-            background: #f4f4f4;
-            border-radius: 10px;
+            background: var(--surface-muted);
+            border-radius: var(--radius-md);
             padding: 0.75rem 1rem;
             flex: 1 1 140px;
             text-align: center;
@@ -277,7 +307,7 @@
 
         .search-stat-label {
             font-size: 0.8rem;
-            color: #666;
+            color: var(--ink-soft);
         }
 
         .search-activity-subtitle {
@@ -296,7 +326,7 @@
         }
 
         .no-match-empty {
-            color: #777;
+            color: var(--ink-soft);
             font-size: 0.9rem;
             margin: 0 0 1.5rem;
         }
@@ -316,6 +346,103 @@
         .table-scroll {
             overflow-x: auto;
             -webkit-overflow-scrolling: touch;
+        }
+
+        /* Phase 9: dashboard stat cards */
+        .dashboard-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .stat-card {
+            background: var(--surface-muted);
+            border-radius: var(--radius-md);
+            padding: 1rem 1.25rem;
+        }
+
+        .stat-card-value {
+            font-size: 1.6rem;
+            font-weight: bold;
+            color: var(--santa-green);
+        }
+
+        .stat-card-label {
+            font-size: 0.8rem;
+            color: var(--ink-soft);
+            margin-top: 0.15rem;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+
+        .dashboard-section-title {
+            font-weight: bold;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: var(--santa-green);
+            margin: 1.5rem 0 0.75rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid var(--border-subtle);
+        }
+
+        .dashboard-section-title:first-of-type {
+            margin-top: 0;
+        }
+
+        /* Phase 9: per-date Santa/Safety Walker/Driver role assignment +
+           named signup list (replaces the aggregate-only count) */
+        .event-roles-row {
+            display: flex;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+            margin: 0.5rem 0;
+        }
+
+        .event-role-field {
+            display: flex;
+            flex-direction: column;
+            gap: 0.2rem;
+        }
+
+        .event-role-field label {
+            font-size: 0.75rem;
+            color: var(--ink-soft);
+        }
+
+        .event-role-field select {
+            padding: 0.3rem 0.4rem;
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-sm);
+            font-size: 0.85rem;
+            min-width: 9rem;
+            font-family: inherit;
+        }
+
+        .signup-names {
+            font-size: 0.85rem;
+            color: var(--ink-soft);
+            margin: 0.4rem 0;
+        }
+
+        .signup-names .signup-none {
+            color: #999;
+        }
+
+        .volunteer-roles-checklist {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            font-size: 0.85rem;
+            color: var(--text-dark);
+            margin: 0.5rem 0;
+        }
+
+        .volunteer-roles-checklist label {
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
         }
 
         /* Mobile polish */
@@ -415,6 +542,15 @@
             .search-stat-value {
                 font-size: 1.2rem;
             }
+
+            .dashboard-stats {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .event-role-field select {
+                min-width: 0;
+                width: 100%;
+            }
         }
     </style>
 </head>
@@ -439,36 +575,20 @@
 
         <div id="adminArea" class="admin-hidden">
             <div class="admin-tabs tab-buttons">
-                <button class="tab-btn active" data-tab="routes">🗺️ Routes &amp; Streets</button>
-                <button class="tab-btn" data-tab="settings">⚙️ Season Settings</button>
-                <button class="tab-btn" data-tab="volunteers">👥 Volunteer Shifts</button>
+                <button class="tab-btn active" data-tab="dashboard">📊 Dashboard</button>
+                <button class="tab-btn" data-tab="routes">🗺️ Routes &amp; Streets</button>
+                <button class="tab-btn" data-tab="volunteers">👥 Volunteers</button>
                 <button class="tab-btn" data-tab="search-activity">🔍 Search Activity</button>
-                <button class="tab-btn" data-tab="broadcast">📣 Broadcast</button>
             </div>
 
-            <!-- Routes & Streets -->
-            <div class="admin-card" id="tab-routes">
-                <p id="routesLoading" class="admin-loading">Loading routes...</p>
-                <div class="add-row-form" id="yearSelectorRow" style="margin-bottom: 1rem;">
-                    <label for="yearSelect" style="font-weight: bold;">Season year:</label>
-                    <select id="yearSelect"></select>
-                    <span style="color:#777; font-size: 0.85rem;">Previous years' routes/streets stay saved — switch years to view or clone from them.</span>
-                </div>
-                <div class="add-row-form" id="geocodeStatusRow" style="margin-bottom: 1rem;">
-                    <button class="admin-btn small" id="geocodeStreetsBtn" type="button">📍 Geocode streets for nearest-match search</button>
-                    <span class="admin-status" id="geocodeStatus" style="margin: 0;"></span>
-                </div>
-                <div id="routesContent"></div>
-                <div class="add-row-form">
-                    <input type="text" id="newRouteName" placeholder="New route name">
-                    <input type="number" id="newRouteOrder" placeholder="Display order" class="field-narrow">
-                    <button class="admin-btn small" id="addRouteBtn">+ Add Route</button>
-                </div>
-                <div class="admin-status" id="routesStatus"></div>
-            </div>
+            <!-- Dashboard: at-a-glance stats + season-wide settings (the
+                 settings here apply across every route/date, so this
+                 overview page is where they live -- Phase 9 restructure,
+                 replacing the old flat 5-tab layout) -->
+            <div class="admin-card" id="tab-dashboard">
+                <div class="dashboard-stats" id="dashboardStats"></div>
 
-            <!-- Season Settings -->
-            <div class="admin-card admin-hidden" id="tab-settings">
+                <div class="dashboard-section-title">⚙️ Season Settings</div>
                 <p id="settingsLoading" class="admin-loading">Loading settings...</p>
                 <form class="settings-form admin-hidden" id="settingsForm">
                     <div>
@@ -498,8 +618,36 @@
                     <button type="submit" class="admin-btn">Save Settings</button>
                 </form>
                 <div class="admin-status" id="settingsStatus"></div>
+            </div>
 
-                <div class="reminders-panel">
+            <!-- Routes & Streets -->
+            <div class="admin-card admin-hidden" id="tab-routes">
+                <p id="routesLoading" class="admin-loading">Loading routes...</p>
+                <div class="add-row-form" id="yearSelectorRow" style="margin-bottom: 1rem;">
+                    <label for="yearSelect" style="font-weight: bold;">Season year:</label>
+                    <select id="yearSelect"></select>
+                    <span style="color:#777; font-size: 0.85rem;">Previous years' routes/streets stay saved — switch years to view or clone from them.</span>
+                </div>
+                <div class="add-row-form" id="geocodeStatusRow" style="margin-bottom: 1rem;">
+                    <button class="admin-btn small" id="geocodeStreetsBtn" type="button">📍 Geocode streets for nearest-match search</button>
+                    <span class="admin-status" id="geocodeStatus" style="margin: 0;"></span>
+                </div>
+                <div id="routesContent"></div>
+                <div class="add-row-form">
+                    <input type="text" id="newRouteName" placeholder="New route name">
+                    <input type="number" id="newRouteOrder" placeholder="Display order" class="field-narrow">
+                    <button class="admin-btn small" id="addRouteBtn">+ Add Route</button>
+                </div>
+                <div class="admin-status" id="routesStatus"></div>
+            </div>
+
+            <!-- Volunteers: the volunteer list + role-qualification editor,
+                 plus the manual reminder-send trigger and one-off broadcast
+                 composer -- moved here from their own separate tabs (Phase
+                 9 restructure), since both are things you do in the course
+                 of managing volunteers, not standalone destinations. -->
+            <div class="admin-card admin-hidden" id="tab-volunteers">
+                <div class="reminders-panel" style="border-top: none; margin-top: 0; padding-top: 0;">
                     <h3>✉️ Send tonight's shift reminders now</h3>
                     <p>Normally sent automatically at 7am every day of the event window. Use this to send early, resend, or send for a different date.</p>
                     <div class="add-row-form">
@@ -508,24 +656,9 @@
                     </div>
                     <div class="admin-status" id="remindersStatus"></div>
                 </div>
-            </div>
 
-            <!-- Volunteer Shifts -->
-            <div class="admin-card admin-hidden" id="tab-volunteers">
-                <p id="volunteersLoading" class="admin-loading">Loading volunteers...</p>
-                <div id="volunteersContent"></div>
-                <div class="admin-status" id="volunteersStatus"></div>
-            </div>
-
-            <!-- Search Activity -->
-            <div class="admin-card admin-hidden" id="tab-search-activity">
-                <p id="searchActivityLoading" class="admin-loading">Loading search activity...</p>
-                <div id="searchActivityContent"></div>
-            </div>
-
-            <!-- Broadcast -->
-            <div class="admin-card admin-hidden" id="tab-broadcast">
-                <p style="color:#666; font-size:0.9rem; margin-top:0;">Send a one-off email to volunteers — a schedule change, a weather cancellation, anything outside the automatic nightly shift reminder.</p>
+                <div class="dashboard-section-title">📣 Send a broadcast email</div>
+                <p style="color:#666; font-size:0.9rem; margin-top:0;">A one-off email — a schedule change, a weather cancellation, anything outside the automatic nightly shift reminder.</p>
                 <form class="broadcast-form" id="broadcastForm">
                     <div>
                         <label for="broadcastSubject">Subject</label>
@@ -549,6 +682,17 @@
                     <button type="submit" class="admin-btn">Send Broadcast</button>
                 </form>
                 <div class="admin-status" id="broadcastStatus"></div>
+
+                <div class="dashboard-section-title">👥 Volunteers</div>
+                <p id="volunteersLoading" class="admin-loading">Loading volunteers...</p>
+                <div id="volunteersContent"></div>
+                <div class="admin-status" id="volunteersStatus"></div>
+            </div>
+
+            <!-- Search Activity -->
+            <div class="admin-card admin-hidden" id="tab-search-activity">
+                <p id="searchActivityLoading" class="admin-loading">Loading search activity...</p>
+                <div id="searchActivityContent"></div>
             </div>
 
             <div style="text-align: right;">
@@ -627,6 +771,7 @@
                     var data = await res.json();
                     if (!res.ok) throw new Error(data.error || 'Could not load admin data');
                     adminData = data;
+                    renderDashboard();
                     renderRoutes();
                     renderSettings();
                     renderVolunteers();
@@ -811,6 +956,37 @@
                 return signupCount + ' / ' + capacity + ' volunteers';
             }
 
+            // ---- Dashboard ----
+
+            function renderDashboard() {
+                var container = document.getElementById('dashboardStats');
+                container.innerHTML = '';
+
+                var allDates = [];
+                adminData.routes.forEach(function(route) {
+                    route.dates.forEach(function(date) { allDates.push(date); });
+                });
+
+                var volunteersWithoutShifts = adminData.volunteers.filter(function(v) { return v.shifts.length === 0; }).length;
+                var totalCash = allDates.reduce(function(sum, d) { return sum + (d.amountCollected || 0); }, 0);
+                var totalCapacity = allDates.reduce(function(sum, d) { return sum + (d.volunteerCapacity || 0); }, 0);
+                var totalSignups = allDates.reduce(function(sum, d) { return sum + (d.signupCount || 0); }, 0);
+                var shiftsFilledPct = totalCapacity > 0 ? Math.round((totalSignups / totalCapacity) * 100) : 0;
+
+                [
+                    ['Volunteers Without Shifts', volunteersWithoutShifts + ' / ' + adminData.volunteers.length, 'Need assignment'],
+                    ['Total Cash Collected', '£' + totalCash.toFixed(2), 'Across all events'],
+                    ['Shifts Filled', shiftsFilledPct + '%', 'Of total capacity']
+                ].forEach(function(stat) {
+                    var card = document.createElement('div');
+                    card.className = 'stat-card';
+                    card.innerHTML = '<div class="stat-card-value">' + escapeHtml(stat[1]) + '</div>' +
+                        '<div>' + escapeHtml(stat[0]) + '</div>' +
+                        '<div class="stat-card-label">' + escapeHtml(stat[2]) + '</div>';
+                    container.appendChild(card);
+                });
+            }
+
             // ---- Routes & Streets ----
 
             var selectedYear = null;
@@ -981,7 +1157,8 @@
                 saveDateBtn.onclick = function() {
                     runOp('/.netlify/functions/admin-routes', {
                         op: 'update-date', id: date.id, eventDate: dateInput.value, amountCollected: amountInput.value,
-                        volunteerCapacity: capacityInput.value, what3words: w3wInput.value, notes: notesInput.value
+                        volunteerCapacity: capacityInput.value, what3words: w3wInput.value, notes: notesInput.value,
+                        gatheringTime: gatheringTimeInput.value
                     }, 'routesStatus');
                 };
                 header.appendChild(saveDateBtn);
@@ -993,6 +1170,67 @@
                 header.appendChild(delBtn);
                 block.appendChild(header);
 
+                // Phase 9: who's signed up, by name (replaces the
+                // aggregate-only count the shift badge above still shows
+                // alongside this), and the Santa/Safety Walker/Driver role
+                // assignments for this date. Role slots are stored
+                // separately from general signups (event_role_assignments)
+                // so assigning a Santa doesn't count against capacity.
+                var signupsLine = document.createElement('div');
+                signupsLine.className = 'signup-names';
+                if (date.signups && date.signups.length > 0) {
+                    signupsLine.textContent = '🙋 Signed up: ' + date.signups.map(function(s) {
+                        return s.name + (s.role ? ' (' + s.role + ')' : '');
+                    }).join(', ');
+                } else {
+                    signupsLine.innerHTML = '<span class="signup-none">No volunteers signed up yet</span>';
+                }
+                block.appendChild(signupsLine);
+
+                var rolesRow = document.createElement('div');
+                rolesRow.className = 'event-roles-row';
+                [
+                    ['santa', 'santa', '🎅 Santa'],
+                    ['safetyWalker', 'safety_walker', '🦺 Safety Walker'],
+                    ['driver', 'driver', '🚗 Driver']
+                ].forEach(function(roleDef) {
+                    var camelKey = roleDef[0], dbRole = roleDef[1], label = roleDef[2];
+                    var field = document.createElement('div');
+                    field.className = 'event-role-field';
+                    var lbl = document.createElement('label');
+                    lbl.textContent = label;
+                    field.appendChild(lbl);
+                    var select = document.createElement('select');
+                    var noneOpt = document.createElement('option');
+                    noneOpt.value = '';
+                    noneOpt.textContent = 'None';
+                    select.appendChild(noneOpt);
+                    var qualified = adminData.volunteers.filter(function(v) { return v.qualifiedRoles && v.qualifiedRoles[camelKey]; });
+                    var current = date.roleAssignments && date.roleAssignments[camelKey];
+                    var currentId = current ? current.volunteerId : null;
+                    // If whoever's currently assigned isn't (or is no longer)
+                    // flagged as qualified, still list them so the dropdown
+                    // doesn't silently show "None" for an existing assignment.
+                    if (current && !qualified.some(function(v) { return v.id === currentId; })) {
+                        qualified = qualified.concat([{ id: currentId, email: current.name }]);
+                    }
+                    qualified.forEach(function(v) {
+                        var opt = document.createElement('option');
+                        opt.value = v.id;
+                        opt.textContent = v.fullName || v.email;
+                        if (v.id === currentId) opt.selected = true;
+                        select.appendChild(opt);
+                    });
+                    select.onchange = function() {
+                        runOp('/.netlify/functions/admin-routes', {
+                            op: 'set-event-role', routeDateId: date.id, role: dbRole, volunteerId: select.value || null
+                        }, 'routesStatus');
+                    };
+                    field.appendChild(select);
+                    rolesRow.appendChild(field);
+                });
+                block.appendChild(rolesRow);
+
                 var detailsRow = document.createElement('div');
                 detailsRow.className = 'date-block-details';
 
@@ -1002,6 +1240,14 @@
                 w3wInput.className = 'field-w3w';
                 w3wInput.value = date.what3words || '';
                 detailsRow.appendChild(w3wInput);
+
+                var gatheringTimeInput = document.createElement('input');
+                gatheringTimeInput.type = 'text';
+                gatheringTimeInput.placeholder = 'Gathering time, e.g. 5:45pm';
+                gatheringTimeInput.className = 'field-gathering-time';
+                gatheringTimeInput.title = 'When volunteers should gather at the meeting point, shown alongside what3words';
+                gatheringTimeInput.value = date.gatheringTime || '';
+                detailsRow.appendChild(gatheringTimeInput);
 
                 var notesInput = document.createElement('input');
                 notesInput.type = 'text';
@@ -1313,8 +1559,38 @@
                     var title = document.createElement('div');
                     title.style.fontWeight = 'bold';
                     title.style.marginBottom = '0.5rem';
-                    title.textContent = vol.email;
+                    title.textContent = vol.fullName ? (vol.fullName + ' (' + vol.email + ')') : vol.email;
                     block.appendChild(title);
+
+                    // Phase 9: which special roles this volunteer is
+                    // qualified for -- populates the Santa/Safety
+                    // Walker/Driver dropdowns on each route date above.
+                    var rolesChecklist = document.createElement('div');
+                    rolesChecklist.className = 'volunteer-roles-checklist';
+                    [
+                        ['santa', 'canBeSanta', 'Can be Santa'],
+                        ['safetyWalker', 'canBeSafetyWalker', 'Can be Safety Walker'],
+                        ['driver', 'canBeDriver', 'Can be Driver']
+                    ].forEach(function(roleDef) {
+                        var qualKey = roleDef[0], bodyKey = roleDef[1], label = roleDef[2];
+                        var lbl = document.createElement('label');
+                        var cb = document.createElement('input');
+                        cb.type = 'checkbox';
+                        cb.checked = !!(vol.qualifiedRoles && vol.qualifiedRoles[qualKey]);
+                        cb.onchange = function() {
+                            var body = {
+                                volunteerId: vol.id,
+                                canBeSanta: qualKey === 'santa' ? cb.checked : !!(vol.qualifiedRoles && vol.qualifiedRoles.santa),
+                                canBeSafetyWalker: qualKey === 'safetyWalker' ? cb.checked : !!(vol.qualifiedRoles && vol.qualifiedRoles.safetyWalker),
+                                canBeDriver: qualKey === 'driver' ? cb.checked : !!(vol.qualifiedRoles && vol.qualifiedRoles.driver)
+                            };
+                            runOp('/.netlify/functions/admin-update-volunteer', body, 'volunteersStatus');
+                        };
+                        lbl.appendChild(cb);
+                        lbl.appendChild(document.createTextNode(label));
+                        rolesChecklist.appendChild(lbl);
+                    });
+                    block.appendChild(rolesChecklist);
 
                     var chips = document.createElement('div');
                     vol.shifts.forEach(function(shift) {
@@ -1441,7 +1717,7 @@
                 btn.addEventListener('click', function() {
                     document.querySelectorAll('.admin-tabs .tab-btn').forEach(function(b) { b.classList.remove('active'); });
                     btn.classList.add('active');
-                    ['routes', 'settings', 'volunteers', 'search-activity', 'broadcast'].forEach(function(tab) {
+                    ['dashboard', 'routes', 'volunteers', 'search-activity'].forEach(function(tab) {
                         document.getElementById('tab-' + tab).classList.toggle('admin-hidden', tab !== btn.dataset.tab);
                     });
                 });
