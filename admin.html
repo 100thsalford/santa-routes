@@ -255,6 +255,61 @@
             min-height: 1.2em;
         }
 
+        /* Corner toast notifications for save/upload/send actions --
+           the inline .admin-status text above is kept (useful in-context),
+           but with several Save buttons now on this page a quieter inline
+           message was easy to miss, so this is the primary "did that
+           work?" signal: fixed to the corner, auto-dismisses after 5s,
+           closable early via the x. */
+        .toast-container {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            z-index: 2000;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            max-width: min(22rem, calc(100vw - 2rem));
+        }
+
+        .toast {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.5rem;
+            background: var(--surface);
+            border-left: 4px solid var(--santa-green);
+            border-radius: var(--radius-sm, 6px);
+            box-shadow: var(--shadow-md, 0 4px 12px rgba(0,0,0,0.15));
+            padding: 0.7rem 0.8rem;
+            font-size: 0.9rem;
+            color: var(--text-dark);
+            animation: toast-in 0.2s ease-out;
+        }
+
+        .toast.error {
+            border-left-color: var(--santa-red);
+        }
+
+        .toast span {
+            flex: 1;
+        }
+
+        .toast-close {
+            background: none;
+            border: none;
+            color: var(--ink-soft);
+            font-size: 1.1rem;
+            line-height: 1;
+            cursor: pointer;
+            padding: 0;
+            flex-shrink: 0;
+        }
+
+        @keyframes toast-in {
+            from { opacity: 0; transform: translateX(1rem); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
         .volunteer-block {
             border: 1px solid var(--border-subtle);
             border-radius: var(--radius-md);
@@ -555,6 +610,8 @@
     </style>
 </head>
 <body>
+    <div id="toastContainer" class="toast-container"></div>
+
     <div class="header">
         <h1>🛠️ Admin</h1>
         <p>100th Salford Scout Group | Santa Super Sleigh Salford</p>
@@ -1068,7 +1125,7 @@
                     addDateBtn.textContent = '+ Add Date';
                     addDateBtn.onclick = function() {
                         if (!dateInput.value) return;
-                        runOp('/.netlify/functions/admin-routes', { op: 'create-date', routeId: route.id, eventDate: dateInput.value }, 'routesStatus');
+                        runOp('/.netlify/functions/admin-routes', { op: 'create-date', routeId: route.id, eventDate: dateInput.value }, 'routesStatus', 'Date added.');
                     };
                     addDateForm.appendChild(dateInput);
                     addDateForm.appendChild(addDateBtn);
@@ -1093,7 +1150,7 @@
                             if (!cloneDateInput.value) return;
                             runOp('/.netlify/functions/admin-routes', {
                                 op: 'clone-date', sourceDateId: cloneSelect.value, newEventDate: cloneDateInput.value
-                            }, 'routesStatus');
+                            }, 'routesStatus', 'Street list cloned into new date.');
                         };
                         cloneForm.appendChild(cloneSelect);
                         cloneForm.appendChild(cloneDateInput);
@@ -1212,7 +1269,7 @@
                     select.onchange = function() {
                         runOp('/.netlify/functions/admin-routes', {
                             op: 'set-event-role', routeDateId: date.id, role: dbRole, volunteerId: select.value || null
-                        }, 'routesStatus');
+                        }, 'routesStatus', 'Role assignment saved.');
                     };
                     field.appendChild(select);
                     rolesRow.appendChild(field);
@@ -1259,7 +1316,7 @@
                         op: 'update-date', id: date.id, eventDate: dateInput.value, amountCollected: amountInput.value,
                         volunteerCapacity: capacityInput.value, what3words: w3wInput.value, notes: notesInput.value,
                         gatheringTime: gatheringTimeInput.value
-                    }, 'routesStatus');
+                    }, 'routesStatus', 'Night details saved.');
                 };
                 detailsRow.appendChild(saveDateBtn);
 
@@ -1303,6 +1360,41 @@
 
                 block.appendChild(mapRow);
 
+                var trackRow = document.createElement('div');
+                trackRow.className = 'date-block-details';
+
+                var trackStatus = document.createElement('span');
+                trackStatus.className = 'route-map-status';
+                trackStatus.textContent = date.hasRouteTrack
+                    ? ('\uD83D\uDDFA\uFE0F Interactive route: ' + (date.routeTrackTurns != null ? date.routeTrackTurns : '?') + ' turns, ' + (date.routeTrackDistanceKm != null ? date.routeTrackDistanceKm : '?') + 'km')
+                    : 'No interactive route uploaded';
+                trackRow.appendChild(trackStatus);
+
+                if (date.hasRouteTrack) {
+                    var removeTrackBtn = document.createElement('button');
+                    removeTrackBtn.className = 'admin-btn small danger';
+                    removeTrackBtn.textContent = 'Remove Interactive Route';
+                    removeTrackBtn.onclick = function() { removeRouteTrack(date.id, 'routesStatus'); };
+                    trackRow.appendChild(removeTrackBtn);
+                }
+
+                var trackFileInput = document.createElement('input');
+                trackFileInput.type = 'file';
+                trackFileInput.accept = '.gpx';
+                trackRow.appendChild(trackFileInput);
+
+                var uploadTrackBtn = document.createElement('button');
+                uploadTrackBtn.className = 'admin-btn small';
+                uploadTrackBtn.textContent = date.hasRouteTrack ? 'Replace Interactive Route' : 'Upload GPX for Interactive Route';
+                uploadTrackBtn.title = 'From plotaroute.com: DOWNLOAD \u2192 GPX, with GPX TYPE set to Track and WAYPOINTS set to Directions';
+                uploadTrackBtn.onclick = function() {
+                    if (!trackFileInput.files || !trackFileInput.files[0]) return;
+                    uploadRouteTrack(date.id, trackFileInput.files[0], 'routesStatus');
+                };
+                trackRow.appendChild(uploadTrackBtn);
+
+                block.appendChild(trackRow);
+
                 var table = document.createElement('table');
                 table.className = 'admin-table';
                 table.innerHTML = '<thead><tr><th class="col-seq">Seq</th><th>Street</th><th class="col-time">Time</th><th class="col-actions"></th></tr></thead>';
@@ -1341,7 +1433,7 @@
                         sequence: seqInput.value || 0,
                         name: nameInput.value.trim(),
                         timeRange: timeInput.value.trim()
-                    }, 'routesStatus');
+                    }, 'routesStatus', 'Street added.');
                 };
                 addForm.appendChild(seqInput);
                 addForm.appendChild(nameInput);
@@ -1384,14 +1476,14 @@
                         sequence: seqInput.value || 0,
                         name: nameInput.value.trim(),
                         timeRange: timeInput.value.trim()
-                    }, 'routesStatus');
+                    }, 'routesStatus', 'Street saved.');
                 };
                 var delBtn = document.createElement('button');
                 delBtn.className = 'admin-btn small danger';
                 delBtn.style.marginLeft = '0.25rem';
                 delBtn.textContent = '✕';
                 delBtn.onclick = function() {
-                    runOp('/.netlify/functions/admin-routes', { op: 'delete-street', id: street.id }, 'routesStatus');
+                    runOp('/.netlify/functions/admin-routes', { op: 'delete-street', id: street.id }, 'routesStatus', 'Street deleted.');
                 };
                 actionsTd.appendChild(saveBtn);
                 actionsTd.appendChild(delBtn);
@@ -1411,17 +1503,17 @@
                 if (order === null) return;
                 runOp('/.netlify/functions/admin-routes', {
                     op: 'update-route', id: route.id, name: name.trim(), displayOrder: order.trim() || null
-                }, 'routesStatus');
+                }, 'routesStatus', 'Route saved.');
             }
 
             function deleteRoute(route) {
                 if (!confirm('Delete route "' + route.name + '" and all its dates/streets? This cannot be undone.')) return;
-                runOp('/.netlify/functions/admin-routes', { op: 'delete-route', id: route.id }, 'routesStatus');
+                runOp('/.netlify/functions/admin-routes', { op: 'delete-route', id: route.id }, 'routesStatus', 'Route deleted.');
             }
 
             function deleteDate(date) {
                 if (!confirm('Delete this date and all its streets? This cannot be undone.')) return;
-                runOp('/.netlify/functions/admin-routes', { op: 'delete-date', id: date.id }, 'routesStatus');
+                runOp('/.netlify/functions/admin-routes', { op: 'delete-date', id: date.id }, 'routesStatus', 'Date deleted.');
             }
 
             document.getElementById('addRouteBtn').addEventListener('click', function() {
@@ -1430,7 +1522,7 @@
                 if (!nameInput.value.trim()) return;
                 runOp('/.netlify/functions/admin-routes', {
                     op: 'create-route', name: nameInput.value.trim(), displayOrder: orderInput.value || null
-                }, 'routesStatus').then(function() {
+                }, 'routesStatus', 'Route added.').then(function() {
                     nameInput.value = '';
                     orderInput.value = '';
                 });
@@ -1461,7 +1553,7 @@
                     sightings_window_end: document.getElementById('sightingsWindowEnd').value,
                     risk_assessment_text: document.getElementById('riskAssessmentText').value,
                     risk_assessment_url: document.getElementById('riskAssessmentUrl').value
-                }, 'settingsStatus');
+                }, 'settingsStatus', 'Settings saved.');
             });
 
             // ---- Manual reminder send ----
@@ -1478,13 +1570,16 @@
                     var result = await postOp('/.netlify/functions/admin-send-reminders', body);
                     if (result.volunteersEmailed === 0) {
                         statusEl.textContent = 'No shifts found for ' + result.date + ' — nothing sent.';
+                        showToast('No shifts found for ' + result.date + ' — nothing sent.', 'success');
                     } else {
                         statusEl.textContent = 'Sent to ' + result.volunteersEmailed + ' volunteer(s) for ' + result.date +
                             (result.errors && result.errors.length ? ' (' + result.errors.length + ' failed)' : '.');
+                        showToast('Reminders sent to ' + result.volunteersEmailed + ' volunteer(s) for ' + result.date + '.', 'success');
                     }
                 } catch (err) {
                     console.error('Error sending reminders:', err);
                     statusEl.textContent = "Couldn't send: " + err.message;
+                    showToast("Couldn't send reminders: " + err.message, 'error');
                 } finally {
                     btn.disabled = false;
                 }
@@ -1524,8 +1619,10 @@
                 statusEl.textContent = 'Sending...';
                 try {
                     var result = await postOp('/.netlify/functions/admin-broadcast-email', body);
-                    statusEl.textContent = 'Sent to ' + result.sent + ' of ' + result.recipientCount + ' volunteer(s).' +
+                    var summary = 'Sent to ' + result.sent + ' of ' + result.recipientCount + ' volunteer(s).' +
                         (result.errors && result.errors.length ? ' (' + result.errors.length + ' failed)' : '');
+                    statusEl.textContent = summary;
+                    showToast(summary, 'success');
                     if (result.sent > 0) {
                         document.getElementById('broadcastForm').reset();
                         document.getElementById('broadcastEventRow').classList.add('admin-hidden');
@@ -1533,6 +1630,7 @@
                 } catch (err) {
                     console.error('Error sending broadcast:', err);
                     statusEl.textContent = "Couldn't send: " + err.message;
+                    showToast("Couldn't send broadcast: " + err.message, 'error');
                 }
             });
 
@@ -1591,7 +1689,7 @@
                                 canBeSafetyWalker: qualKey === 'safetyWalker' ? cb.checked : !!(vol.qualifiedRoles && vol.qualifiedRoles.safetyWalker),
                                 canBeDriver: qualKey === 'driver' ? cb.checked : !!(vol.qualifiedRoles && vol.qualifiedRoles.driver)
                             };
-                            runOp('/.netlify/functions/admin-update-volunteer', body, 'volunteersStatus');
+                            runOp('/.netlify/functions/admin-update-volunteer', body, 'volunteersStatus', 'Volunteer roles updated.');
                         };
                         lbl.appendChild(cb);
                         lbl.appendChild(document.createTextNode(label));
@@ -1611,7 +1709,7 @@
                         removeBtn.onclick = function() {
                             runOp('/.netlify/functions/admin-assign-shift', {
                                 op: 'unassign', routeDateId: shift.routeDateId, volunteerId: vol.id
-                            }, 'volunteersStatus');
+                            }, 'volunteersStatus', 'Shift assignment removed.');
                         };
                         chip.appendChild(removeBtn);
                         chips.appendChild(chip);
@@ -1640,7 +1738,7 @@
                             routeDateId: select.value,
                             volunteerId: vol.id,
                             role: roleInput.value.trim()
-                        }, 'volunteersStatus');
+                        }, 'volunteersStatus', 'Shift assigned.');
                     };
                     addForm.appendChild(select);
                     addForm.appendChild(roleInput);
@@ -1651,20 +1749,51 @@
                 });
             }
 
+            // ---- Toast notifications ----
+            // Corner popup for save/upload/send actions -- auto-dismisses
+            // after 5s, closable early via the x. The inline .admin-status
+            // text each tab already has is kept alongside this (still
+            // useful in context), but this is the clearer, harder-to-miss
+            // signal that something actually saved.
+            function showToast(message, type) {
+                var container = document.getElementById('toastContainer');
+                if (!container) return;
+                var toast = document.createElement('div');
+                toast.className = 'toast' + (type === 'error' ? ' error' : '');
+                var text = document.createElement('span');
+                text.textContent = message;
+                toast.appendChild(text);
+                var closeBtn = document.createElement('button');
+                closeBtn.type = 'button';
+                closeBtn.className = 'toast-close';
+                closeBtn.setAttribute('aria-label', 'Dismiss');
+                closeBtn.textContent = '\u00d7';
+                var timer = setTimeout(remove, 5000);
+                function remove() {
+                    clearTimeout(timer);
+                    if (toast.parentNode) toast.parentNode.removeChild(toast);
+                }
+                closeBtn.onclick = remove;
+                toast.appendChild(closeBtn);
+                container.appendChild(toast);
+            }
+
             // ---- Shared op runner ----
 
-            async function runOp(url, body, statusElId) {
+            async function runOp(url, body, statusElId, successMessage) {
                 var statusEl = document.getElementById(statusElId);
                 statusEl.textContent = 'Saving...';
                 try {
                     var result = await postOp(url, body);
                     statusEl.textContent = 'Saved.';
                     setTimeout(function() { statusEl.textContent = ''; }, 2000);
+                    showToast(successMessage || 'Saved.', 'success');
                     await loadAll();
                     return result;
                 } catch (err) {
                     console.error('Error saving:', err);
                     statusEl.textContent = "Couldn't save: " + err.message;
+                    showToast("Couldn't save: " + err.message, 'error');
                     throw err;
                 }
             }
@@ -1684,15 +1813,124 @@
                     if (!res.ok) throw new Error(data.error || 'Upload failed');
                     statusEl.textContent = 'Map uploaded.';
                     setTimeout(function() { statusEl.textContent = ''; }, 2000);
+                    showToast('Map uploaded.', 'success');
                     await loadAll();
                 } catch (err) {
                     console.error('Error uploading route map:', err);
                     statusEl.textContent = "Couldn't upload map: " + err.message;
+                    showToast("Couldn't upload map: " + err.message, 'error');
                 }
             }
 
             async function removeRouteMap(routeDateId, statusElId) {
-                runOp('/.netlify/functions/admin-route-map', { op: 'delete', routeDateId: routeDateId }, statusElId);
+                runOp('/.netlify/functions/admin-route-map', { op: 'delete', routeDateId: routeDateId }, statusElId, 'Map removed.');
+            }
+
+            // ---- Interactive route track (parsed from a plotaroute.com GPX
+            // export) -- see netlify/functions/admin-route-track.js. Parsing
+            // happens entirely here in the browser (DOMParser) so the
+            // function only ever stores already-validated JSON, never raw
+            // XML from an upload.
+
+            function haversineKm(a, b) {
+                var R = 6371;
+                var dLat = (b[0] - a[0]) * Math.PI / 180;
+                var dLon = (b[1] - a[1]) * Math.PI / 180;
+                var lat1 = a[0] * Math.PI / 180, lat2 = b[0] * Math.PI / 180;
+                var h = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+                return 2 * R * Math.asin(Math.sqrt(h));
+            }
+
+            function parseGpxTrack(gpxText) {
+                var doc = new DOMParser().parseFromString(gpxText, 'application/xml');
+                if (doc.getElementsByTagName('parsererror').length) {
+                    throw new Error('That file is not valid GPX/XML');
+                }
+
+                function getEls(parent, tag) {
+                    var nsEls = parent.getElementsByTagNameNS ? parent.getElementsByTagNameNS('http://www.topografix.com/GPX/1/1', tag) : [];
+                    return nsEls.length ? nsEls : parent.getElementsByTagName(tag);
+                }
+
+                var trkpts = getEls(doc, 'trkpt');
+                var points = [];
+                for (var i = 0; i < trkpts.length; i++) {
+                    var lat = parseFloat(trkpts[i].getAttribute('lat'));
+                    var lon = parseFloat(trkpts[i].getAttribute('lon'));
+                    if (!isFinite(lat) || !isFinite(lon)) continue;
+                    var prevPt = points[points.length - 1];
+                    if (!prevPt || prevPt[0] !== lat || prevPt[1] !== lon) points.push([lat, lon]);
+                }
+                if (points.length < 2) {
+                    throw new Error('No track points found -- set GPX TYPE to "Track" when exporting from plotaroute');
+                }
+
+                // Cumulative distance along the track so each turn can carry
+                // a "Km" figure, matching the printed route sheets.
+                var cum = [0];
+                for (var p = 1; p < points.length; p++) {
+                    cum.push(cum[p - 1] + haversineKm(points[p - 1], points[p]));
+                }
+
+                function nearestIndex(lat, lon) {
+                    var best = 0, bestD = Infinity;
+                    for (var k = 0; k < points.length; k++) {
+                        var dLat = points[k][0] - lat, dLon = points[k][1] - lon;
+                        var d = dLat * dLat + dLon * dLon;
+                        if (d < bestD) { bestD = d; best = k; }
+                    }
+                    return best;
+                }
+
+                var wpts = getEls(doc, 'wpt');
+                var directions = [];
+                for (var j = 0; j < wpts.length; j++) {
+                    var w = wpts[j];
+                    var lat2 = parseFloat(w.getAttribute('lat'));
+                    var lon2 = parseFloat(w.getAttribute('lon'));
+                    if (!isFinite(lat2) || !isFinite(lon2)) continue;
+                    var cmtEl = getEls(w, 'cmt')[0] || getEls(w, 'desc')[0] || getEls(w, 'name')[0];
+                    var symEl = getEls(w, 'sym')[0];
+                    var text = cmtEl ? cmtEl.textContent.trim() : '';
+                    var sym = symEl ? symEl.textContent.trim() : '';
+                    if (!text) continue;
+                    var idx = nearestIndex(lat2, lon2);
+                    directions.push({ lat: lat2, lon: lon2, text: text, sym: sym, km: Math.round(cum[idx] * 1000) / 1000 });
+                }
+                if (directions.length === 0) {
+                    throw new Error('No turn-by-turn waypoints found -- set WAYPOINTS to "Directions" when exporting from plotaroute');
+                }
+
+                return { points: points, directions: directions, distanceKm: Math.round(cum[cum.length - 1] * 1000) / 1000 };
+            }
+
+            async function uploadRouteTrack(routeDateId, file, statusElId) {
+                var statusEl = document.getElementById(statusElId);
+                statusEl.textContent = 'Reading GPX file...';
+                try {
+                    var text = await file.text();
+                    var track = parseGpxTrack(text);
+                    statusEl.textContent = 'Saving interactive route (' + track.directions.length + ' turns, ' + track.distanceKm + 'km)...';
+                    var res = await authedFetch('/.netlify/functions/admin-route-track', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ op: 'set', routeDateId: routeDateId, track: track })
+                    });
+                    var data = await res.json();
+                    if (!res.ok) throw new Error(data.error || 'Save failed');
+                    statusEl.textContent = 'Interactive route saved.';
+                    setTimeout(function() { statusEl.textContent = ''; }, 2500);
+                    showToast('Interactive route saved (' + track.directions.length + ' turns).', 'success');
+                    await loadAll();
+                } catch (err) {
+                    console.error('Error uploading route track:', err);
+                    statusEl.textContent = "Couldn't process that GPX file: " + err.message;
+                    showToast("Couldn't process that GPX file: " + err.message, 'error');
+                }
+            }
+
+            async function removeRouteTrack(routeDateId, statusElId) {
+                runOp('/.netlify/functions/admin-route-track', { op: 'delete', routeDateId: routeDateId }, statusElId, 'Interactive route removed.');
             }
 
             async function viewRouteMap(routeDateId, statusElId) {
