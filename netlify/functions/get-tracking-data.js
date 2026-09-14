@@ -2,23 +2,35 @@
 // old Glympse-based "Track Santa Live" button. Determines whether tonight
 // is a route night and whether we're inside the live window (reusing
 // settings.sightings_window_start/end, the same window get-site-status.js
-// uses for the sightings feature), and -- only while that window is open
-// -- fetches the sleigh's current GPS position from TruTrak (the FMT200
-// device fitted to the sleigh).
+// uses for the sightings feature), and -- from the moment that window
+// opens -- fetches the sleigh's current GPS position from TruTrak (the
+// FMT200 device fitted to the sleigh) plus a breadcrumb trail of where
+// it's actually been tonight (via TTAssetsTrail), shown alongside the
+// dashed planned route already drawn from route_dates.route_track.
 //
 // Credentials (TRUTRAK_LOGIN/PASSWORD/SKEY) never leave this function --
-// the browser only ever sees the parsed position JSON below. TruTrak's
-// ASMX web service accepts a plain HTTP POST (not a full SOAP envelope)
-// and returns bare XML -- see TruTrak API V1.0.1 docs. Auth tokens (24h
-// validity) and the resolved Asset_ID are cached in Netlify Blobs so a
-// burst of simultaneous visitors doesn't multiply TruTrak API calls or
-// re-authenticate on every request; the last known position is also
-// cached briefly for the same reason (see LOCATION_CACHE_TTL_MS).
+// the browser only ever sees the parsed position/trail JSON below.
+// TruTrak's ASMX web service accepts a plain HTTP POST (not a full SOAP
+// envelope) and returns bare XML -- see TruTrak API V1.0.1 docs. Auth
+// tokens (24h validity) and the resolved Asset_ID are cached in Netlify
+// Blobs so a burst of simultaneous visitors doesn't multiply TruTrak API
+// calls or re-authenticate on every request; the last known position and
+// trail are also cached (LOCATION_CACHE_TTL_MS) for the same reason --
+// TruTrak's own guidance is a hard limit of one call per 30s, "preferably"
+// one per minute, and this function makes up to two calls (position +
+// trail) per refresh cycle to respect that.
 //
 // Which physical asset is "the sleigh" is an admin setting
 // (settings.trutrak_asset_registration, e.g. "PZ54 GDX") rather than a
 // hardcoded env var -- see admin-trutrak-assets.js for the admin-side
 // lookup helper, and admin-settings.js for where it's saved.
+//
+// NOTE on TTAssetsTrail's Date_Start/Date_End format: TruTrak's docs
+// don't give an explicit example for this method. We format them the same
+// "no UTC offset" ISO style TruTrak uses everywhere else in its responses
+// (e.g. datetimeLocal, Valid_Until). Untested against a real asset as of
+// 2026-09-14 -- worth confirming the trail actually populates once real
+// GPS data is flowing, and adjusting the format here if not.
 
 import { getDatabase } from '@netlify/database';
 import { getStore } from '@netlify/blobs';
@@ -32,7 +44,8 @@ const headers = {
 
 const TIME_ZONE = 'Europe/London';
 const TT_BASE = 'https://ttapi.trutrakpro.co.uk/WSDataProvider.asmx';
-const LOCATION_CACHE_TTL_MS = 15000;
+const LOCATION_CACHE_TTL_MS = 60000; // TruTrak's own stated limit is 1 call every 30s minimum, "preferably" 1/min -- we default to their preferred cadence rather than the bare minimum
+const POSITION_STALE_MS = 10 * 60 * 1000; // if a fresh TruTrak read fails or comes back empty (e.g. the sleigh is parked/stationary between GPS pings), keep showing the last known position for up to 10 minutes rather than flipping straight to "no signal"
 
 function londonDateString(date) {
   return new Intl.DateTimeFormat('en-CA', {
@@ -109,33 +122,84 @@ async function getAssetId(store, token, registration) {
 
 async function getCachedPosition(store, registration) {
   const cached = await store.get('location', { type: 'json' });
-  if (cached && Date.now() - cached.fetchedAt < LOCATION_CACHE_TTL_MS) {
+  const cacheAge = cached ? Date.now() - cached.fetchedAt : Infinity;
+
+  if (cached && cacheAge < LOCATION_CACHE_TTL_MS) {
     return cached.position;
   }
-  const token = await getValidToken(store);
-  const assetId = await getAssetId(store, token, registration);
-  const root = await ttRequest('TTAssetsLastLocation', {
-    Token: token,
-    Filter_Assets: String(assetId),
-    XMLType: '0'
-  });
-  const rows = root.Row ? (Array.isArray(root.Row) ? root.Row : [root.Row]) : [];
-  if (rows.length === 0) {
-    throw new Error('No location data returned from TruTrak (device may not have reported yet)');
+
+  try {
+    const token = await getValidToken(store);
+    const assetId = await getAssetId(store, token, registration);
+    const root = await ttRequest('TTAssetsLastLocation', {
+      Token: token,
+      Filter_Assets: String(assetId),
+      XMLType: '0'
+    });
+    const rows = root.Row ? (Array.isArray(root.Row) ? root.Row : [root.Row]) : [];
+    if (rows.length === 0) {
+      throw new Error('No location data returned from TruTrak (device may not have reported yet)');
+    }
+    const row = rows[0];
+    const position = {
+      lat: parseFloat(field(row, 'latitude', '0')),
+      lon: parseFloat(field(row, 'longitude', '0')),
+      speedMph: parseFloat(field(row, 'speed', '0')),
+      headingDeg: parseFloat(field(row, 'heading', '0')),
+      status: field(row, 'Status', ''),
+      street: field(row, 'street', ''),
+      town: field(row, 'town', ''),
+      updatedAt: field(row, 'datetimeLocal', null)
+    };
+    await store.setJSON('location', { position, fetchedAt: Date.now() });
+    return position;
+  } catch (err) {
+    // TruTrak had nothing fresh to give us (common while the sleigh is
+    // parked/stationary -- some devices only report on movement). Fall
+    // back to the last known-good position rather than telling visitors
+    // we've lost the signal entirely, as long as it isn't too old.
+    if (cached && cacheAge < POSITION_STALE_MS) {
+      return cached.position;
+    }
+    throw err;
   }
-  const row = rows[0];
-  const position = {
-    lat: parseFloat(field(row, 'latitude', '0')),
-    lon: parseFloat(field(row, 'longitude', '0')),
-    speedMph: parseFloat(field(row, 'speed', '0')),
-    headingDeg: parseFloat(field(row, 'heading', '0')),
-    status: field(row, 'Status', ''),
-    street: field(row, 'street', ''),
-    town: field(row, 'town', ''),
-    updatedAt: field(row, 'datetimeLocal', null)
-  };
-  await store.setJSON('location', { position, fetchedAt: Date.now() });
-  return position;
+}
+
+async function getAssetTrail(store, registration, todayDate, windowStart) {
+  const cacheKey = `trail-${todayDate}`;
+  const cached = await store.get(cacheKey, { type: 'json' });
+  if (cached && Date.now() - cached.fetchedAt < LOCATION_CACHE_TTL_MS) {
+    return cached.points;
+  }
+
+  try {
+    const token = await getValidToken(store);
+    const assetId = await getAssetId(store, token, registration);
+    const dateStart = `${todayDate}T${windowStart}:00`;
+    const dateEnd = `${todayDate}T23:59:59`;
+    const root = await ttRequest('TTAssetsTrail', {
+      Token: token,
+      asset_ID: String(assetId),
+      Date_Start: dateStart,
+      Date_End: dateEnd,
+      XMLType: '0'
+    });
+    const rows = root.Row ? (Array.isArray(root.Row) ? root.Row : [root.Row]) : [];
+    const points = rows
+      .map((row) => [parseFloat(field(row, 'latitude', '')), parseFloat(field(row, 'longitude', ''))])
+      .filter((p) => Number.isFinite(p[0]) && Number.isFinite(p[1]));
+    // Only overwrite the cache with a non-empty result -- an empty/failed
+    // fetch shouldn't erase a trail we'd already built up this evening.
+    if (points.length > 0) {
+      await store.setJSON(cacheKey, { points, fetchedAt: Date.now() });
+    }
+    return points.length > 0 ? points : (cached ? cached.points : []);
+  } catch (err) {
+    console.error('TruTrak trail fetch failed:', err);
+    // Non-critical -- the live dot and planned route still work fine
+    // without a trail, so just fall back to whatever we last had.
+    return cached ? cached.points : [];
+  }
 }
 
 export default async (req, context) => {
@@ -181,8 +245,16 @@ export default async (req, context) => {
     if (nowTime < windowStart) {
       return json({ ...base, active: false, state: 'before-window', windowStart });
     }
+
+    // From here on (the window has opened, whether or not it's since
+    // closed) we also fetch tonight's breadcrumb trail if a sleigh is
+    // configured -- "after-window" wants it too, so the recap page can
+    // show "here's where he went" rather than just the planned route.
+    const store = getStore('trutrak');
+    const trail = registration ? await getAssetTrail(store, registration, todayDate, windowStart) : [];
+
     if (nowTime >= windowEnd) {
-      return json({ ...base, active: false, state: 'after-window' });
+      return json({ ...base, active: false, state: 'after-window', trail });
     }
 
     if (!registration) {
@@ -191,14 +263,14 @@ export default async (req, context) => {
         active: true,
         state: 'active',
         position: null,
+        trail,
         positionError: "Live tracking isn't set up yet -- add the sleigh's TruTrak registration in Season Settings."
       });
     }
 
-    const store = getStore('trutrak');
     try {
       const position = await getCachedPosition(store, registration);
-      return json({ ...base, active: true, state: 'active', position });
+      return json({ ...base, active: true, state: 'active', position, trail });
     } catch (err) {
       console.error('TruTrak fetch failed:', err);
       return json({
@@ -206,6 +278,7 @@ export default async (req, context) => {
         active: true,
         state: 'active',
         position: null,
+        trail,
         positionError: "Waiting for a GPS signal from the sleigh..."
       });
     }

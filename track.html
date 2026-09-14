@@ -117,6 +117,7 @@
         <div class="track-meta">
             <span id="trackRouteName"></span>
             <span id="trackUpdatedAt"></span>
+            <span id="trackLegend"></span>
         </div>
         <button type="button" class="follow-btn" id="followBtn" hidden>Recentre on Santa</button>
 
@@ -145,9 +146,10 @@
         (function() {
             'use strict';
 
-            var POLL_MS = 20000;
+            var POLL_MS = 30000; // server-side data only refreshes ~once/minute now (TruTrak rate limit), so polling much faster than this just adds needless function calls
             var map = null;
             var routeLayer = null;
+            var trailLayer = null;
             var sleighMarker = null;
             var followMode = true;
             var lastRouteKey = null; // avoids redrawing an unchanged route line every poll
@@ -155,6 +157,7 @@
             var statusEl = document.getElementById('trackStatus');
             var routeNameEl = document.getElementById('trackRouteName');
             var updatedAtEl = document.getElementById('trackUpdatedAt');
+            var legendEl = document.getElementById('trackLegend');
             var followBtn = document.getElementById('followBtn');
             var mapEl = document.getElementById('trackMap');
 
@@ -219,6 +222,26 @@
                 }
             }
 
+            function drawTrail(trail) {
+                // The solid "where he's actually been tonight" line, drawn
+                // over the dashed planned route -- built from TTAssetsTrail
+                // points, so it just grows in place each poll (no need for
+                // drawRoute's unchanged-route skip logic, since this one
+                // changes on purpose every time).
+                if (!trail || trail.length < 2) {
+                    if (trailLayer) { map.removeLayer(trailLayer); trailLayer = null; }
+                    legendEl.textContent = '';
+                    return;
+                }
+                var latlngs = trail.map(function(p) { return [p[0], p[1]]; });
+                if (!trailLayer) {
+                    trailLayer = L.polyline(latlngs, { color: '#C21E1E', weight: 4, opacity: 0.85, lineCap: 'round' }).addTo(map);
+                } else {
+                    trailLayer.setLatLngs(latlngs);
+                }
+                legendEl.textContent = 'Dashed = planned route \u00b7 Red = where he\u2019s been';
+            }
+
             function updateSleighMarker(position) {
                 if (!position) return;
                 var latlng = [position.lat, position.lon];
@@ -251,6 +274,7 @@
             function render(data) {
                 ensureMap();
                 drawRoute(data.routeTrack);
+                drawTrail(data.trail);
                 routeNameEl.textContent = data.routeName ? ('Tonight’s route: ' + data.routeName) : '';
 
                 if (data.state === 'not-a-route-day') {
