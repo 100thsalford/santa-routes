@@ -145,7 +145,7 @@
         (function() {
             'use strict';
 
-            var POLL_MS = 20000;
+            var POLL_MS = 30000; // server-side data only refreshes ~once/minute now (TruTrak rate limit), so polling much faster than this just adds needless function calls
             var map = null;
             var routeLayer = null;
             var sleighMarker = null;

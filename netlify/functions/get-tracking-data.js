@@ -32,7 +32,8 @@ const headers = {
 
 const TIME_ZONE = 'Europe/London';
 const TT_BASE = 'https://ttapi.trutrakpro.co.uk/WSDataProvider.asmx';
-const LOCATION_CACHE_TTL_MS = 15000;
+const LOCATION_CACHE_TTL_MS = 60000; // TruTrak's own stated limit is 1 call every 30s minimum, "preferably" 1/min -- we default to their preferred cadence rather than the bare minimum
+const POSITION_STALE_MS = 10 * 60 * 1000; // if a fresh TruTrak read fails or comes back empty (e.g. the sleigh is parked/stationary between GPS pings), keep showing the last known position for up to 10 minutes rather than flipping straight to "no signal"
 
 function londonDateString(date) {
   return new Intl.DateTimeFormat('en-CA', {
@@ -109,33 +110,47 @@ async function getAssetId(store, token, registration) {
 
 async function getCachedPosition(store, registration) {
   const cached = await store.get('location', { type: 'json' });
-  if (cached && Date.now() - cached.fetchedAt < LOCATION_CACHE_TTL_MS) {
+  const cacheAge = cached ? Date.now() - cached.fetchedAt : Infinity;
+
+  if (cached && cacheAge < LOCATION_CACHE_TTL_MS) {
     return cached.position;
   }
-  const token = await getValidToken(store);
-  const assetId = await getAssetId(store, token, registration);
-  const root = await ttRequest('TTAssetsLastLocation', {
-    Token: token,
-    Filter_Assets: String(assetId),
-    XMLType: '0'
-  });
-  const rows = root.Row ? (Array.isArray(root.Row) ? root.Row : [root.Row]) : [];
-  if (rows.length === 0) {
-    throw new Error('No location data returned from TruTrak (device may not have reported yet)');
+
+  try {
+    const token = await getValidToken(store);
+    const assetId = await getAssetId(store, token, registration);
+    const root = await ttRequest('TTAssetsLastLocation', {
+      Token: token,
+      Filter_Assets: String(assetId),
+      XMLType: '0'
+    });
+    const rows = root.Row ? (Array.isArray(root.Row) ? root.Row : [root.Row]) : [];
+    if (rows.length === 0) {
+      throw new Error('No location data returned from TruTrak (device may not have reported yet)');
+    }
+    const row = rows[0];
+    const position = {
+      lat: parseFloat(field(row, 'latitude', '0')),
+      lon: parseFloat(field(row, 'longitude', '0')),
+      speedMph: parseFloat(field(row, 'speed', '0')),
+      headingDeg: parseFloat(field(row, 'heading', '0')),
+      status: field(row, 'Status', ''),
+      street: field(row, 'street', ''),
+      town: field(row, 'town', ''),
+      updatedAt: field(row, 'datetimeLocal', null)
+    };
+    await store.setJSON('location', { position, fetchedAt: Date.now() });
+    return position;
+  } catch (err) {
+    // TruTrak had nothing fresh to give us (common while the sleigh is
+    // parked/stationary -- some devices only report on movement). Fall
+    // back to the last known-good position rather than telling visitors
+    // we've lost the signal entirely, as long as it isn't too old.
+    if (cached && cacheAge < POSITION_STALE_MS) {
+      return cached.position;
+    }
+    throw err;
   }
-  const row = rows[0];
-  const position = {
-    lat: parseFloat(field(row, 'latitude', '0')),
-    lon: parseFloat(field(row, 'longitude', '0')),
-    speedMph: parseFloat(field(row, 'speed', '0')),
-    headingDeg: parseFloat(field(row, 'heading', '0')),
-    status: field(row, 'Status', ''),
-    street: field(row, 'street', ''),
-    town: field(row, 'town', ''),
-    updatedAt: field(row, 'datetimeLocal', null)
-  };
-  await store.setJSON('location', { position, fetchedAt: Date.now() });
-  return position;
 }
 
 export default async (req, context) => {
