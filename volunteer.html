@@ -290,9 +290,13 @@
 
         .shift-row-note {
             display: block;
-            font-size: 0.8rem;
-            color: var(--ink-soft);
-            margin-top: 0.2rem;
+            font-size: 0.85rem;
+            font-weight: bold;
+            color: var(--santa-red);
+            background: #fdecea;
+            border-radius: var(--radius-sm, 6px);
+            padding: 0.4rem 0.6rem;
+            margin: 0.4rem 0;
         }
 
         .open-shift-row {
@@ -640,7 +644,7 @@
                 </div>
 
                 <div class="volunteer-tabs">
-                    <button class="tab-btn active" data-tab="events">🎄 Events</button>
+                    <button class="tab-btn active" data-tab="events">🎄 Open Nights</button>
                     <button class="tab-btn" data-tab="myschedule">🗓️ My Schedule</button>
                 </div>
 
@@ -1214,9 +1218,19 @@
                     if (!note) {
                         note = document.createElement('span');
                         note.className = 'shift-row-note';
-                        row.appendChild(note);
+                        // Insert right after the top row (date + Cancel
+                        // button), not appended at the very end of the row
+                        // where it can get lost below the route-map warning
+                        // -- this message means the shift is still booked,
+                        // so it needs to be unmistakable.
+                        var topRow = row.querySelector('.shift-row-top');
+                        if (topRow && topRow.nextSibling) {
+                            row.insertBefore(note, topRow.nextSibling);
+                        } else {
+                            row.appendChild(note);
+                        }
                     }
-                    note.textContent = err.message || "Couldn't cancel — please try again.";
+                    note.textContent = '⚠️ ' + (err.message || "Couldn't cancel — this shift is still booked. Please try again.");
                     btn.disabled = false;
                 }
             }
