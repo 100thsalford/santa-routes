@@ -172,6 +172,68 @@ export default async (req, context) => {
         return ok();
       }
 
+      // Bulk save from the "Import streets from route" preview in
+      // admin.html (street names derived client-side from a date's stored
+      // GPX route_track + OpenStreetMap). One statement -- a data-modifying
+      // CTE -- so a 'replace' import can never leave a night half-deleted.
+      // Times are intentionally left blank for the admin to fill in.
+      //
+      // Each street may carry the lat/lng it was matched at on the route;
+      // those seed street_geocodes (see admin-geocode-streets.js) so the
+      // nearest-covered-street search doesn't need a Nominatim lookup for
+      // them. Existing geocodes are left alone (ON CONFLICT DO NOTHING).
+      case 'import-streets': {
+        const routeDateId = parseInt(body.routeDateId, 10);
+        const replace = body.mode === 'replace';
+        if (!routeDateId) return badRequest('routeDateId is required');
+        if (!Array.isArray(body.streets) || body.streets.length === 0 || body.streets.length > 400) {
+          return badRequest('streets must be an array of 1-400 entries');
+        }
+
+        const dateRows = await db.sql`SELECT id FROM route_dates WHERE id = ${routeDateId}`;
+        if (dateRows.length === 0) return badRequest('Date not found');
+
+        let startSeq = 1;
+        if (!replace) {
+          const maxRows = await db.sql`SELECT COALESCE(MAX(sequence), 0) AS max_seq FROM streets WHERE route_date_id = ${routeDateId}`;
+          startSeq = Number(maxRows[0].max_seq) + 1;
+        }
+
+        const rows = [];
+        const geocodes = new Map();
+        for (const raw of body.streets) {
+          const name = String((raw && raw.name) || '').trim().slice(0, 200);
+          if (!name) continue;
+          rows.push({ seq: startSeq + rows.length, name });
+          const lat = Number(raw.lat), lng = Number(raw.lng);
+          const key = cleanStreetKey(name);
+          if (key && Number.isFinite(lat) && Number.isFinite(lng) && !geocodes.has(key)) {
+            geocodes.set(key, { key, lat, lng });
+          }
+        }
+        if (rows.length === 0) return badRequest('No street names to save');
+
+        await db.sql`
+          WITH removed AS (
+            DELETE FROM streets WHERE route_date_id = ${routeDateId} AND ${replace}
+          )
+          INSERT INTO streets (route_date_id, sequence, name, time_range)
+          SELECT ${routeDateId}, s.seq, s.name, NULL
+          FROM jsonb_to_recordset(${JSON.stringify(rows)}::jsonb) AS s(seq int, name text)
+        `;
+
+        if (geocodes.size > 0) {
+          await db.sql`
+            INSERT INTO street_geocodes (street_name, lat, lng, source)
+            SELECT g.key, g.lat, g.lng, 'osm-route'
+            FROM jsonb_to_recordset(${JSON.stringify(Array.from(geocodes.values()))}::jsonb) AS g(key text, lat float8, lng float8)
+            ON CONFLICT (street_name) DO NOTHING
+          `;
+        }
+
+        return ok({ streetsSaved: rows.length, replaced: replace });
+      }
+
       // Sets (or clears, when volunteerId is null/absent) who's playing
       // Santa/Safety Walker/Driver for one route_date. Kept in its own
       // event_role_assignments table rather than shift_assignments -- these
@@ -206,6 +268,15 @@ export default async (req, context) => {
 
 function ok(extra) {
   return new Response(JSON.stringify(Object.assign({ success: true }, extra)), { status: 200, headers });
+}
+
+// Same normalisation as cleanStreetName() in admin-geocode-streets.js
+// (strip leading sequence numbers and "(Partial)"-style notes, collapse
+// whitespace, lowercase) so seeded geocodes match the keys it looks up.
+function cleanStreetKey(raw) {
+  let name = (raw || '').replace(/^\d+[.\-]\s*/, '');
+  name = name.replace(/\s*\([^)]*\)/g, '');
+  return name.replace(/\s+/g, ' ').trim().toLowerCase();
 }
 
 function badRequest(message) {
