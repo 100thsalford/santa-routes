@@ -48,6 +48,10 @@
             color: var(--santa-green);
         }
 
+        .map-wrap {
+            position: relative;
+        }
+
         #trackMap {
             width: 100%;
             height: 60vh;
@@ -56,6 +60,60 @@
             box-shadow: var(--shadow-md);
             border: 1px solid var(--border-subtle);
             background: var(--surface-muted);
+        }
+
+        .map-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(250, 247, 242, 0.92);
+            backdrop-filter: blur(1px);
+            border-radius: var(--radius-lg);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 1.5rem;
+            z-index: 1000;
+        }
+
+        .map-overlay[hidden] {
+            display: none;
+        }
+
+        .map-overlay-icon {
+            position: relative;
+            font-size: 3rem;
+            line-height: 1;
+            margin-bottom: 0.75rem;
+        }
+
+        .map-overlay-icon .overlay-badge {
+            position: absolute;
+            bottom: -0.1rem;
+            right: -0.6rem;
+            font-size: 1.3rem;
+        }
+
+        .map-overlay-title {
+            font-weight: 700;
+            color: var(--ink);
+            margin: 0 0 0.35rem;
+        }
+
+        .map-overlay-detail {
+            font-size: 0.85rem;
+            color: var(--ink-soft);
+            max-width: 300px;
+            margin: 0;
+        }
+
+        .refresh-note {
+            display: block;
+            margin-top: 0.35rem;
+            font-size: 0.85rem;
+            font-weight: normal;
+            color: var(--ink-soft);
         }
 
         .track-meta {
@@ -112,7 +170,14 @@
 
         <div class="track-status" id="trackStatus">Checking tonight's route&hellip;</div>
 
-        <div id="trackMap"></div>
+        <div class="map-wrap">
+            <div id="trackMap"></div>
+            <div class="map-overlay" id="mapOverlay" hidden>
+                <div class="map-overlay-icon">📡<span class="overlay-badge">❌</span></div>
+                <p class="map-overlay-title">Connection unavailable</p>
+                <p class="map-overlay-detail" id="mapOverlayDetail"></p>
+            </div>
+        </div>
 
         <div class="track-meta">
             <span id="trackRouteName"></span>
@@ -158,6 +223,8 @@
             var routeNameEl = document.getElementById('trackRouteName');
             var updatedAtEl = document.getElementById('trackUpdatedAt');
             var legendEl = document.getElementById('trackLegend');
+            var mapOverlayEl = document.getElementById('mapOverlay');
+            var mapOverlayDetailEl = document.getElementById('mapOverlayDetail');
             var followBtn = document.getElementById('followBtn');
             var mapEl = document.getElementById('trackMap');
 
@@ -245,6 +312,11 @@
             function updateSleighMarker(position) {
                 if (!position) return;
                 var latlng = [position.lat, position.lon];
+                // Hover (desktop) or tap (touch) the sleigh icon to see when
+                // this position was actually recorded -- same wording as the
+                // "Last GPS update" line under the map, just attached to the
+                // marker itself for a more direct way to check it.
+                var label = formatUpdatedAt(position.updatedAt) || 'GPS update time unavailable';
                 if (!sleighMarker) {
                     var icon = L.divIcon({
                         className: '',
@@ -252,9 +324,14 @@
                         iconSize: [32, 32],
                         iconAnchor: [16, 16]
                     });
-                    sleighMarker = L.marker(latlng, { icon: icon, zIndexOffset: 1000 }).addTo(map);
+                    sleighMarker = L.marker(latlng, { icon: icon, zIndexOffset: 1000 })
+                        .addTo(map)
+                        .bindTooltip(label, { direction: 'top', offset: [0, -18] })
+                        .bindPopup(label);
                 } else {
                     sleighMarker.setLatLng(latlng);
+                    sleighMarker.setTooltipContent(label);
+                    sleighMarker.setPopupContent(label);
                 }
                 if (followMode) {
                     programmaticView(function() {
@@ -271,11 +348,21 @@
                 return m ? ('Last GPS update: ' + m[1] + ':' + m[2]) : '';
             }
 
+            function showMapOverlay(detail) {
+                mapOverlayDetailEl.textContent = detail || '';
+                mapOverlayEl.hidden = false;
+            }
+
+            function hideMapOverlay() {
+                mapOverlayEl.hidden = true;
+            }
+
             function render(data) {
                 ensureMap();
                 drawRoute(data.routeTrack);
                 drawTrail(data.trail);
                 routeNameEl.textContent = data.routeName ? ('Tonight’s route: ' + data.routeName) : '';
+                hideMapOverlay(); // most states have a perfectly good map to show -- only the branches below re-show it
 
                 if (data.state === 'not-a-route-day') {
                     statusEl.innerHTML = 'Santa isn’t out tonight. Check <a href="index.html">the home page</a> for the next scheduled route.';
@@ -294,17 +381,21 @@
                 }
                 if (data.state === 'error') {
                     statusEl.textContent = "Something went wrong loading tracking data. We'll keep trying.";
+                    showMapOverlay("We're having trouble reaching the tracking service. This page will keep trying automatically.");
                     return;
                 }
 
                 // state === 'active'
                 if (data.position) {
-                    statusEl.innerHTML = '<strong>Santa is out right now!</strong> Follow the sleigh below.';
+                    statusEl.innerHTML = '<strong>Santa is out right now!</strong> Follow the sleigh below.' +
+                        '<span class="refresh-note">🔄 This page updates automatically about every 30 seconds — no need to refresh. Hover or tap the sleigh for its exact GPS time.</span>';
                     updateSleighMarker(data.position);
                     updatedAtEl.textContent = formatUpdatedAt(data.position.updatedAt);
                 } else {
-                    statusEl.textContent = data.positionError || 'Waiting for a GPS signal from the sleigh...';
+                    statusEl.innerHTML = '<strong>Santa is out right now!</strong>' +
+                        '<span class="refresh-note">🔄 This page updates automatically about every 30 seconds — no need to refresh.</span>';
                     updatedAtEl.textContent = '';
+                    showMapOverlay(data.positionError || 'Waiting for a GPS signal from the sleigh...');
                 }
             }
 
