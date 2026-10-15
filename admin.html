@@ -607,10 +607,89 @@
                 width: 100%;
             }
         }
+
+        /* Import-streets-from-route review panel */
+        body.import-modal-open { overflow: hidden; }
+        .import-modal {
+            position: fixed; inset: 0; z-index: 1500;
+            background: rgba(36, 39, 46, 0.45);
+            display: flex; align-items: center; justify-content: center;
+            padding: 1rem;
+        }
+        .import-modal-card {
+            background: var(--surface);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-lg);
+            width: min(56rem, 100%);
+            max-height: calc(100vh - 2rem);
+            display: flex; flex-direction: column;
+            overflow: hidden;
+        }
+        .import-modal-header {
+            display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+            padding: 1rem 1.25rem 0.5rem;
+        }
+        .import-modal-header h3 { margin: 0; color: var(--santa-green); font-size: 1.05rem; }
+        .import-status { margin: 0; padding: 0 1.25rem 0.5rem; color: var(--ink-soft); font-size: 0.9rem; }
+        .import-status.error { color: var(--santa-red); }
+        #streetImportBody { overflow-y: auto; padding: 0 1.25rem; flex: 1; }
+        .import-legend { font-size: 0.8rem; color: var(--ink-soft); margin: 0.25rem 0 0; line-height: 1.9; }
+        .import-modal-footer {
+            display: flex; gap: 0.5rem; justify-content: flex-end; align-items: center; flex-wrap: wrap;
+            padding: 0.75rem 1.25rem 1rem;
+            border-top: 1px solid var(--border-subtle);
+        }
+        .import-modal-footer:empty { display: none; }
+        .import-modal-footer select {
+            margin-right: auto;
+            padding: 0.4rem 0.5rem;
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-sm);
+            font-size: 0.85rem;
+            font-family: inherit;
+        }
+        .admin-btn.secondary { background: var(--surface-muted); color: var(--text-dark); }
+        .admin-btn.secondary:hover { background: var(--border-subtle); }
+        .import-table .col-check { width: 2.25rem; }
+        .import-table .col-source { width: 8.5rem; }
+        .import-table .col-km { width: 3.5rem; }
+        .import-table .col-where { width: 2rem; }
+        .import-table input[type="checkbox"] { width: auto; }
+        .import-table td a { text-decoration: none; }
+        .import-table tr.excluded td { opacity: 0.45; }
+        .import-table tr.excluded td:first-child { opacity: 1; }
+        .import-repeat { display: block; font-size: 0.75rem; color: var(--ink-soft); margin-top: 0.15rem; }
+        .import-badge {
+            display: inline-block; padding: 0.1rem 0.5rem; border-radius: 999px;
+            font-size: 0.75rem; white-space: nowrap;
+        }
+        .import-badge.turn { background: #e3f2e6; color: #2e7d32; }
+        .import-badge.map { background: #e8f0fe; color: #1a56b0; }
+        .import-badge.directions { background: #fff4e0; color: #8a5a00; }
+        @media (max-width: 600px) {
+            .import-modal { padding: 0; align-items: stretch; }
+            .import-modal-card { max-height: 100vh; border-radius: 0; }
+            .import-table .col-source { width: 5.5rem; }
+            .import-table .col-km { display: none; }
+            .import-table td:nth-child(5) { display: none; }
+            .import-badge { white-space: normal; }
+        }
     </style>
 </head>
 <body>
     <div id="toastContainer" class="toast-container"></div>
+
+    <div id="streetImportModal" class="import-modal admin-hidden" role="dialog" aria-modal="true" aria-labelledby="streetImportTitle">
+        <div class="import-modal-card">
+            <div class="import-modal-header">
+                <h3 id="streetImportTitle">Import streets</h3>
+                <button type="button" class="toast-close" id="streetImportClose" aria-label="Close">&times;</button>
+            </div>
+            <p id="streetImportStatus" class="import-status" aria-live="polite"></p>
+            <div id="streetImportBody"></div>
+            <div id="streetImportFooter" class="import-modal-footer"></div>
+        </div>
+    </div>
 
     <div class="header">
         <h1>🛠️ Admin</h1>
@@ -1399,6 +1478,15 @@
                 };
                 trackRow.appendChild(uploadTrackBtn);
 
+                if (date.hasRouteTrack) {
+                    var importStreetsBtn = document.createElement('button');
+                    importStreetsBtn.className = 'admin-btn small';
+                    importStreetsBtn.textContent = '\uD83D\uDCCB Import Streets from Route';
+                    importStreetsBtn.title = 'Builds a draft street list from this route (GPX directions + OpenStreetMap) for you to review before saving';
+                    importStreetsBtn.onclick = function() { openStreetImport(date.id); };
+                    trackRow.appendChild(importStreetsBtn);
+                }
+
                 block.appendChild(trackRow);
 
                 var table = document.createElement('table');
@@ -1962,7 +2050,10 @@
                     statusEl.textContent = 'Interactive route saved.';
                     setTimeout(function() { statusEl.textContent = ''; }, 2500);
                     showToast('Interactive route saved (' + track.directions.length + ' turns).', 'success');
+                    var before = findRouteDate(routeDateId);
+                    var hadStreets = before && before.date.streets.length > 0;
                     await loadAll();
+                    if (!hadStreets) openStreetImport(routeDateId);
                 } catch (err) {
                     console.error('Error uploading route track:', err);
                     statusEl.textContent = "Couldn't process that GPX file: " + err.message;
@@ -1973,6 +2064,461 @@
             async function removeRouteTrack(routeDateId, statusElId) {
                 runOp('/.netlify/functions/admin-route-track', { op: 'delete', routeDateId: routeDateId }, statusElId, 'Interactive route removed.');
             }
+
+            // ---- Import streets from a date's stored route track ----
+            // Builds a draft Seq/Street list for review, from two sources:
+            //   1. OpenStreetMap: every named road within ~25m of the GPX
+            //      line (one Overpass query per route), walked in route
+            //      order. Catches streets joined without a turn.
+            //   2. The GPX's turn-by-turn directions: streets named there
+            //      are marked "Turn" and always kept, and any the map
+            //      missed are added as "Directions only".
+            // Short brushes past side roads at junctions are dropped, and
+            // repeat visits are listed but unticked. Times are left blank.
+            // Nothing saves until the admin clicks Save in the preview
+            // (op 'import-streets' in admin-routes.js).
+
+            var OVERPASS_ENDPOINTS = [
+                'https://overpass-api.de/api/interpreter',
+                'https://overpass.private.coffee/api/interpreter'
+            ];
+            var IMPORT_SAMPLE_M = 8;        // spacing of points walked along the route
+            var IMPORT_MATCH_M = 18;        // max distance from the line to a road
+            var IMPORT_MAX_ANGLE = 50;      // road must run roughly along the route here
+            var IMPORT_STICKY_M = 8;        // prefer staying on the current street at junctions
+            var IMPORT_MIN_RUN_KM = 0.035;  // shorter map-only runs are junction crossings
+            var IMPORT_SKIP_HIGHWAY = /^(footway|path|cycleway|steps|bridleway|corridor|proposed|construction|platform|bus_stop|elevator|track|abandoned|razed)$/;
+            var STREET_WORD_RE = /\b(road|rd|street|st|lane|ln|avenue|ave|drive|dr|close|way|grove|crescent|place|court|terrace|gardens?|view|walk|square|rise|mews|hill|park|row|parade|green|brow|fold|croft|gate|vale|bank|mount|approach|boulevard|chase|glade|meadows?|dene|end|precinct|broadway|wharf|quay)\b/i;
+
+            function normStreet(name) {
+                return String(name || '').toLowerCase().replace(/[^a-z0-9 ]+/g, ' ').replace(/\s+/g, ' ').trim();
+            }
+
+            function titleCaseIfShouting(s) {
+                if (s !== s.toUpperCase()) return s;
+                return s.toLowerCase().replace(/(^|[\s\-'])([a-z])/g, function(m, p, c) { return p + c.toUpperCase(); });
+            }
+
+            // Local flat projection (metres) -- plenty accurate across one route.
+            function makeProjector(lat0) {
+                var kx = 111320 * Math.cos(lat0 * Math.PI / 180), ky = 110540;
+                return function(lat, lon) { return [lon * kx, lat * ky]; };
+            }
+
+            function headingDeg(ax, ay, bx, by) {
+                return Math.atan2(bx - ax, by - ay) * 180 / Math.PI;
+            }
+
+            // Angle between two headings ignoring direction (0-90).
+            function axisDiff(a, b) {
+                var d = Math.abs(a - b) % 180;
+                return d > 90 ? 180 - d : d;
+            }
+
+            function distToSeg(px, py, s) {
+                var dx = s.bx - s.ax, dy = s.by - s.ay;
+                var len2 = dx * dx + dy * dy;
+                var t = len2 ? ((px - s.ax) * dx + (py - s.ay) * dy) / len2 : 0;
+                t = Math.max(0, Math.min(1, t));
+                var cx = s.ax + t * dx - px, cy = s.ay + t * dy - py;
+                return Math.sqrt(cx * cx + cy * cy);
+            }
+
+            // Douglas-Peucker on projected points; returns kept indices.
+            function simplifyLine(xy, tol) {
+                var keep = new Uint8Array(xy.length);
+                keep[0] = keep[xy.length - 1] = 1;
+                var stack = [[0, xy.length - 1]];
+                while (stack.length) {
+                    var r = stack.pop(), a = r[0], b = r[1];
+                    var seg = { ax: xy[a][0], ay: xy[a][1], bx: xy[b][0], by: xy[b][1] };
+                    var maxD = 0, idx = -1;
+                    for (var i = a + 1; i < b; i++) {
+                        var d = distToSeg(xy[i][0], xy[i][1], seg);
+                        if (d > maxD) { maxD = d; idx = i; }
+                    }
+                    if (maxD > tol && idx > 0) {
+                        keep[idx] = 1;
+                        stack.push([a, idx], [idx, b]);
+                    }
+                }
+                var out = [];
+                for (var k = 0; k < keep.length; k++) if (keep[k]) out.push(k);
+                return out;
+            }
+
+            async function fetchRoadsAlongTrack(points) {
+                var project = makeProjector(points[0][0]);
+                var xy = points.map(function(p) { return project(p[0], p[1]); });
+                var tol = 4, kept = simplifyLine(xy, tol);
+                while (kept.length > 450 && tol < 40) { tol *= 1.6; kept = simplifyLine(xy, tol); }
+                var coords = kept.map(function(i) { return points[i][0].toFixed(6) + ',' + points[i][1].toFixed(6); }).join(',');
+                var radius = Math.round(IMPORT_MATCH_M + 7 + tol);
+                var query = '[out:json][timeout:90];way(around:' + radius + ',' + coords + ')["highway"]["name"];out tags geom;';
+
+                var lastErr = null;
+                for (var e = 0; e < OVERPASS_ENDPOINTS.length; e++) {
+                    var ctrl = new AbortController();
+                    var timer = setTimeout(function() { ctrl.abort(); }, 100000);
+                    try {
+                        var res = await fetch(OVERPASS_ENDPOINTS[e], {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                            body: 'data=' + encodeURIComponent(query),
+                            signal: ctrl.signal
+                        });
+                        if (!res.ok) throw new Error('OpenStreetMap lookup returned ' + res.status);
+                        var data = await res.json();
+                        return (data.elements || []).filter(function(el) {
+                            return el.type === 'way' && el.tags && el.tags.name && el.geometry && el.geometry.length > 1
+                                && !IMPORT_SKIP_HIGHWAY.test(el.tags.highway || '');
+                        });
+                    } catch (err) {
+                        lastErr = err.name === 'AbortError' ? new Error('OpenStreetMap lookup timed out') : err;
+                    } finally {
+                        clearTimeout(timer);
+                    }
+                }
+                throw lastErr || new Error('OpenStreetMap lookup failed');
+            }
+
+            // Pure matching step (no network) -- track as stored in
+            // route_dates.route_track, ways as returned by Overpass.
+            function deriveStreetList(track, ways) {
+                var points = track.points;
+                var project = makeProjector(points[0][0]);
+
+                var segs = [];
+                ways.forEach(function(w) {
+                    for (var i = 1; i < w.geometry.length; i++) {
+                        var a = project(w.geometry[i - 1].lat, w.geometry[i - 1].lon);
+                        var b = project(w.geometry[i].lat, w.geometry[i].lon);
+                        segs.push({
+                            name: w.tags.name, ax: a[0], ay: a[1], bx: b[0], by: b[1],
+                            minx: Math.min(a[0], b[0]) - IMPORT_MATCH_M, maxx: Math.max(a[0], b[0]) + IMPORT_MATCH_M,
+                            miny: Math.min(a[1], b[1]) - IMPORT_MATCH_M, maxy: Math.max(a[1], b[1]) + IMPORT_MATCH_M,
+                            heading: headingDeg(a[0], a[1], b[0], b[1])
+                        });
+                    }
+                });
+
+                // Walk the route at fixed spacing.
+                var samples = [], walked = 0, nextAt = 0;
+                for (var p = 1; p < points.length; p++) {
+                    var a = project(points[p - 1][0], points[p - 1][1]);
+                    var b = project(points[p][0], points[p][1]);
+                    var len = Math.hypot(b[0] - a[0], b[1] - a[1]);
+                    if (len === 0) continue;
+                    var hd = headingDeg(a[0], a[1], b[0], b[1]);
+                    while (nextAt <= walked + len) {
+                        var t = (nextAt - walked) / len;
+                        samples.push({
+                            x: a[0] + t * (b[0] - a[0]), y: a[1] + t * (b[1] - a[1]),
+                            lat: points[p - 1][0] + t * (points[p][0] - points[p - 1][0]),
+                            lon: points[p - 1][1] + t * (points[p][1] - points[p - 1][1]),
+                            km: nextAt / 1000, heading: hd
+                        });
+                        nextAt += IMPORT_SAMPLE_M;
+                    }
+                    walked += len;
+                }
+
+                // Match each sample to the nearest road running the same way,
+                // sticking with the current street unless another is clearly closer.
+                var current = null;
+                samples.forEach(function(s) {
+                    var best = null, bestD = Infinity, currentD = Infinity;
+                    for (var i = 0; i < segs.length; i++) {
+                        var g = segs[i];
+                        if (s.x < g.minx || s.x > g.maxx || s.y < g.miny || s.y > g.maxy) continue;
+                        if (axisDiff(s.heading, g.heading) > IMPORT_MAX_ANGLE) continue;
+                        var d = distToSeg(s.x, s.y, g);
+                        if (d > IMPORT_MATCH_M) continue;
+                        if (d < bestD) { bestD = d; best = g.name; }
+                        if (g.name === current && d < currentD) currentD = d;
+                    }
+                    if (current && currentD <= bestD + IMPORT_STICKY_M) best = current;
+                    s.name = best;
+                    if (best) current = best;
+                });
+
+                // Collapse into runs (unmatched samples don't break a run).
+                var runs = [];
+                samples.forEach(function(s) {
+                    if (!s.name) return;
+                    var last = runs[runs.length - 1];
+                    if (last && last.name === s.name) {
+                        last.endKm = s.km;
+                        last.samples.push(s);
+                    } else {
+                        runs.push({ name: s.name, startKm: s.km, endKm: s.km, samples: [s] });
+                    }
+                });
+
+                var dirTexts = (track.directions || []).map(function(d) { return ' ' + normStreet(d.text) + ' '; });
+                function inDirections(name) {
+                    var n = normStreet(name);
+                    return !!n && dirTexts.some(function(t) { return t.indexOf(' ' + n + ' ') !== -1; });
+                }
+
+                var kept = [];
+                runs.forEach(function(r) {
+                    r.turn = inDirections(r.name);
+                    if (!r.turn && (r.endKm - r.startKm) < IMPORT_MIN_RUN_KM) return;
+                    var last = kept[kept.length - 1];
+                    if (last && last.name === r.name) {
+                        last.endKm = r.endKm;
+                        last.samples = last.samples.concat(r.samples);
+                    } else {
+                        kept.push(r);
+                    }
+                });
+
+                var list = kept.map(function(r) {
+                    var mid = r.samples[Math.floor(r.samples.length / 2)];
+                    return { name: r.name, km: r.startKm, lat: mid.lat, lon: mid.lon, source: r.turn ? 'turn' : 'map' };
+                });
+
+                // Streets named in the directions that the map didn't find.
+                var known = list.map(function(e) { return normStreet(e.name); });
+                var nameRe = /\b(?:onto|on to|into|along|on|via|to|up|down|enter|join)\s+([a-z0-9'’.\- ]+?)(?=\s*(?:[,;.(]|\bthen\b|\bfor\b|\buntil\b|\btill\b|\band\b|\bat\b|$))/gi;
+                (track.directions || []).forEach(function(d) {
+                    var text = String(d.text || ''), m;
+                    nameRe.lastIndex = 0;
+                    while ((m = nameRe.exec(text))) {
+                        var cand = m[1].trim();
+                        if (!STREET_WORD_RE.test(cand) || cand.split(/\s+/).length > 6) continue;
+                        var n = normStreet(cand);
+                        if (!n || known.some(function(k) { return k === n || k.indexOf(n) !== -1 || n.indexOf(k) !== -1; })) continue;
+                        known.push(n);
+                        list.push({ name: titleCaseIfShouting(cand), km: d.km || 0, lat: d.lat, lon: d.lon, source: 'directions' });
+                    }
+                });
+                list.sort(function(x, y) { return x.km - y.km; });
+
+                var seen = {};
+                list.forEach(function(e) {
+                    var n = normStreet(e.name);
+                    e.repeat = !!seen[n];
+                    e.include = !e.repeat;
+                    seen[n] = true;
+                });
+                return list;
+            }
+
+            function findRouteDate(routeDateId) {
+                if (!adminData) return null;
+                for (var r = 0; r < adminData.routes.length; r++) {
+                    var route = adminData.routes[r];
+                    for (var d = 0; d < route.dates.length; d++) {
+                        if (route.dates[d].id === routeDateId) return { route: route, date: route.dates[d] };
+                    }
+                }
+                return null;
+            }
+
+            var streetImportState = null;
+
+            function closeStreetImport() {
+                streetImportState = null;
+                document.getElementById('streetImportModal').classList.add('admin-hidden');
+                document.body.classList.remove('import-modal-open');
+            }
+
+            async function openStreetImport(routeDateId) {
+                var found = findRouteDate(routeDateId);
+                if (!found) return;
+                var modal = document.getElementById('streetImportModal');
+                var statusEl = document.getElementById('streetImportStatus');
+                var bodyEl = document.getElementById('streetImportBody');
+                var footerEl = document.getElementById('streetImportFooter');
+                document.getElementById('streetImportTitle').textContent =
+                    'Import streets — ' + found.route.name + ', ' + formatDateLabel(found.date.eventDate);
+                bodyEl.innerHTML = '';
+                footerEl.innerHTML = '';
+                statusEl.classList.remove('error');
+                modal.classList.remove('admin-hidden');
+                document.body.classList.add('import-modal-open');
+
+                var state = { routeDateId: routeDateId, existingCount: found.date.streets.length, list: null };
+                streetImportState = state;
+
+                try {
+                    statusEl.textContent = 'Loading the route…';
+                    var res = await authedFetch('/.netlify/functions/get-route-track?routeDateId=' + routeDateId + '&t=' + Date.now());
+                    var data = await res.json();
+                    if (!res.ok) throw new Error(data.error || 'Could not load the route');
+                    if (streetImportState !== state) return;
+
+                    statusEl.textContent = 'Looking up streets along the route on OpenStreetMap… (can take up to a minute)';
+                    var ways = await fetchRoadsAlongTrack(data.track.points);
+                    if (streetImportState !== state) return;
+
+                    state.list = deriveStreetList(data.track, ways);
+                    if (state.list.length === 0) throw new Error('No named streets found along this route');
+                    renderStreetImport(state);
+                } catch (err) {
+                    if (streetImportState !== state) return;
+                    console.error('Street import failed:', err);
+                    statusEl.classList.add('error');
+                    statusEl.textContent = "Couldn't build the street list: " + err.message + '. Try again in a minute — the free OpenStreetMap lookup service is sometimes busy.';
+                }
+            }
+
+            function renderStreetImport(state) {
+                var statusEl = document.getElementById('streetImportStatus');
+                var bodyEl = document.getElementById('streetImportBody');
+                var footerEl = document.getElementById('streetImportFooter');
+                var repeats = state.list.filter(function(e) { return e.repeat; }).length;
+                statusEl.textContent = 'Found ' + state.list.length + ' streets in route order' +
+                    (repeats ? ' (' + repeats + ' repeat visit' + (repeats === 1 ? '' : 's') + ' unticked)' : '') +
+                    '. Untick anything that shouldn’t be listed, fix names, then save. Times stay blank for you to add afterwards.';
+
+                bodyEl.innerHTML =
+                    '<p class="import-legend"><span class="import-badge turn">Turn</span> named in the GPX directions ' +
+                    '<span class="import-badge map">Map</span> found along the line on OpenStreetMap ' +
+                    '<span class="import-badge directions">Directions only</span> in the directions but not matched on the map — check it</p>';
+
+                var table = document.createElement('table');
+                table.className = 'admin-table import-table';
+                table.innerHTML = '<thead><tr><th class="col-check"></th><th class="col-seq">Seq</th><th>Street</th><th class="col-source">Found by</th><th class="col-km">Km</th><th class="col-where"></th></tr></thead>';
+                var tbody = document.createElement('tbody');
+                var seqCells = [];
+
+                function renumber() {
+                    var n = 0;
+                    state.list.forEach(function(e, i) {
+                        seqCells[i].textContent = e.include ? String(++n) : '–';
+                    });
+                    var saveBtn = document.getElementById('streetImportSave');
+                    if (saveBtn) {
+                        saveBtn.disabled = n === 0;
+                        saveBtn.textContent = '💾 Save ' + n + ' street' + (n === 1 ? '' : 's');
+                    }
+                }
+
+                state.list.forEach(function(entry, i) {
+                    var tr = document.createElement('tr');
+                    if (!entry.include) tr.classList.add('excluded');
+
+                    var checkTd = document.createElement('td');
+                    var check = document.createElement('input');
+                    check.type = 'checkbox';
+                    check.checked = entry.include;
+                    check.setAttribute('aria-label', 'Include ' + entry.name);
+                    check.onchange = function() {
+                        entry.include = check.checked;
+                        tr.classList.toggle('excluded', !check.checked);
+                        renumber();
+                    };
+                    checkTd.appendChild(check);
+
+                    var seqTd = document.createElement('td');
+                    seqCells.push(seqTd);
+
+                    var nameTd = document.createElement('td');
+                    var nameInput = document.createElement('input');
+                    nameInput.type = 'text';
+                    nameInput.value = entry.name;
+                    nameInput.oninput = function() { entry.name = nameInput.value; };
+                    nameTd.appendChild(nameInput);
+                    if (entry.repeat) {
+                        var rep = document.createElement('span');
+                        rep.className = 'import-repeat';
+                        rep.textContent = 'repeat visit';
+                        nameTd.appendChild(rep);
+                    }
+
+                    var srcTd = document.createElement('td');
+                    var badge = document.createElement('span');
+                    badge.className = 'import-badge ' + entry.source;
+                    badge.textContent = entry.source === 'turn' ? 'Turn' : entry.source === 'map' ? 'Map' : 'Directions only';
+                    srcTd.appendChild(badge);
+
+                    var kmTd = document.createElement('td');
+                    kmTd.textContent = entry.km.toFixed(1);
+
+                    var whereTd = document.createElement('td');
+                    if (isFinite(entry.lat) && isFinite(entry.lon)) {
+                        var link = document.createElement('a');
+                        link.href = 'https://www.openstreetmap.org/?mlat=' + entry.lat.toFixed(6) + '&mlon=' + entry.lon.toFixed(6) + '#map=18/' + entry.lat.toFixed(6) + '/' + entry.lon.toFixed(6);
+                        link.target = '_blank';
+                        link.rel = 'noopener';
+                        link.title = 'Show where on the map';
+                        link.textContent = '📍';
+                        whereTd.appendChild(link);
+                    }
+
+                    [checkTd, seqTd, nameTd, srcTd, kmTd, whereTd].forEach(function(td) { tr.appendChild(td); });
+                    tbody.appendChild(tr);
+                });
+
+                table.appendChild(tbody);
+                var scroll = document.createElement('div');
+                scroll.className = 'table-scroll';
+                scroll.appendChild(table);
+                bodyEl.appendChild(scroll);
+
+                footerEl.innerHTML = '';
+                var modeSelect = null;
+                if (state.existingCount > 0) {
+                    modeSelect = document.createElement('select');
+                    modeSelect.innerHTML =
+                        '<option value="replace">Replace the ' + state.existingCount + ' existing street' + (state.existingCount === 1 ? '' : 's') + '</option>' +
+                        '<option value="append">Add after the existing streets</option>';
+                    footerEl.appendChild(modeSelect);
+                }
+
+                var cancelBtn = document.createElement('button');
+                cancelBtn.type = 'button';
+                cancelBtn.className = 'admin-btn small secondary';
+                cancelBtn.textContent = 'Cancel';
+                cancelBtn.onclick = closeStreetImport;
+                footerEl.appendChild(cancelBtn);
+
+                var saveBtn = document.createElement('button');
+                saveBtn.type = 'button';
+                saveBtn.id = 'streetImportSave';
+                saveBtn.className = 'admin-btn small';
+                saveBtn.onclick = function() { saveStreetImport(state, modeSelect ? modeSelect.value : 'replace'); };
+                footerEl.appendChild(saveBtn);
+
+                renumber();
+            }
+
+            async function saveStreetImport(state, mode) {
+                var streets = state.list.filter(function(e) { return e.include && e.name.trim(); }).map(function(e) {
+                    return { name: e.name.trim(), lat: e.lat, lng: e.lon };
+                });
+                if (streets.length === 0) return;
+                if (mode === 'replace' && state.existingCount > 0 &&
+                    !confirm('Replace the ' + state.existingCount + ' existing street' + (state.existingCount === 1 ? '' : 's') + ' (and their times) with these ' + streets.length + '?')) return;
+
+                var saveBtn = document.getElementById('streetImportSave');
+                saveBtn.disabled = true;
+                saveBtn.textContent = 'Saving…';
+                try {
+                    var data = await postOp('/.netlify/functions/admin-routes', {
+                        op: 'import-streets', routeDateId: state.routeDateId, mode: mode, streets: streets
+                    });
+                    closeStreetImport();
+                    showToast(data.streetsSaved + ' streets saved — add the times next.', 'success');
+                    await loadAll();
+                } catch (err) {
+                    console.error('Error saving imported streets:', err);
+                    showToast("Couldn't save streets: " + err.message, 'error');
+                    saveBtn.disabled = false;
+                    saveBtn.textContent = '💾 Save ' + streets.length + ' streets';
+                }
+            }
+
+            document.getElementById('streetImportClose').addEventListener('click', closeStreetImport);
+            document.getElementById('streetImportModal').addEventListener('click', function(e) {
+                if (e.target === e.currentTarget) closeStreetImport();
+            });
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape' && streetImportState) closeStreetImport();
+            });
 
             async function viewRouteMap(routeDateId, statusElId) {
                 var statusEl = document.getElementById(statusElId);
