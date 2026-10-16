@@ -130,7 +130,7 @@ export default async (req, context) => {
     // 3. Find the nearest street we cover (from upcoming route_dates only).
     const [upcomingRows, geocodeRows] = await Promise.all([
       db.sql`
-        SELECT s.name, s.time_range, to_char(rd.event_date, 'YYYY-MM-DD') AS date, r.name AS route_name
+        SELECT s.name, s.time_range, s.is_partial, to_char(rd.event_date, 'YYYY-MM-DD') AS date, r.name AS route_name
         FROM streets s
         JOIN route_dates rd ON rd.id = s.route_date_id
         JOIN routes r ON r.id = rd.route_id
@@ -156,7 +156,7 @@ export default async (req, context) => {
       const key = cleaned.toLowerCase();
       const existing = streetsByKey.get(key);
       if (!existing || row.date < existing.date) {
-        streetsByKey.set(key, { street: cleaned, date: row.date, route: row.route_name, timeRange: (row.time_range || '').trim() || null });
+        streetsByKey.set(key, { street: cleaned, date: row.date, route: row.route_name, timeRange: (row.time_range || '').trim() || null, partial: !!row.is_partial });
       }
     }
 
@@ -170,7 +170,7 @@ export default async (req, context) => {
       const distance = haversineMiles(point.lat, point.lng, geo.lat, geo.lng);
       if (distance < nearestDistance) {
         nearestDistance = distance;
-        nearest = { street: info.street, date: info.date, route: info.route, timeRange: info.timeRange, distanceMiles: distance };
+        nearest = { street: info.street, date: info.date, route: info.route, timeRange: info.timeRange, partial: info.partial, distanceMiles: distance };
       }
     }
 
@@ -185,6 +185,7 @@ export default async (req, context) => {
         date: nearest.date,
         route: nearest.route,
         timeRange: nearest.timeRange,
+        partial: nearest.partial,
         distanceMiles: Math.round(nearest.distanceMiles * 100) / 100
       }
     }), { status: 200, headers });

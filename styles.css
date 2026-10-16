@@ -796,6 +796,18 @@ body {
     gap: 0;
 }
 
+.partial-note {
+    margin-top: 0.3rem;
+    font-size: 0.82rem;
+    line-height: 1.4;
+    color: var(--ink-soft);
+}
+
+.partial-note strong {
+    color: var(--text-dark);
+    font-weight: 600;
+}
+
 .street-list-item {
     padding: 0.75rem 1rem;
     background: white;

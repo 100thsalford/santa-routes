@@ -30,7 +30,8 @@ export default async (req, context) => {
         r.name AS route,
         to_char(rd.event_date, 'YYYY-MM-DD') AS date,
         s.name AS street,
-        s.time_range AS time
+        s.time_range AS time,
+        s.is_partial AS partial
       FROM streets s
       JOIN route_dates rd ON s.route_date_id = rd.id
       JOIN routes r ON rd.route_id = r.id

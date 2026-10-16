@@ -298,7 +298,7 @@ function renderRouteStreetsHtml(routes) {
 
     const streetsHtml = sorted.map(function(item) {
         const timeDisplay = item.time ? '<span style="color: #165b33; margin-left: 0.5rem;">🕐 Approx. ' + escapeHtml(item.time) + '</span>' : '';
-        return '<div class="street-list-item">' + escapeHtml(item.street) + timeDisplay + '</div>';
+        return '<div class="street-list-item">' + streetLabelHtml(item.street, item) + timeDisplay + partialNoteHtml(item) + '</div>';
     }).join('');
 
     return headerHtml + '<div class="streets-list-view">' + streetsHtml + '</div>';
@@ -357,7 +357,7 @@ function displayTodaysStreets(routes) {
         
         routeItems.forEach(function(item) {
             const timeDisplay = item.time ? '<span style="color: #165b33; margin-left: 0.5rem;">🕐 Approx. ' + escapeHtml(item.time) + '</span>' : '';
-            html += '<div class="street-list-item">' + escapeHtml(item.street) + timeDisplay + '</div>';
+            html += '<div class="street-list-item">' + streetLabelHtml(item.street, item) + timeDisplay + partialNoteHtml(item) + '</div>';
         });
         
         html += '</div></div>';
@@ -638,7 +638,7 @@ async function checkNearestStreet(query, gen) {
             const resultsArea = document.getElementById('resultsArea');
             if (!resultsArea) return;
             const ns = data.nearestStreet;
-            resultsArea.innerHTML = '<div class="no-results">😕 Sorry, we don\'t cover that street.<br>The nearest street we cover is <strong>' + escapeHtml(ns.street) + '</strong> — coming up on ' + formatDate(ns.date) + (ns.timeRange ? ', roughly ' + escapeHtml(ns.timeRange) : '') + '.</div>';
+            resultsArea.innerHTML = '<div class="no-results">😕 Sorry, we don\'t cover that street.<br>The nearest street we cover is <strong>' + escapeHtml(ns.street) + '</strong> — coming up on ' + formatDate(ns.date) + (ns.timeRange ? ', roughly ' + escapeHtml(ns.timeRange) : '') + '.' + partialNoteHtml({ partial: ns.partial, street: ns.street }) + '</div>';
         }
         // No nearby match: leave the existing "no matches found" message as-is.
     } catch (err) {
@@ -694,10 +694,10 @@ function displayResults(results, searchType) {
     const html = results.map(function(item) {
         if (searchType === 'street') {
             // REMOVE numbers for street search
-            return '<div class="result-item"><div class="result-date">📅 ' + formatDate(item.date) + '</div><div class="result-street">' + escapeHtml(getCleanStreetName(item.street)) + '</div><div class="result-route">🎅 ' + escapeHtml(item.route) + '</div>' + (item.time ? '<div class="result-time">🕐 Approx. ' + escapeHtml(item.time) + '</div>' : '') + '</div>';
+            return '<div class="result-item"><div class="result-date">📅 ' + formatDate(item.date) + '</div><div class="result-street">' + streetLabelHtml(getCleanStreetName(item.street), item) + '</div>' + partialNoteHtml(item) + '<div class="result-route">🎅 ' + escapeHtml(item.route) + '</div>' + (item.time ? '<div class="result-time">🕐 Approx. ' + escapeHtml(item.time) + '</div>' : '') + '</div>';
         } else {
             // KEEP numbers for date search (to show order)
-            return '<div class="result-item"><div class="result-street">' + escapeHtml(item.street) + '</div><div class="result-route">🎅 ' + escapeHtml(item.route) + '</div>' + (item.time ? '<div class="result-time">🕐 Approx. ' + escapeHtml(item.time) + '</div>' : '') + '</div>';
+            return '<div class="result-item"><div class="result-street">' + streetLabelHtml(item.street, item) + '</div>' + partialNoteHtml(item) + '<div class="result-route">🎅 ' + escapeHtml(item.route) + '</div>' + (item.time ? '<div class="result-time">🕐 Approx. ' + escapeHtml(item.time) + '</div>' : '') + '</div>';
         }
     }).join('');
 
@@ -722,6 +722,24 @@ function escapeHtml(text) {
 function stripStreetNumber(streetName) {
     // Remove leading numbers with dot or dash (e.g., "01. " or "1. " or "01 - ")
     return streetName.replace(/^\d+[\.\-]\s*/, '').trim();
+}
+
+// "Partial" streets: Santa only covers part of the street on his way to
+// another. Set per street in admin (streets.is_partial -> item.partial);
+// a "(Partial)" typed into the name itself is honoured too, and is
+// dropped from the displayed name since the note below replaces it.
+function isPartialStreet(item) {
+    return !!(item && (item.partial === true || /\(partial\)/i.test(item.street || '')));
+}
+
+function streetLabelHtml(name, item) {
+    const shown = isPartialStreet(item) ? String(name || '').replace(/\s*\(partial\)\s*/gi, ' ').trim() : name;
+    return escapeHtml(shown);
+}
+
+function partialNoteHtml(item) {
+    if (!isPartialStreet(item)) return '';
+    return '<div class="partial-note"><span aria-hidden="true">ℹ️</span> <strong>Partial street</strong> — Santa will visit part of this street on his way to another street.</div>';
 }
 
 // Get clean street name for display (removes number and partial tag)
@@ -821,7 +839,7 @@ function showAllRoutes() {
         // Display as list with street and time on same line
         const streetsHtml = groupItems.map(function(item) {
             const timeDisplay = item.time ? '<span style="color: #165b33; margin-left: 0.5rem;">🕐 Approx. ' + escapeHtml(item.time) + '</span>' : '';
-            return '<div class="street-list-item">' + escapeHtml(item.street) + timeDisplay + '</div>';
+            return '<div class="street-list-item">' + streetLabelHtml(item.street, item) + timeDisplay + partialNoteHtml(item) + '</div>';
         }).join('');
         
         return '<div class="route-group"><div class="route-title">' + formatDate(group.date) + '</div><div class="route-subtitle">' + escapeHtml(group.route) + '</div><div class="streets-list-view">' + streetsHtml + '</div></div>';

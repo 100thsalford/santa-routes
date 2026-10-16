@@ -109,6 +109,10 @@
         .col-seq { width: 4rem; }
         .col-time { width: 9rem; }
         .col-actions { width: 4rem; }
+        .col-partial { width: 4.25rem; text-align: center !important; }
+        th.col-partial .label-short { display: none; }
+        table.admin-table td.col-partial input[type="checkbox"] { width: auto; transform: scale(1.25); }
+        .add-partial-label { display: inline-flex; align-items: center; gap: 0.3rem; font-size: 0.9rem; color: var(--ink-soft); }
         .field-narrow { width: 8rem; box-sizing: border-box; }
         .field-date { width: 10rem; box-sizing: border-box; }
         .field-amount { width: 7rem; box-sizing: border-box; }
@@ -595,6 +599,15 @@
             .col-actions {
                 width: 2.25rem;
             }
+
+            .col-partial {
+                width: 2.1rem;
+                padding-left: 0 !important;
+                padding-right: 0 !important;
+            }
+            th.col-partial .label-long { display: none; }
+            th.col-partial .label-short { display: inline; font-size: 0.65rem; }
+            table.admin-table td.col-partial input[type="checkbox"] { transform: none; }
 
             table.admin-table input, table.admin-table select {
                 padding: 0.35rem 0.3rem;
@@ -1602,7 +1615,7 @@
 
                 var table = document.createElement('table');
                 table.className = 'admin-table';
-                table.innerHTML = '<thead><tr><th class="col-seq">Seq</th><th>Street</th><th class="col-time">Time</th><th class="col-actions"></th></tr></thead>';
+                table.innerHTML = '<thead><tr><th class="col-seq">Seq</th><th>Street</th><th class="col-time">Time</th><th class="col-partial" title="Partial street: Santa only visits part of this street on his way to another"><span class="label-long">Partial</span><span class="label-short">Part</span></th><th class="col-actions"></th></tr></thead>';
                 var tbody = document.createElement('tbody');
 
                 date.streets.forEach(function(street) {
@@ -1640,6 +1653,12 @@
                 var timeInput = document.createElement('input');
                 timeInput.type = 'text';
                 timeInput.placeholder = 'e.g. 1800-1830';
+                var addPartialLabel = document.createElement('label');
+                addPartialLabel.className = 'add-partial-label';
+                var addPartialInput = document.createElement('input');
+                addPartialInput.type = 'checkbox';
+                addPartialLabel.appendChild(addPartialInput);
+                addPartialLabel.appendChild(document.createTextNode(' Partial'));
                 var addBtn = document.createElement('button');
                 addBtn.className = 'admin-btn small';
                 addBtn.textContent = '+ Add Street';
@@ -1650,12 +1669,14 @@
                         routeDateId: date.id,
                         sequence: seqInput.value || 0,
                         name: nameInput.value.trim(),
-                        timeRange: timeInput.value.trim()
+                        timeRange: timeInput.value.trim(),
+                        isPartial: addPartialInput.checked
                     }, 'routesStatus', 'Street added.');
                 };
                 addForm.appendChild(seqInput);
                 addForm.appendChild(nameInput);
                 addForm.appendChild(timeInput);
+                addForm.appendChild(addPartialLabel);
                 addForm.appendChild(addBtn);
                 block.appendChild(addForm);
 
@@ -1712,16 +1733,27 @@
                 timeInput.dataset.col = 'time';
                 timeTd.appendChild(timeInput);
 
+                var partialTd = document.createElement('td');
+                partialTd.className = 'col-partial';
+                var partialInput = document.createElement('input');
+                partialInput.type = 'checkbox';
+                partialInput.checked = pending ? pending.isPartial : !!street.isPartial;
+                partialInput.title = 'Partial street \u2014 Santa visits part of it on his way to another street (shown on the public site)';
+                partialInput.setAttribute('aria-label', 'Partial street: ' + street.name);
+                partialTd.appendChild(partialInput);
+
                 function trackChange() {
                     var edit = {
                         routeDateId: routeDateId,
                         sequence: seqInput.value,
                         name: nameInput.value,
-                        timeRange: timeInput.value
+                        timeRange: timeInput.value,
+                        isPartial: partialInput.checked
                     };
                     var changed = String(edit.sequence) !== String(street.sequence)
                         || edit.name.trim() !== street.name
-                        || edit.timeRange.trim() !== (street.timeRange || '');
+                        || edit.timeRange.trim() !== (street.timeRange || '')
+                        || edit.isPartial !== !!street.isPartial;
                     if (changed) pendingStreetEdits[street.id] = edit;
                     else delete pendingStreetEdits[street.id];
                     tr.classList.toggle('dirty', changed);
@@ -1743,6 +1775,7 @@
                     input.addEventListener('input', trackChange);
                     input.addEventListener('keydown', onKey);
                 });
+                partialInput.addEventListener('change', trackChange);
 
                 var actionsTd = document.createElement('td');
                 var delBtn = document.createElement('button');
@@ -1758,6 +1791,7 @@
                 tr.appendChild(seqTd);
                 tr.appendChild(nameTd);
                 tr.appendChild(timeTd);
+                tr.appendChild(partialTd);
                 tr.appendChild(actionsTd);
 
                 return tr;
@@ -1770,7 +1804,7 @@
                 if (ids.length === 0) return;
                 var streets = ids.map(function(id) {
                     var e = pendingStreetEdits[id];
-                    return { id: parseInt(id, 10), sequence: e.sequence || 0, name: e.name.trim(), timeRange: e.timeRange.trim() };
+                    return { id: parseInt(id, 10), sequence: e.sequence || 0, name: e.name.trim(), timeRange: e.timeRange.trim(), isPartial: !!e.isPartial };
                 });
                 if (streets.some(function(st) { return !st.name; })) {
                     showToast('Every street needs a name \u2014 use \u2715 to remove one instead.', 'error');

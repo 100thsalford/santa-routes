@@ -145,12 +145,12 @@ export default async (req, context) => {
         const newDateId = newDateRows[0].id;
 
         const sourceStreets = await db.sql`
-          SELECT sequence, name, time_range FROM streets WHERE route_date_id = ${sourceDateId} ORDER BY sequence
+          SELECT sequence, name, time_range, is_partial FROM streets WHERE route_date_id = ${sourceDateId} ORDER BY sequence
         `;
         for (const s of sourceStreets) {
           await db.sql`
-            INSERT INTO streets (route_date_id, sequence, name, time_range)
-            VALUES (${newDateId}, ${s.sequence}, ${s.name}, ${s.time_range})
+            INSERT INTO streets (route_date_id, sequence, name, time_range, is_partial)
+            VALUES (${newDateId}, ${s.sequence}, ${s.name}, ${s.time_range}, ${!!s.is_partial})
           `;
         }
 
@@ -163,9 +163,10 @@ export default async (req, context) => {
         if (!routeDateId || !name) return badRequest('routeDateId and name are required');
         const sequence = body.sequence != null ? parseInt(body.sequence, 10) : 0;
         const timeRange = body.timeRange != null ? String(body.timeRange).trim() : null;
+        const isPartial = body.isPartial === true;
         const rows = await db.sql`
-          INSERT INTO streets (route_date_id, sequence, name, time_range)
-          VALUES (${routeDateId}, ${sequence}, ${name}, ${timeRange})
+          INSERT INTO streets (route_date_id, sequence, name, time_range, is_partial)
+          VALUES (${routeDateId}, ${sequence}, ${name}, ${timeRange}, ${isPartial})
           RETURNING id
         `;
         return ok({ id: rows[0].id });
@@ -177,10 +178,17 @@ export default async (req, context) => {
         if (!id || !name) return badRequest('Street id and name are required');
         const sequence = body.sequence != null ? parseInt(body.sequence, 10) : 0;
         const timeRange = body.timeRange != null ? String(body.timeRange).trim() : null;
-        await db.sql`
-          UPDATE streets SET name = ${name}, sequence = ${sequence}, time_range = ${timeRange}
-          WHERE id = ${id}
-        `;
+        if (typeof body.isPartial === 'boolean') {
+          await db.sql`
+            UPDATE streets SET name = ${name}, sequence = ${sequence}, time_range = ${timeRange}, is_partial = ${body.isPartial}
+            WHERE id = ${id}
+          `;
+        } else {
+          await db.sql`
+            UPDATE streets SET name = ${name}, sequence = ${sequence}, time_range = ${timeRange}
+            WHERE id = ${id}
+          `;
+        }
         return ok();
       }
 
@@ -200,12 +208,12 @@ export default async (req, context) => {
           if (!id || !name) return badRequest('Each street needs an id and a name');
           const seq = parseInt(raw.sequence, 10);
           const timeRange = raw.timeRange != null ? String(raw.timeRange).trim().slice(0, 100) : '';
-          rows.push({ id, seq: Number.isFinite(seq) ? seq : 0, name, time_range: timeRange || null });
+          rows.push({ id, seq: Number.isFinite(seq) ? seq : 0, name, time_range: timeRange || null, is_partial: raw.isPartial === true });
         }
         const updated = await db.sql`
           UPDATE streets AS s
-          SET sequence = u.seq, name = u.name, time_range = u.time_range
-          FROM jsonb_to_recordset(${JSON.stringify(rows)}::jsonb) AS u(id int, seq int, name text, time_range text)
+          SET sequence = u.seq, name = u.name, time_range = u.time_range, is_partial = u.is_partial
+          FROM jsonb_to_recordset(${JSON.stringify(rows)}::jsonb) AS u(id int, seq int, name text, time_range text, is_partial boolean)
           WHERE s.id = u.id AND s.route_date_id = ${routeDateId}
           RETURNING s.id
         `;
