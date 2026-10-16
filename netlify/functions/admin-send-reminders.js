@@ -119,7 +119,7 @@ export default async (req, context) => {
 
     const shiftRows = await db.sql`
       SELECT v.id AS volunteer_id, v.email, v.preferred_email, sa.role,
-             r.name AS route_name, rd.id AS route_date_id,
+             CASE WHEN COALESCE(TRIM(r.internal_name), '') <> '' THEN r.name || ' — ' || TRIM(r.internal_name) ELSE r.name END AS route_name, rd.id AS route_date_id,
              to_char(rd.event_date, 'YYYY-MM-DD') AS event_date
       FROM shift_assignments sa
       JOIN route_dates rd ON sa.route_date_id = rd.id

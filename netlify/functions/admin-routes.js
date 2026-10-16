@@ -33,8 +33,9 @@ export default async (req, context) => {
         const name = String(body.name || '').trim();
         if (!name) return badRequest('Route name is required');
         const displayOrder = body.displayOrder != null ? parseInt(body.displayOrder, 10) : null;
+        const internalName = String(body.internalName || '').trim().slice(0, 200) || null;
         const rows = await db.sql`
-          INSERT INTO routes (name, display_order) VALUES (${name}, ${displayOrder})
+          INSERT INTO routes (name, display_order, internal_name) VALUES (${name}, ${displayOrder}, ${internalName})
           RETURNING id
         `;
         return ok({ id: rows[0].id });
@@ -48,6 +49,16 @@ export default async (req, context) => {
         await db.sql`
           UPDATE routes SET name = ${name}, display_order = ${displayOrder} WHERE id = ${id}
         `;
+        return ok();
+      }
+
+      // Volunteer-only internal name (routes.internal_name), saved from the
+      // box in each route's header in admin.html. Blank clears it.
+      case 'set-route-internal-name': {
+        const id = parseInt(body.id, 10);
+        if (!id) return badRequest('Route id is required');
+        const internalName = String(body.internalName || '').trim().slice(0, 200) || null;
+        await db.sql`UPDATE routes SET internal_name = ${internalName} WHERE id = ${id}`;
         return ok();
       }
 
