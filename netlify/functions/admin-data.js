@@ -26,14 +26,14 @@ export default async (req, context) => {
     const db = getDatabase();
 
     const [routeRows, dateRows, streetRows, settingsRows, volunteerRows, assignmentRows, roleRows] = await Promise.all([
-      db.sql`SELECT id, name, display_order FROM routes ORDER BY display_order NULLS LAST, name`,
+      db.sql`SELECT id, name, display_order, internal_name FROM routes ORDER BY display_order NULLS LAST, name`,
       db.sql`SELECT id, route_id, to_char(event_date, 'YYYY-MM-DD') AS event_date, amount_collected, volunteer_capacity, what3words, notes, gathering_time, tracking_end_time, route_map_filename, route_map_content_type, route_track IS NOT NULL AS has_route_track, jsonb_array_length(route_track->'directions') AS route_track_turns, route_track->>'distanceKm' AS route_track_distance_km FROM route_dates ORDER BY event_date`,
       db.sql`SELECT id, route_date_id, sequence, name, time_range FROM streets ORDER BY route_date_id, sequence`,
       db.sql`SELECT key, value FROM settings`,
       db.sql`SELECT id, email, full_name, reminder_email_opt_in, can_be_santa, can_be_safety_walker, can_be_driver FROM volunteers ORDER BY email`,
       db.sql`
         SELECT sa.id, sa.route_date_id, sa.volunteer_id, sa.role, sa.source,
-               r.name AS route_name, to_char(rd.event_date, 'YYYY-MM-DD') AS event_date
+               CASE WHEN COALESCE(TRIM(r.internal_name), '') <> '' THEN r.name || ' — ' || TRIM(r.internal_name) ELSE r.name END AS route_name, to_char(rd.event_date, 'YYYY-MM-DD') AS event_date
         FROM shift_assignments sa
         JOIN route_dates rd ON sa.route_date_id = rd.id
         JOIN routes r ON rd.route_id = r.id
@@ -107,6 +107,7 @@ export default async (req, context) => {
     const routes = routeRows.map((r) => ({
       id: r.id,
       name: r.name,
+      internalName: r.internal_name || '',
       displayOrder: r.display_order,
       dates: datesByRoute[r.id] || []
     }));

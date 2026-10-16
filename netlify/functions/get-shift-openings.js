@@ -52,7 +52,7 @@ export default async (req, context) => {
 
     const rows = await db.sql`
       SELECT
-        rd.id, r.name AS route_name, to_char(rd.event_date, 'YYYY-MM-DD') AS event_date,
+        rd.id, CASE WHEN COALESCE(TRIM(r.internal_name), '') <> '' THEN r.name || ' — ' || TRIM(r.internal_name) ELSE r.name END AS route_name, to_char(rd.event_date, 'YYYY-MM-DD') AS event_date,
         rd.volunteer_capacity, rd.what3words, rd.notes, rd.gathering_time, rd.route_map_filename,
         rd.route_track IS NOT NULL AS has_route_track,
         COUNT(sa.id) AS signup_count,
@@ -61,7 +61,7 @@ export default async (req, context) => {
       JOIN routes r ON rd.route_id = r.id
       LEFT JOIN shift_assignments sa ON sa.route_date_id = rd.id
       WHERE rd.event_date >= ${todayDate}
-      GROUP BY rd.id, r.name, rd.event_date, rd.volunteer_capacity, rd.what3words, rd.notes, rd.gathering_time, rd.route_map_filename, rd.route_track, r.display_order
+      GROUP BY rd.id, r.name, r.internal_name, rd.event_date, rd.volunteer_capacity, rd.what3words, rd.notes, rd.gathering_time, rd.route_map_filename, rd.route_track, r.display_order
       ORDER BY rd.event_date, r.display_order NULLS LAST, r.name
     `;
 

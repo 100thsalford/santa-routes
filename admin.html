@@ -471,6 +471,11 @@
         .tracking-panel-actions button[hidden] { display: none; }
         .tracking-panel-actions:not(:has(button:not([hidden]))) { display: none; }
 
+        .route-internal-name { color: var(--ink-soft); font-weight: normal; }
+        .internal-name-row { margin: 0 0 0.75rem; }
+        .internal-name-row label { font-size: 0.85rem; color: var(--ink-soft); }
+        .internal-name-row input { flex: 1; min-width: 12rem; }
+
         .dashboard-section-title {
             font-weight: bold;
             font-size: 0.85rem;
@@ -837,6 +842,7 @@
                 <div class="add-row-form">
                     <input type="text" id="newRouteName" placeholder="New route name">
                     <input type="number" id="newRouteOrder" placeholder="Display order" class="field-narrow">
+                    <input type="text" id="newRouteInternalName" placeholder="Internal name (volunteers only, optional)">
                     <button class="admin-btn small" id="addRouteBtn">+ Add Route</button>
                 </div>
                 <div class="admin-status" id="routesStatus"></div>
@@ -1234,6 +1240,7 @@
                     header.className = 'route-block-header';
                     header.innerHTML =
                         '<span class="route-block-title">' + escapeHtml(route.name) +
+                        (route.internalName ? ' <span class="route-internal-name">\u2014 ' + escapeHtml(route.internalName) + '</span>' : '') +
                         ' <span style="color:#999; font-weight: normal;">(order ' + (route.displayOrder ?? '—') + ')</span></span>';
 
                     var actions = document.createElement('span');
@@ -1253,6 +1260,38 @@
 
                     header.appendChild(actions);
                     block.appendChild(header);
+
+                    // Volunteer-only name: shown as "Route 3 — <this>" in the
+                    // volunteer portal and reminder emails, never on the public site.
+                    var internalRow = document.createElement('div');
+                    internalRow.className = 'add-row-form internal-name-row';
+                    var internalLabel = document.createElement('label');
+                    internalLabel.textContent = '🔒 Internal name (volunteers only):';
+                    internalLabel.htmlFor = 'internalName-' + route.id;
+                    var internalInput = document.createElement('input');
+                    internalInput.type = 'text';
+                    internalInput.id = 'internalName-' + route.id;
+                    internalInput.placeholder = 'e.g. Weaste & Seedley';
+                    internalInput.value = route.internalName || '';
+                    var internalSaveBtn = document.createElement('button');
+                    internalSaveBtn.className = 'admin-btn small';
+                    internalSaveBtn.textContent = 'Save';
+                    internalSaveBtn.disabled = true;
+                    internalInput.addEventListener('input', function() {
+                        internalSaveBtn.disabled = internalInput.value.trim() === (route.internalName || '');
+                    });
+                    function saveInternalName() {
+                        if (internalSaveBtn.disabled) return;
+                        runOp('/.netlify/functions/admin-routes', {
+                            op: 'set-route-internal-name', id: route.id, internalName: internalInput.value.trim()
+                        }, 'routesStatus', 'Internal name saved.');
+                    }
+                    internalSaveBtn.onclick = saveInternalName;
+                    internalInput.addEventListener('keydown', function(e) { if (e.key === 'Enter') { e.preventDefault(); saveInternalName(); } });
+                    internalRow.appendChild(internalLabel);
+                    internalRow.appendChild(internalInput);
+                    internalRow.appendChild(internalSaveBtn);
+                    block.appendChild(internalRow);
 
                     var datesThisYear = route.dates.filter(function(d) { return d.year === selectedYear; });
                     var datesOtherYears = route.dates.filter(function(d) { return d.year !== selectedYear; });
@@ -1784,12 +1823,15 @@
             document.getElementById('addRouteBtn').addEventListener('click', function() {
                 var nameInput = document.getElementById('newRouteName');
                 var orderInput = document.getElementById('newRouteOrder');
+                var internalInput = document.getElementById('newRouteInternalName');
                 if (!nameInput.value.trim()) return;
                 runOp('/.netlify/functions/admin-routes', {
-                    op: 'create-route', name: nameInput.value.trim(), displayOrder: orderInput.value || null
+                    op: 'create-route', name: nameInput.value.trim(), displayOrder: orderInput.value || null,
+                    internalName: internalInput.value.trim()
                 }, 'routesStatus', 'Route added.').then(function() {
                     nameInput.value = '';
                     orderInput.value = '';
+                    internalInput.value = '';
                 });
             });
 
@@ -2023,7 +2065,7 @@
                 var out = [];
                 adminData.routes.forEach(function(route) {
                     route.dates.forEach(function(date) {
-                        out.push({ id: date.id, label: route.name + ' — ' + formatDateLabel(date.eventDate) });
+                        out.push({ id: date.id, label: route.name + (route.internalName ? ' (' + route.internalName + ')' : '') + ' — ' + formatDateLabel(date.eventDate) });
                     });
                 });
                 return out;
