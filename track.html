@@ -374,8 +374,12 @@
                     updatedAtEl.textContent = '';
                     return;
                 }
-                if (data.state === 'after-window') {
-                    statusEl.innerHTML = '<strong>That’s Santa done for tonight!</strong> Thanks for following along — here’s where he went.';
+                if (data.state === 'after-window' || data.state === 'stopped') {
+                    // No position or trail is sent once tracking stops --
+                    // clear anything left over from earlier polls too.
+                    if (sleighMarker) { map.removeLayer(sleighMarker); sleighMarker = null; }
+                    followBtn.hidden = true;
+                    statusEl.innerHTML = '<strong>That’s Santa done for tonight!</strong> Thanks for following along. Check <a href="index.html">the home page</a> for the next route.';
                     updatedAtEl.textContent = '';
                     return;
                 }

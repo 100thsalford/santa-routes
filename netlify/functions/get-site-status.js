@@ -44,6 +44,28 @@ function addDays(dateString, days) {
   return d.toISOString().slice(0, 10);
 }
 
+// Live-tracking window for tonight. Kept in sync by hand with the copy in
+// get-site-status.js (this codebase's self-contained-helpers convention).
+//   start: settings.tracking_window_start (falls back to the sightings start)
+//   end:   tonight's route_dates.tracking_end_time if set, else
+//          settings.tracking_window_end (falls back to the sightings end)
+//   settings.tracking_stopped_date === today -> admin hit "Stop live
+//          tracking now"; off for the rest of tonight, back to normal on
+//          the next route night automatically.
+const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
+function trackingWindow(settings, todayRoute, todayDate, nowTime) {
+  const pick = (...vals) => vals.find((v) => v && TIME_RE.test(String(v).trim()));
+  const start = pick(settings.tracking_window_start, settings.sightings_window_start) || '17:00';
+  const end = pick(todayRoute && todayRoute.tracking_end_time, settings.tracking_window_end, settings.sightings_window_end) || '22:00';
+  let state;
+  if (!todayRoute) state = 'not-a-route-day';
+  else if (settings.tracking_stopped_date === todayDate) state = 'stopped';
+  else if (nowTime < start) state = 'before-window';
+  else if (nowTime >= end) state = 'after-window';
+  else state = 'active';
+  return { start, end, state, active: state === 'active' };
+}
+
 export default async (req, context) => {
   if (req.method === 'OPTIONS') {
     return new Response('', { status: 200, headers });
@@ -71,7 +93,7 @@ export default async (req, context) => {
 
     const [settingsRows, routeDateRows, totalRaisedRows] = await Promise.all([
       db.sql`SELECT key, value FROM settings`,
-      db.sql`SELECT to_char(event_date, 'YYYY-MM-DD') AS date FROM route_dates ORDER BY event_date`,
+      db.sql`SELECT to_char(event_date, 'YYYY-MM-DD') AS date, tracking_end_time FROM route_dates ORDER BY event_date`,
       // "Total Raised" always reflects the most recent season that has any
       // dates entered -- so it shows last year's final total right up
       // until this year's dates are added, then switches over to this
@@ -123,6 +145,9 @@ export default async (req, context) => {
       }
     }
 
+    const todayRoute = routeDateRows.find((r) => r.date === todayDate) || null;
+    const tracking = trackingWindow(settings, todayRoute, todayDate, nowTime);
+
     const totalRaisedRow = totalRaisedRows[0];
     const totalRaised = totalRaisedRow ? Number(totalRaisedRow.total) : 0;
     const totalRaisedYear = totalRaisedRow && totalRaisedRow.year != null ? Number(totalRaisedRow.year) : null;
@@ -139,6 +164,12 @@ export default async (req, context) => {
           windowStart,
           windowEnd,
           nextRouteDate
+        },
+        tracking: {
+          active: tracking.active,
+          state: tracking.state,
+          windowStart: tracking.start,
+          windowEnd: tracking.end
         },
         totalRaised,
         totalRaisedYear
@@ -159,7 +190,8 @@ export default async (req, context) => {
           windowStart: null,
           windowEnd: null,
           nextRouteDate: null
-        }
+        },
+        tracking: { active: false, state: 'error', windowStart: null, windowEnd: null }
       }),
       { status: 200, headers }
     );

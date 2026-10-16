@@ -1,9 +1,9 @@
 // Public endpoint powering track.html's live sleigh map -- replaces the
 // old Glympse-based "Track Santa Live" button. Determines whether tonight
-// is a route night and whether we're inside the live window (reusing
-// settings.sightings_window_start/end, the same window get-site-status.js
-// uses for the sightings feature), and -- from the moment that window
-// opens -- fetches the sleigh's current GPS position from TruTrak (the
+// is a route night and whether we're inside the live-tracking window (see
+// trackingWindow() below: its own admin settings, an optional per-night
+// end time, and an admin "stop now" switch), and -- only while that
+// window is open -- fetches the sleigh's current GPS position from TruTrak (the
 // FMT200 device fitted to the sleigh) plus a breadcrumb trail of where
 // it's actually been tonight (via TTAssetsTrail), shown alongside the
 // dashed planned route already drawn from route_dates.route_track.
@@ -165,7 +165,7 @@ async function getCachedPosition(store, registration) {
   }
 }
 
-async function getAssetTrail(store, registration, todayDate, windowStart) {
+async function getAssetTrail(store, registration, todayDate, windowStart, windowEnd) {
   const cacheKey = `trail-${todayDate}`;
   const cached = await store.get(cacheKey, { type: 'json' });
   if (cached && Date.now() - cached.fetchedAt < LOCATION_CACHE_TTL_MS) {
@@ -176,7 +176,9 @@ async function getAssetTrail(store, registration, todayDate, windowStart) {
     const token = await getValidToken(store);
     const assetId = await getAssetId(store, token, registration);
     const dateStart = `${todayDate}T${windowStart}:00`;
-    const dateEnd = `${todayDate}T23:59:59`;
+    // Capped at the window end so the trail can never reveal where the
+    // sleigh went after tracking stopped (e.g. where it's parked).
+    const dateEnd = `${todayDate}T${windowEnd}:00`;
     const root = await ttRequest('TTAssetsTrail', {
       Token: token,
       asset_ID: String(assetId),
@@ -202,6 +204,28 @@ async function getAssetTrail(store, registration, todayDate, windowStart) {
   }
 }
 
+// Live-tracking window for tonight. Kept in sync by hand with the copy in
+// get-site-status.js (this codebase's self-contained-helpers convention).
+//   start: settings.tracking_window_start (falls back to the sightings start)
+//   end:   tonight's route_dates.tracking_end_time if set, else
+//          settings.tracking_window_end (falls back to the sightings end)
+//   settings.tracking_stopped_date === today -> admin hit "Stop live
+//          tracking now"; off for the rest of tonight, back to normal on
+//          the next route night automatically.
+const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
+function trackingWindow(settings, todayRoute, todayDate, nowTime) {
+  const pick = (...vals) => vals.find((v) => v && TIME_RE.test(String(v).trim()));
+  const start = pick(settings.tracking_window_start, settings.sightings_window_start) || '17:00';
+  const end = pick(todayRoute && todayRoute.tracking_end_time, settings.tracking_window_end, settings.sightings_window_end) || '22:00';
+  let state;
+  if (!todayRoute) state = 'not-a-route-day';
+  else if (settings.tracking_stopped_date === todayDate) state = 'stopped';
+  else if (nowTime < start) state = 'before-window';
+  else if (nowTime >= end) state = 'after-window';
+  else state = 'active';
+  return { start, end, state, active: state === 'active' };
+}
+
 export default async (req, context) => {
   if (req.method === 'OPTIONS') {
     return new Response('', { status: 200, headers });
@@ -216,7 +240,7 @@ export default async (req, context) => {
     const [settingsRows, todayRouteRows] = await Promise.all([
       db.sql`SELECT key, value FROM settings`,
       db.sql`
-        SELECT rd.id, rd.route_track, r.name AS route_name
+        SELECT rd.id, rd.route_track, rd.tracking_end_time, r.name AS route_name
         FROM route_dates rd
         JOIN routes r ON r.id = rd.route_id
         WHERE rd.event_date = ${todayDate}
@@ -228,34 +252,33 @@ export default async (req, context) => {
     const settings = {};
     for (const row of settingsRows) settings[row.key] = row.value;
 
-    const windowStart = settings.sightings_window_start || '17:00';
-    const windowEnd = settings.sightings_window_end || '22:00';
+    const todayRoute = todayRouteRows[0] || null;
+    const win = trackingWindow(settings, todayRoute, todayDate, nowTime);
+    const windowStart = win.start;
+    const windowEnd = win.end;
     const registration = (settings.trutrak_asset_registration || '').trim();
 
-    const todayRoute = todayRouteRows[0] || null;
     const base = {
       todayDate,
       routeName: todayRoute ? todayRoute.route_name : null,
       routeTrack: todayRoute ? todayRoute.route_track : null
     };
 
-    if (!todayRoute) {
+    // Outside the live window nothing from TruTrak is fetched or
+    // returned at all -- no position and no trail -- so a bookmarked
+    // track.html shows nothing once tracking has stopped for the night.
+    if (win.state === 'not-a-route-day') {
       return json({ ...base, active: false, state: 'not-a-route-day' });
     }
-    if (nowTime < windowStart) {
+    if (win.state === 'before-window') {
       return json({ ...base, active: false, state: 'before-window', windowStart });
     }
-
-    // From here on (the window has opened, whether or not it's since
-    // closed) we also fetch tonight's breadcrumb trail if a sleigh is
-    // configured -- "after-window" wants it too, so the recap page can
-    // show "here's where he went" rather than just the planned route.
-    const store = getStore('trutrak');
-    const trail = registration ? await getAssetTrail(store, registration, todayDate, windowStart) : [];
-
-    if (nowTime >= windowEnd) {
-      return json({ ...base, active: false, state: 'after-window', trail });
+    if (win.state === 'after-window' || win.state === 'stopped') {
+      return json({ ...base, active: false, state: win.state });
     }
+
+    const store = getStore('trutrak');
+    const trail = registration ? await getAssetTrail(store, registration, todayDate, windowStart, windowEnd) : [];
 
     if (!registration) {
       return json({
