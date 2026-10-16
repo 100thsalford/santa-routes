@@ -3,753 +3,309 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Live Santa Sleigh tracking with planned routes across Salford">
-    <title>Santa Live Tracking | 100th Salford Scouts</title>
+    <meta name="description" content="See every night of Santa's Super Sleigh tour around Salford on one map. 100th Salford Scout Group Christmas fundraiser.">
+    <title>Santa's Routes Map | Santa Super Sleigh Salford</title>
     <link rel="stylesheet" href="styles.css">
-    
-    <!-- Leaflet CSS for live tracking overlay -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
     <style>
-        .map-container {
-            background: white;
-            border-radius: 16px;
-            overflow: hidden;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-            margin-bottom: 1rem;
-            position: relative;
+        body { background: var(--snow); }
+
+        .routes-container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 1.25rem 1rem 2rem;
         }
 
-        .map-controls {
-            background: var(--snow);
-            padding: 1rem;
-            border-bottom: 2px solid #e0e0e0;
+        .routes-header { text-align: center; margin-bottom: 1rem; }
+        .routes-header h1 { color: var(--santa-red); font-size: 1.6rem; margin: 0 0 0.25rem; }
+        .routes-header p { color: var(--ink-soft); margin: 0; }
+
+        /* Night picker: one scrollable row of chips on phones, wraps on desktop. */
+        .night-picker {
+            display: flex;
+            gap: 0.5rem;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+            padding: 0.25rem 0 0.75rem;
+            margin: 0 -1rem;
+            padding-left: 1rem;
+            padding-right: 1rem;
+        }
+        .night-picker::-webkit-scrollbar { display: none; }
+        @media (min-width: 700px) {
+            .night-picker { flex-wrap: wrap; overflow: visible; margin: 0; padding-left: 0; padding-right: 0; }
         }
 
-        .control-group {
-            margin-bottom: 1rem;
-        }
-
-        .control-group:last-child {
-            margin-bottom: 0;
-        }
-
-        .control-label {
-            font-weight: bold;
-            color: var(--text-dark);
-            margin-bottom: 0.5rem;
-            display: block;
-        }
-
-        .status-indicator {
+        .night-chip {
+            flex: 0 0 auto;
             display: inline-flex;
             align-items: center;
-            gap: 0.5rem;
-            padding: 0.5rem 1rem;
-            border-radius: 20px;
-            font-weight: 600;
-            font-size: 0.9rem;
+            gap: 0.45rem;
+            background: var(--surface);
+            border: 1px solid var(--border-subtle);
+            border-radius: 999px;
+            padding: 0.45rem 0.85rem;
+            font: inherit;
+            font-size: 0.88rem;
+            color: var(--text-dark);
+            cursor: pointer;
+            white-space: nowrap;
+            box-shadow: var(--shadow-sm);
         }
-
-        .status-indicator.active {
-            background: #4CAF50;
-            color: white;
-        }
-
-        .status-indicator.inactive {
-            background: #f44336;
-            color: white;
-        }
-
-        .status-indicator.loading {
-            background: #FF9800;
-            color: white;
-        }
-
-        .status-dot {
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            background: white;
-            animation: pulse 2s infinite;
-        }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-        }
-
-        #mapWrapper {
-            position: relative;
-            width: 100%;
-            height: 500px;
-        }
-
-        #liveMap {
-            width: 100%;
-            height: 100%;
-        }
-
-        .map-legend {
-            background: white;
-            border-radius: 16px;
-            padding: 1.5rem;
-            margin-bottom: 1rem;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-        }
-
-        .legend-title {
-            font-weight: bold;
-            color: var(--santa-red);
-            margin-bottom: 1rem;
-            font-size: 1.1rem;
-        }
-
-        .legend-items {
-            display: grid;
-            gap: 0.75rem;
-        }
-
-        .legend-item {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-        }
-
-        .legend-color {
-            width: 30px;
-            height: 30px;
-            border-radius: 50%;
+        .night-chip .dot {
+            width: 0.7rem; height: 0.7rem; border-radius: 50%;
             flex-shrink: 0;
         }
-
-        .legend-line {
-            width: 30px;
-            height: 4px;
-            flex-shrink: 0;
-        }
-
-        .legend-text {
-            font-size: 0.9rem;
-        }
-
-        .back-btn {
-            display: inline-block;
-            background: white;
+        .night-chip.past { color: var(--ink-soft); }
+        .night-chip.past .dot { background: #9aa0a8 !important; }
+        .night-chip .tag {
+            font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em;
             color: var(--santa-red);
-            padding: 0.75rem 1.5rem;
-            border-radius: 8px;
-            text-decoration: none;
-            font-weight: bold;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-            transition: all 0.2s;
-            margin-bottom: 1rem;
-            border: 2px solid var(--santa-red);
+        }
+        .night-chip[aria-pressed="true"] {
+            background: var(--santa-green);
+            border-color: var(--santa-green);
+            color: #fff;
+        }
+        .night-chip[aria-pressed="true"] .tag { color: #ffe9a8; }
+        .night-chip[aria-pressed="true"] .dot { box-shadow: 0 0 0 2px #fff; }
+
+        #routesMap {
+            width: 100%;
+            height: 60vh;
+            min-height: 360px;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-md);
+            border: 1px solid var(--border-subtle);
+            background: var(--surface-muted);
         }
 
-        .back-btn:hover {
-            background: var(--santa-red);
-            color: white;
+        .night-detail {
+            background: var(--surface);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-sm);
+            padding: 0.85rem 1.1rem;
+            margin-top: 0.75rem;
+            line-height: 1.5;
         }
+        .night-detail strong { color: var(--santa-green); }
+        .night-detail .muted { color: var(--ink-soft); font-size: 0.9rem; }
 
-        .tracking-info {
-            background: white;
-            border-radius: 16px;
-            padding: 1.5rem;
-            margin-bottom: 1rem;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-        }
-
-        .tracking-stats {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 1rem;
-            margin-top: 1rem;
-        }
-
-        .stat-box {
-            background: var(--snow);
-            padding: 1rem;
-            border-radius: 8px;
+        .routes-empty {
             text-align: center;
+            color: var(--ink-soft);
+            padding: 2rem 1rem;
         }
 
-        .stat-label {
-            font-size: 0.8rem;
-            color: #666;
-            margin-bottom: 0.25rem;
-        }
+        .route-popup { font-size: 0.95rem; line-height: 1.4; }
+        .route-popup strong { color: var(--santa-green); }
 
-        .stat-value {
-            font-size: 1.5rem;
-            font-weight: bold;
-            color: var(--santa-red);
-        }
+        .routes-back { text-align: center; margin-top: 1.5rem; }
 
-        @media (min-width: 768px) {
-            #mapWrapper {
-                height: 600px;
-            }
-        }
-
-        /* Custom Santa marker icon styling */
-        .santa-marker {
-            background: none;
-            border: none;
-        }
-
-        .santa-icon {
-            font-size: 2rem;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        @media (max-width: 480px) {
+            .routes-header h1 { font-size: 1.35rem; }
+            #routesMap { height: 52vh; }
         }
     </style>
 </head>
 <body>
-    <div class="header">
-        <h1>🎅 Santa Live Tracking</h1>
-        <p>Watch Santa's Sleigh in real-time as it travels through Irlams o' th' Heights and Pendlebury! Brought to you by The 100th Salford Scout Group.</p>
-    </div>
-
-    <div class="container">
-        <a href="index.html" class="back-btn">← Back</a>
-
-        <div class="tracking-info">
-            <div class="control-group">
-                <label class="control-label">📡 Tracking Status:</label>
-                <div id="trackingStatus" class="status-indicator loading">
-                    <span class="status-dot"></span>
-                    <span id="statusText">Connecting...</span>
-                </div>
-            </div>
-            
-            <div id="trackingStats" class="tracking-stats" style="display: none;">
-                <div class="stat-box">
-                    <div class="stat-label">Last Updated</div>
-                    <div class="stat-value" id="lastUpdate">--:--</div>
-                </div>
-                <div class="stat-box">
-                    <div class="stat-label">Speed</div>
-                    <div class="stat-value" id="speedDisplay">0 mph</div>
-                </div>
-                <div class="stat-box">
-                    <div class="stat-label">Location</div>
-                    <div class="stat-value" id="postcodeDisplay">---</div>
-                </div>
-                <div class="stat-box">
-                    <div class="stat-label">Status</div>
-                    <div class="stat-value" id="eventDisplay">---</div>
-                </div>
-            </div>
+    <div class="routes-container">
+        <div class="routes-header">
+            <h1>🗺️ Santa's Routes</h1>
+            <p id="routesIntro">Every night of Santa's tour around Salford.</p>
         </div>
 
-        <div class="map-container">
-            <div class="map-controls">
-                <div class="control-group">
-                    <label class="control-label">🗺️ Interactive Map:</label>
-                    <p style="color: #666; font-size: 0.9rem; margin-top: 0.5rem;">
-                        <strong>Red marker:</strong> Santa's current location (updates every 30 seconds)<br>
-                        <strong>Blue line:</strong> Santa's trail from the last 6 hours<br>
-                        <strong>Background routes:</strong> Planned route map (use menu on left to show/hide routes)
-                    </p>
-                </div>
-            </div>
+        <div class="night-picker" id="nightPicker" role="group" aria-label="Choose a night"></div>
 
-            <div id="mapWrapper">
-                <div id="liveMap"></div>
-            </div>
-        </div>
+        <div id="routesMap" role="region" aria-label="Map of Santa's routes"></div>
 
-        <div class="map-legend">
-            <div class="legend-title">🎯 Map Legend</div>
-            <div class="legend-items">
-                <div class="legend-item">
-                    <div class="legend-line" style="background: #FF6B35; height: 6px; background-image: repeating-linear-gradient(to right, #FF6B35 0px, #FF6B35 10px, transparent 10px, transparent 15px);"></div>
-                    <div class="legend-text"><strong>Planned Route</strong> - Today's route (loaded automatically)</div>
-                </div>
-                <div class="legend-item">
-                    <div class="legend-color" style="background: #ff0000; font-size: 1.5rem; display: flex; align-items: center; justify-content: center;">🎅</div>
-                    <div class="legend-text"><strong>Santa's Current Location</strong> - Live position updated every 30 seconds</div>
-                </div>
-                <div class="legend-item">
-                    <div class="legend-line" style="background: #2196F3; height: 6px;"></div>
-                    <div class="legend-text"><strong>Santa's Trail</strong> - Path traveled in the last 6 hours</div>
-                </div>
-                <div class="legend-item">
-                    <div class="legend-color" style="background: #4CAF50;"></div>
-                    <div class="legend-text"><strong>OpenStreetMap</strong> - Interactive map with zoom and pan controls</div>
-                </div>
-            </div>
-        </div>
+        <div class="night-detail" id="nightDetail">Loading routes&hellip;</div>
 
-        <div class="updates-section">
-            <div class="section-title">ℹ️ How to Use Live Tracking</div>
-            <div class="update-card no-hover">
-                <div class="update-text">
-                    <strong>Using the live tracking map:</strong>
-                    <ul style="margin-left: 1.5rem; margin-top: 0.5rem; line-height: 1.8;">
-                        <li><strong>Santa's Position:</strong> The red marker shows where Santa is right now</li>
-                        <li><strong>Movement Trail:</strong> The blue line shows Santa's path over the last 6 hours</li>
-                        <li><strong>Click Santa:</strong> Click the Santa marker to see detailed information (speed, time, location)</li>
-                        <li><strong>Auto-Update:</strong> The map refreshes automatically every 30 seconds</li>
-                        <li><strong>Zoom & Pan:</strong> Use + / - buttons to zoom, or pinch on mobile. Drag to move around</li>
-                    </ul>
-                </div>
-            </div>
-            <div class="update-card no-hover">
-                <div class="update-text">
-                    <strong>💡 Tip:</strong> If Santa appears to be moving slowly or stopped, he might be collecting donations or spreading Christmas cheer! Check the status display above the map.
-                </div>
-            </div>
-            <div class="update-card no-hover">
-                <div class="update-text">
-                    <strong>⏰ Tracking Schedule:</strong> Live tracking is only active during Santa's scheduled routes. Check the main page for today's route times.
-                </div>
-            </div>
+        <div class="routes-back">
+            <a href="index.html" class="back-btn">Return to Home</a>
         </div>
     </div>
 
     <footer class="footer">
         <p>🎄 Supporting <a href="https://www.facebook.com/100thsalford" target="_blank" rel="noopener noreferrer" class="footer-link">100th Salford Scout Group</a> 🎄</p>
         <p>Donations help fund Scouting activities for young people in Salford</p>
+        <p class="footer-note"><a href="privacy.html" class="footer-link">Privacy Policy</a></p>
     </footer>
 
-    <script src="script.js"></script>
-    <script src="analytics.js"></script>
-    
-    <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <!-- Leaflet Omnivore for KML loading -->
-    <script src="https://unpkg.com/leaflet-omnivore@0.3.4/leaflet-omnivore.min.js"></script>
-    
+    <script src="analytics.js"></script>
+    <!-- Cloudflare Web Analytics --><script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "3b7106934eac4fcfa830d632dc201682"}'></script><!-- End Cloudflare Web Analytics -->
     <script>
-        // Live tracking functionality
-        let map;
-        let santaMarker;
-        let trailPolyline;
-        let trailPoints = [];
-        let currentKmlLayer = null; // Track currently loaded KML layer
-        let currentKmlFile = null; // Track which KML file is loaded
-        const UPDATE_INTERVAL = 30000; // 30 seconds
-        const TRAIL_DURATION = 6 * 60 * 60 * 1000; // 6 hours in milliseconds
+        // Public "Interactive Map": every night of the current season drawn
+        // from its uploaded GPX (get-public-routes.js -- line, route name
+        // and date only; turn-by-turn directions stay volunteer-only).
+        // Upcoming nights get their own colour, nights that have already
+        // run are greyed out, and a chip row picks one night to highlight.
+        (function() {
+            'use strict';
 
-        // Initialize map
-        function initMap() {
-            // Create Leaflet map centered on Salford
-            map = L.map('liveMap', {
-                center: [53.5074, -2.3114], // Irlams o' th' Heights / Pendlebury
-                zoom: 14,
-                zoomControl: true,
-                attributionControl: true
-            });
+            // Distinct, saturated colours that stay readable on OSM tiles.
+            var COLOURS = ['#C62828', '#1565C0', '#2E7D32', '#6A1B9A', '#EF6C00', '#00838F',
+                           '#AD1457', '#4E342E', '#283593', '#9E9D24', '#D84315', '#00695C'];
+            var PAST_COLOUR = '#8a8f98';
 
-            // Add OpenStreetMap tile layer
+            var pickerEl = document.getElementById('nightPicker');
+            var detailEl = document.getElementById('nightDetail');
+            var introEl = document.getElementById('routesIntro');
+
+            var map = L.map('routesMap', { scrollWheelZoom: false, tap: true }).setView([53.49, -2.30], 13);
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+                attribution: '&copy; OpenStreetMap contributors',
                 maxZoom: 19
             }).addTo(map);
+            // Scroll-zoom only once the map has been clicked, so scrolling
+            // the page on desktop doesn't get hijacked by the map.
+            map.once('click', function() { map.scrollWheelZoom.enable(); });
 
-            // Create custom Santa icon
-            const santaIcon = L.divIcon({
-                className: 'santa-marker',
-                html: '<div class="santa-icon">🎅</div>',
-                iconSize: [40, 40],
-                iconAnchor: [20, 40],
-                popupAnchor: [0, -40]
-            });
+            var nights = [];
+            var selectedId = null;
+            var today = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/London' });
 
-            // Initialize Santa marker (hidden initially)
-            santaMarker = L.marker([53.5074, -2.3114], {
-                icon: santaIcon
-            });
-
-            // Initialize trail polyline
-            trailPolyline = L.polyline([], {
-                color: '#2196F3',
-                weight: 6,
-                opacity: 0.8,
-                smoothFactor: 1
-            });
-
-            // Start tracking
-            updateTracking();
-            setInterval(updateTracking, UPDATE_INTERVAL);
-        }
-
-        // Fetch tracking data from Netlify function
-        async function fetchTrackingData() {
-            try {
-                const response = await fetch('/.netlify/functions/get-tracker-data');
-                const data = await response.json();
-                return data;
-            } catch (error) {
-                console.error('Error fetching tracking data:', error);
-                return null;
-            }
-        }
-
-        // Load KML route file
-        function loadKMLRoute(kmlFilename) {
-            // Skip if same file already loaded
-            if (currentKmlFile === kmlFilename && currentKmlLayer) {
-                console.log(`KML already loaded: ${kmlFilename}`);
-                return;
+            function escapeHtml(str) {
+                var div = document.createElement('div');
+                div.textContent = str == null ? '' : String(str);
+                return div.innerHTML;
             }
 
-            // Remove existing KML layer
-            if (currentKmlLayer) {
-                console.log(`Removing previous KML layer: ${currentKmlFile}`);
-                map.removeLayer(currentKmlLayer);
-                currentKmlLayer = null;
+            function formatNight(iso, long) {
+                return new Date(iso + 'T00:00:00').toLocaleDateString('en-GB', long
+                    ? { weekday: 'long', day: 'numeric', month: 'long' }
+                    : { weekday: 'short', day: 'numeric', month: 'short' }).replace(',', '');
             }
 
-            // If no filename provided, just remove layer
-            if (!kmlFilename) {
-                console.log('No KML file specified');
-                currentKmlFile = null;
-                return;
+            function styleFor(n, state) {
+                // state: 'normal' (All view), 'selected', 'faded'
+                var colour = n.past ? PAST_COLOUR : n.colour;
+                if (state === 'selected') return { color: colour, weight: 7, opacity: 1, dashArray: null };
+                if (state === 'faded') return { color: colour, weight: 3, opacity: 0.18, dashArray: n.past ? '4 8' : null };
+                return { color: colour, weight: 4, opacity: n.past ? 0.55 : 0.85, dashArray: n.past ? '4 8' : null };
             }
 
-            // Load new KML file
-            const kmlPath = `/routes/${kmlFilename}`;
-            
-            console.log(`Attempting to load KML route: ${kmlPath}`);
-
-            // First, check if the file exists
-            fetch(kmlPath)
-                .then(response => {
-                    console.log(`KML fetch response status: ${response.status}`);
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
-                    }
-                    return response.text();
-                })
-                .then(kmlText => {
-                    console.log(`KML file fetched successfully. Length: ${kmlText.length} characters`);
-                    
-                    // Now load it with omnivore
-                    currentKmlLayer = omnivore.kml(kmlPath)
-                        .on('ready', function() {
-                            console.log(`KML route loaded successfully: ${kmlFilename}`);
-                            console.log(`Number of layers: ${Object.keys(this._layers).length}`);
-                            
-                            // Style the KML layers
-                            this.eachLayer(function(layer) {
-                                // Check if it's a line (route path) or marker (waypoint)
-                                if (layer instanceof L.Polyline && !(layer instanceof L.Polygon)) {
-                                    // This is a route line
-                                    console.log('Found route line, styling it');
-                                    layer.setStyle({
-                                        color: '#FF6B35',
-                                        weight: 5,
-                                        opacity: 0.8,
-                                        dashArray: '10, 5'
-                                    });
-                                } else if (layer instanceof L.Marker) {
-                                    // This is a waypoint marker - hide them to avoid clutter
-                                    console.log('Hiding waypoint marker');
-                                    map.removeLayer(layer);
-                                } else if (layer.setStyle) {
-                                    // Other geometry types
-                                    console.log(`Styling other layer type: ${layer.constructor.name}`);
-                                    layer.setStyle({
-                                        color: '#FF6B35',
-                                        weight: 5,
-                                        opacity: 0.8
-                                    });
-                                }
-                            });
-                            
-                            // Move layer to back (under Santa marker and trail)
-                            this.bringToBack();
-                            
-                            console.log('Route styling complete');
-                        })
-                        .on('error', function(err) {
-                            console.error(`Error loading KML route: ${kmlFilename}`, err);
-                            console.error('Error details:', err.error);
-                        })
-                        .addTo(map);
-
-                    currentKmlFile = kmlFilename;
-                })
-                .catch(error => {
-                    console.error(`Failed to fetch KML file: ${kmlPath}`, error);
-                    console.error('Make sure the file exists in the /routes/ folder');
+            function render() {
+                nights.forEach(function(n) {
+                    var state = selectedId == null ? 'normal' : (n.id === selectedId ? 'selected' : 'faded');
+                    n.layer.setStyle(styleFor(n, state));
+                    if (state === 'selected') n.layer.bringToFront();
                 });
-        }
+                // Upcoming nights drawn above greyed past ones in the All view.
+                if (selectedId == null) nights.forEach(function(n) { if (!n.past) n.layer.bringToFront(); });
 
-        // Update tracking display
-        async function updateTracking() {
-            const data = await fetchTrackingData();
-            
-            console.log('Tracking data received:', data);
-            
-            if (!data) {
-                updateStatus('error', 'Connection Error');
-                return;
-            }
+                Array.prototype.forEach.call(pickerEl.children, function(chip) {
+                    var id = chip.dataset.id ? parseInt(chip.dataset.id, 10) : null;
+                    chip.setAttribute('aria-pressed', String(id === selectedId));
+                });
 
-            // Always load KML if routeVisible (even if tracking inactive)
-            if (data.routeVisible && data.kmlFile) {
-                console.log('Route visible, loading KML:', data.kmlFile);
-                loadKMLRoute(data.kmlFile);
-            } else if (!data.routeVisible) {
-                console.log('No route visible for today');
-                loadKMLRoute(null); // Remove KML
-            }
-
-            // If no schedule for today or tracking not enabled
-            if (!data.enabled) {
-                if (data.routeVisible) {
-                    updateStatus('inactive', 'Outside Tracking Hours - Route Visible');
+                if (selectedId == null) {
+                    var upcoming = nights.filter(function(n) { return !n.past; }).length;
+                    detailEl.innerHTML = '<strong>' + nights.length + ' night' + (nights.length === 1 ? '' : 's') + '</strong> on the map' +
+                        (upcoming < nights.length ? ' — ' + upcoming + ' still to come, past nights greyed out' : '') +
+                        '.<br><span class="muted">Tap a line or pick a night above to highlight it. Want exact times? <a href="index.html">Search for your street</a>.</span>';
                 } else {
-                    updateStatus('inactive', data.message || 'Tracking Inactive');
-                }
-                // Hide marker and trail when tracking inactive
-                if (santaMarker && map.hasLayer(santaMarker)) {
-                    map.removeLayer(santaMarker);
-                }
-                if (trailPolyline && map.hasLayer(trailPolyline)) {
-                    map.removeLayer(trailPolyline);
-                }
-                document.getElementById('trackingStats').style.display = 'none';
-                return;
-            }
-
-            // Check if vehicle data exists and is recent
-            if (!data.vehicle || !data.vehicle.latitude || !data.vehicle.longitude) {
-                updateStatus('inactive', 'No GPS Data Available');
-                if (santaMarker && map.hasLayer(santaMarker)) {
-                    map.removeLayer(santaMarker);
-                }
-                if (trailPolyline && map.hasLayer(trailPolyline)) {
-                    map.removeLayer(trailPolyline);
-                }
-                document.getElementById('trackingStats').style.display = 'none';
-                return;
-            }
-
-            const vehicle = data.vehicle;
-            
-            // Check if data is stale (more than 1 hour old)
-            const vehicleTimestamp = new Date(vehicle.timestamp);
-            const now = new Date();
-            const ageMinutes = (now - vehicleTimestamp) / 1000 / 60;
-            const isStale = ageMinutes > 60;
-            
-            console.log(`Vehicle data age: ${Math.round(ageMinutes)} minutes`);
-
-            if (isStale) {
-                updateStatus('inactive', `Data Offline (${Math.round(ageMinutes/60)}h old)`);
-                // Hide marker and trail if data too old
-                if (santaMarker && map.hasLayer(santaMarker)) {
-                    map.removeLayer(santaMarker);
-                }
-                if (trailPolyline && map.hasLayer(trailPolyline)) {
-                    map.removeLayer(trailPolyline);
-                }
-                document.getElementById('trackingStats').style.display = 'none';
-                return;
-            }
-
-            // Data is fresh and tracking is active
-            updateStatus('active', 'Live Tracking Active');
-            document.getElementById('trackingStats').style.display = 'grid';
-
-            const position = [vehicle.latitude, vehicle.longitude];
-            let isFirstPosition = false;
-
-            // Update Santa marker
-            if (santaMarker) {
-                const wasOnMap = map.hasLayer(santaMarker);
-                santaMarker.setLatLng(position);
-                
-                // Update popup content
-                const popupContent = `
-                    <div style="text-align: center; min-width: 200px;">
-                        <h3 style="margin: 0 0 10px 0; color: var(--santa-red);">🎅 Santa Sleigh</h3>
-                        <p style="margin: 5px 0;"><strong>Time:</strong> ${formatTime(vehicle.timestamp)}</p>
-                        <p style="margin: 5px 0;"><strong>Speed:</strong> ${Math.round(vehicle.speed)} mph</p>
-                        <p style="margin: 5px 0;"><strong>Location:</strong> ${vehicle.postcode}</p>
-                        <p style="margin: 5px 0;"><strong>Status:</strong> ${vehicle.status}</p>
-                        ${vehicle.street ? `<p style="margin: 5px 0; font-size: 0.9em;">${vehicle.street}</p>` : ''}
-                    </div>
-                `;
-                santaMarker.bindPopup(popupContent);
-                
-                if (!wasOnMap) {
-                    santaMarker.addTo(map);
-                    isFirstPosition = true;
+                    var n = nights.filter(function(x) { return x.id === selectedId; })[0];
+                    detailEl.innerHTML = '<strong>' + escapeHtml(n.route) + '</strong> — ' + escapeHtml(formatNight(n.date, true)) +
+                        (n.date === today ? ' <strong style="color:var(--santa-red)">(tonight!)</strong>' : '') +
+                        (n.past ? ' <span class="muted">(already visited)</span>' : '') +
+                        (n.distanceKm ? '<br><span class="muted">About ' + n.distanceKm + ' km. ' : '<br><span class="muted">') +
+                        'Want exact times? <a href="index.html">Search for your street</a>.</span>';
                 }
             }
 
-            // Update trail
-            addTrailPoint(position, vehicle.timestamp);
-
-            // Update stats display
-            updateStatsDisplay(vehicle);
-
-            // Auto-center on Santa on first position
-            if (isFirstPosition) {
-                console.log('First position detected - centering map on Santa');
-                map.setView(position, 15);
+            function select(id, fit) {
+                selectedId = id;
+                render();
+                if (!fit) return;
+                var bounds = id == null
+                    ? L.featureGroup(nights.map(function(n) { return n.layer; })).getBounds()
+                    : nights.filter(function(n) { return n.id === id; })[0].layer.getBounds();
+                if (bounds.isValid()) map.fitBounds(bounds, { padding: [24, 24] });
             }
-        }
 
-        // Add point to trail
-        function addTrailPoint(position, timestamp) {
-            const now = Date.now();
-            const pointTime = new Date(timestamp).getTime();
-
-            // Add new point
-            trailPoints.push({
-                position: position,
-                timestamp: pointTime
-            });
-
-            // Remove points older than 6 hours
-            trailPoints = trailPoints.filter(point => 
-                now - point.timestamp < TRAIL_DURATION
-            );
-
-            // Update polyline
-            const positions = trailPoints.map(point => point.position);
-            trailPolyline.setLatLngs(positions);
-            
-            if (!map.hasLayer(trailPolyline)) {
-                trailPolyline.addTo(map);
+            function addChip(label, id, n) {
+                var chip = document.createElement('button');
+                chip.type = 'button';
+                chip.className = 'night-chip' + (n && n.past ? ' past' : '');
+                if (id != null) chip.dataset.id = id;
+                if (n) {
+                    var dot = document.createElement('span');
+                    dot.className = 'dot';
+                    dot.style.background = n.colour;
+                    chip.appendChild(dot);
+                }
+                chip.appendChild(document.createTextNode(label));
+                if (n && (n.date === today || n.isNext)) {
+                    var tag = document.createElement('span');
+                    tag.className = 'tag';
+                    tag.textContent = n.date === today ? 'Tonight' : 'Next';
+                    chip.appendChild(tag);
+                }
+                if (n && n.past) chip.appendChild(document.createTextNode(' ✓'));
+                chip.onclick = function() { select(selectedId === id ? null : id, true); };
+                pickerEl.appendChild(chip);
+                return chip;
             }
-        }
 
-        // Update status indicator
-        function updateStatus(status, text) {
-            const statusElement = document.getElementById('trackingStatus');
-            const statusText = document.getElementById('statusText');
-            
-            statusElement.className = 'status-indicator ' + status;
-            statusText.textContent = text;
-        }
+            async function load() {
+                try {
+                    var res = await fetch('/.netlify/functions/get-public-routes');
+                    var data = await res.json();
+                    if (!res.ok) throw new Error(data.error || 'Could not load routes');
+                    nights = data.nights || [];
+                } catch (err) {
+                    console.error('Error loading routes:', err);
+                    detailEl.innerHTML = '<div class="routes-empty">Sorry, the route map couldn’t be loaded just now. Please try again in a moment.</div>';
+                    return;
+                }
 
-        // Update stats display
-        function updateStatsDisplay(vehicle) {
-            document.getElementById('lastUpdate').textContent = formatTime(vehicle.timestamp);
-            document.getElementById('speedDisplay').textContent = Math.round(vehicle.speed) + ' mph';
-            document.getElementById('postcodeDisplay').textContent = vehicle.postcode;
-            document.getElementById('eventDisplay').textContent = vehicle.status;
-        }
+                if (nights.length === 0) {
+                    pickerEl.hidden = true;
+                    detailEl.innerHTML = '<div class="routes-empty">🎄 This year’s route maps are coming soon — check back closer to December.</div>';
+                    return;
+                }
 
-        // Format timestamp
-        function formatTime(timestamp) {
-            const date = new Date(timestamp);
-            return date.toLocaleTimeString('en-GB', { 
-                hour: '2-digit', 
-                minute: '2-digit'
-            });
-        }
+                var season = nights[0].date.slice(0, 4);
+                introEl.textContent = 'Every night of Santa’s ' + season + ' tour around Salford.';
 
-        // Initialize on page load
-        document.addEventListener('DOMContentLoaded', () => {
-            initMap();
-        });
+                var colourIdx = 0, nextFound = false;
+                nights.forEach(function(n) {
+                    n.past = n.date < today;
+                    n.colour = COLOURS[colourIdx++ % COLOURS.length];
+                    if (!n.past && n.date !== today && !nextFound && !nights.some(function(x) { return x.date === today; })) {
+                        n.isNext = true;
+                        nextFound = true;
+                    }
+                    n.layer = L.polyline(n.points, styleFor(n, 'normal')).addTo(map);
+                    // Wider invisible line underneath makes thin routes easy to tap on a phone.
+                    n.hit = L.polyline(n.points, { color: '#000', opacity: 0, weight: 18 }).addTo(map);
+                    var popupHtml = '<div class="route-popup"><strong>' + escapeHtml(n.route) + '</strong><br>' +
+                        escapeHtml(formatNight(n.date, true)) + (n.past ? '<br><em>Already visited</em>' : '') + '</div>';
+                    [n.layer, n.hit].forEach(function(l) {
+                        l.bindPopup(popupHtml);
+                        l.on('click', function() { select(n.id, false); });
+                    });
+                });
+
+                addChip('All nights', null, null);
+                nights.forEach(function(n) { addChip(formatNight(n.date, false) + ' · ' + n.route, n.id, n); });
+
+                select(null, true);
+
+                // Start scrolled to the next/tonight chip on phones.
+                var tagEl = pickerEl.querySelector('.night-chip .tag');
+                if (tagEl) {
+                    var chipEl = tagEl.parentNode;
+                    pickerEl.scrollLeft = Math.max(0, chipEl.offsetLeft - pickerEl.offsetLeft - (pickerEl.clientWidth - chipEl.offsetWidth) / 2);
+                }
+            }
+
+            load();
+        })();
     </script>
-
-    <!-- Cookie Banner -->
-    <div id="cookieBanner" class="cookie-banner">
-        <div class="cookie-content">
-            <div class="cookie-text">
-                <strong>🍪 We use cookies</strong>
-                <p>This site uses cookies from Facebook and Google Maps to provide embedded content. We also use basic analytics to improve your experience. By clicking "Accept", you consent to these cookies.</p>
-            </div>
-            <div class="cookie-buttons">
-                <button id="cookieAccept" class="cookie-btn cookie-accept">Accept</button>
-                <button id="cookieDecline" class="cookie-btn cookie-decline">Decline</button>
-                <a href="privacy.html" class="cookie-link">Learn more</a>
-            </div>
-        </div>
-    </div>
-
-    <script>
-    // Cookie Banner Functionality
-    (function() {
-        'use strict';
-        
-        const COOKIE_NAME = 'santa_sleigh_cookie_consent';
-        const COOKIE_DURATION = 365; // days
-        
-        function getCookieConsent() {
-            const cookies = document.cookie.split(';');
-            for (let cookie of cookies) {
-                const [name, value] = cookie.trim().split('=');
-                if (name === COOKIE_NAME) {
-                    return value;
-                }
-            }
-            return null;
-        }
-        
-        function setCookieConsent(value) {
-            const date = new Date();
-            date.setTime(date.getTime() + (COOKIE_DURATION * 24 * 60 * 60 * 1000));
-            const expires = 'expires=' + date.toUTCString();
-            document.cookie = COOKIE_NAME + '=' + value + ';' + expires + ';path=/;SameSite=Lax';
-        }
-        
-        function showBanner() {
-            const banner = document.getElementById('cookieBanner');
-            if (banner) {
-                banner.classList.add('show');
-            }
-        }
-        
-        function hideBanner() {
-            const banner = document.getElementById('cookieBanner');
-            if (banner) {
-                banner.classList.remove('show');
-            }
-        }
-        
-        function acceptCookies() {
-            setCookieConsent('accepted');
-            hideBanner();
-            if (typeof FB === 'undefined' || typeof google === 'undefined') {
-                location.reload();
-            }
-        }
-        
-        function declineCookies() {
-            setCookieConsent('declined');
-            hideBanner();
-            const fbRoot = document.getElementById('fb-root');
-            if (fbRoot) fbRoot.innerHTML = '';
-            alert('Some features (Facebook updates, interactive map) may not work fully without cookies.');
-        }
-        
-        document.addEventListener('DOMContentLoaded', function() {
-            const consent = getCookieConsent();
-            
-            if (consent === null) {
-                showBanner();
-            } else if (consent === 'declined') {
-                const fbRoot = document.getElementById('fb-root');
-                if (fbRoot) fbRoot.innerHTML = '';
-            }
-            
-            const acceptBtn = document.getElementById('cookieAccept');
-            const declineBtn = document.getElementById('cookieDecline');
-            
-            if (acceptBtn) {
-                acceptBtn.addEventListener('click', acceptCookies);
-            }
-            
-            if (declineBtn) {
-                declineBtn.addEventListener('click', declineCookies);
-            }
-        });
-    })();
-    </script>
-    
-    <!-- Cloudflare Web Analytics -->
-    <script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "3b7106934eac4fcfa830d632dc201682"}'></script>
-    <!-- End Cloudflare Web Analytics -->
 </body>
 </html>

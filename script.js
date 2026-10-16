@@ -636,7 +636,7 @@ async function checkNearestStreet(query, gen) {
             const resultsArea = document.getElementById('resultsArea');
             if (!resultsArea) return;
             const ns = data.nearestStreet;
-            resultsArea.innerHTML = '<div class="no-results">😕 Sorry, we don\'t cover that street.<br>The nearest street we cover is <strong>' + escapeHtml(ns.street) + '</strong> — coming up on ' + formatDate(ns.date) + '.</div>';
+            resultsArea.innerHTML = '<div class="no-results">😕 Sorry, we don\'t cover that street.<br>The nearest street we cover is <strong>' + escapeHtml(ns.street) + '</strong> — coming up on ' + formatDate(ns.date) + (ns.timeRange ? ', roughly ' + escapeHtml(ns.timeRange) : '') + '.</div>';
         }
         // No nearby match: leave the existing "no matches found" message as-is.
     } catch (err) {
