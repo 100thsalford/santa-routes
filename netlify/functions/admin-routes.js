@@ -165,6 +165,34 @@ export default async (req, context) => {
         return ok();
       }
 
+      // Bulk save from the per-night "Save street changes" button in
+      // admin.html -- every edited row (seq/name/time) for one route_date
+      // in a single statement, scoped to that route_date.
+      case 'update-streets': {
+        const routeDateId = parseInt(body.routeDateId, 10);
+        if (!routeDateId) return badRequest('routeDateId is required');
+        if (!Array.isArray(body.streets) || body.streets.length === 0 || body.streets.length > 400) {
+          return badRequest('streets must be an array of 1-400 entries');
+        }
+        const rows = [];
+        for (const raw of body.streets) {
+          const id = parseInt(raw && raw.id, 10);
+          const name = String((raw && raw.name) || '').trim().slice(0, 200);
+          if (!id || !name) return badRequest('Each street needs an id and a name');
+          const seq = parseInt(raw.sequence, 10);
+          const timeRange = raw.timeRange != null ? String(raw.timeRange).trim().slice(0, 100) : '';
+          rows.push({ id, seq: Number.isFinite(seq) ? seq : 0, name, time_range: timeRange || null });
+        }
+        const updated = await db.sql`
+          UPDATE streets AS s
+          SET sequence = u.seq, name = u.name, time_range = u.time_range
+          FROM jsonb_to_recordset(${JSON.stringify(rows)}::jsonb) AS u(id int, seq int, name text, time_range text)
+          WHERE s.id = u.id AND s.route_date_id = ${routeDateId}
+          RETURNING s.id
+        `;
+        return ok({ streetsUpdated: updated.length });
+      }
+
       case 'delete-street': {
         const id = parseInt(body.id, 10);
         if (!id) return badRequest('Street id is required');
