@@ -139,6 +139,25 @@
         .field-notes { flex: 1; min-width: 12rem; box-sizing: border-box; }
         .route-map-status { color: var(--ink-soft); font-size: 0.9rem; }
 
+        /* One save for all of a night's street edits; sticks to the bottom
+           of the screen while a long list is being scrolled. */
+        .street-save-bar {
+            position: sticky;
+            bottom: 0.75rem;
+            z-index: 5;
+            display: flex;
+            justify-content: flex-end;
+            margin: -0.5rem 0 0.5rem;
+        }
+        .street-save-bar .admin-btn:disabled { opacity: 0.6; }
+        .street-save-bar .admin-btn.has-changes {
+            background: var(--santa-red);
+            box-shadow: var(--shadow-md);
+            font-weight: bold;
+        }
+        .street-save-bar .admin-btn.has-changes:hover { background: #8C2D25; }
+        table.admin-table tr.dirty td { background: #fff8e6; }
+
         .route-block, .date-block {
             border: 1px solid var(--border-subtle);
             border-radius: var(--radius-md);
@@ -1495,7 +1514,7 @@
                 var tbody = document.createElement('tbody');
 
                 date.streets.forEach(function(street) {
-                    tbody.appendChild(renderStreetRow(street));
+                    tbody.appendChild(renderStreetRow(street, date.id));
                 });
 
                 table.appendChild(tbody);
@@ -1503,6 +1522,19 @@
                 tableScroll.className = 'table-scroll';
                 tableScroll.appendChild(table);
                 block.appendChild(tableScroll);
+
+                if (date.streets.length > 0) {
+                    var saveBar = document.createElement('div');
+                    saveBar.className = 'street-save-bar';
+                    var saveStreetsBtn = document.createElement('button');
+                    saveStreetsBtn.type = 'button';
+                    saveStreetsBtn.className = 'admin-btn small';
+                    saveStreetsBtn.id = 'saveStreets-' + date.id;
+                    saveStreetsBtn.onclick = function() { saveStreetChanges(date.id); };
+                    saveBar.appendChild(saveStreetsBtn);
+                    block.appendChild(saveBar);
+                    updateStreetSaveButton(date.id, saveStreetsBtn);
+                }
 
                 var addForm = document.createElement('div');
                 addForm.className = 'add-row-form';
@@ -1538,48 +1570,97 @@
                 return block;
             }
 
-            function renderStreetRow(street) {
+            // Unsaved street edits (seq/name/time), keyed by street id. Kept
+            // outside the DOM so they survive the loadAll() re-render that
+            // any other save on this page triggers, and saved in one go per
+            // night by the "Save street changes" button (op 'update-streets').
+            var pendingStreetEdits = {};
+
+            function pendingCountForDate(routeDateId) {
+                return Object.keys(pendingStreetEdits).filter(function(id) {
+                    return pendingStreetEdits[id].routeDateId === routeDateId;
+                }).length;
+            }
+
+            function updateStreetSaveButton(routeDateId, btnEl) {
+                var btn = btnEl || document.getElementById('saveStreets-' + routeDateId);
+                if (!btn) return;
+                var n = pendingCountForDate(routeDateId);
+                btn.disabled = n === 0;
+                btn.classList.toggle('has-changes', n > 0);
+                btn.textContent = n === 0
+                    ? '\u2713 All street changes saved'
+                    : '\uD83D\uDCBE Save ' + n + ' street change' + (n === 1 ? '' : 's');
+            }
+
+            function renderStreetRow(street, routeDateId) {
                 var tr = document.createElement('tr');
+                tr.dataset.streetId = street.id;
+                var pending = pendingStreetEdits[street.id];
 
                 var seqTd = document.createElement('td');
                 var seqInput = document.createElement('input');
                 seqInput.type = 'number';
-                seqInput.value = street.sequence;
+                seqInput.value = pending ? pending.sequence : street.sequence;
+                seqInput.dataset.col = 'seq';
                 seqTd.appendChild(seqInput);
 
                 var nameTd = document.createElement('td');
                 var nameInput = document.createElement('input');
                 nameInput.type = 'text';
-                nameInput.value = street.name;
+                nameInput.value = pending ? pending.name : street.name;
+                nameInput.dataset.col = 'name';
                 nameTd.appendChild(nameInput);
 
                 var timeTd = document.createElement('td');
                 var timeInput = document.createElement('input');
                 timeInput.type = 'text';
-                timeInput.value = street.timeRange || '';
+                timeInput.placeholder = 'e.g. 1800-1830';
+                timeInput.value = pending ? pending.timeRange : (street.timeRange || '');
+                timeInput.dataset.col = 'time';
                 timeTd.appendChild(timeInput);
 
+                function trackChange() {
+                    var edit = {
+                        routeDateId: routeDateId,
+                        sequence: seqInput.value,
+                        name: nameInput.value,
+                        timeRange: timeInput.value
+                    };
+                    var changed = String(edit.sequence) !== String(street.sequence)
+                        || edit.name.trim() !== street.name
+                        || edit.timeRange.trim() !== (street.timeRange || '');
+                    if (changed) pendingStreetEdits[street.id] = edit;
+                    else delete pendingStreetEdits[street.id];
+                    tr.classList.toggle('dirty', changed);
+                    updateStreetSaveButton(routeDateId);
+                }
+                tr.classList.toggle('dirty', !!pending);
+
+                // Enter jumps to the same box on the next row, so a run of
+                // times can be typed straight down the list.
+                function onKey(e) {
+                    if (e.key !== 'Enter') return;
+                    e.preventDefault();
+                    var next = tr.nextElementSibling;
+                    var target = next && next.querySelector('input[data-col="' + e.target.dataset.col + '"]');
+                    if (target) { target.focus(); target.select(); }
+                    else { var btn = document.getElementById('saveStreets-' + routeDateId); if (btn) btn.focus(); }
+                }
+                [seqInput, nameInput, timeInput].forEach(function(input) {
+                    input.addEventListener('input', trackChange);
+                    input.addEventListener('keydown', onKey);
+                });
+
                 var actionsTd = document.createElement('td');
-                var saveBtn = document.createElement('button');
-                saveBtn.className = 'admin-btn small';
-                saveBtn.textContent = 'Save';
-                saveBtn.onclick = function() {
-                    runOp('/.netlify/functions/admin-routes', {
-                        op: 'update-street',
-                        id: street.id,
-                        sequence: seqInput.value || 0,
-                        name: nameInput.value.trim(),
-                        timeRange: timeInput.value.trim()
-                    }, 'routesStatus', 'Street saved.');
-                };
                 var delBtn = document.createElement('button');
                 delBtn.className = 'admin-btn small danger';
-                delBtn.style.marginLeft = '0.25rem';
-                delBtn.textContent = '✕';
+                delBtn.textContent = '\u2715';
+                delBtn.title = 'Delete this street';
                 delBtn.onclick = function() {
+                    delete pendingStreetEdits[street.id];
                     runOp('/.netlify/functions/admin-routes', { op: 'delete-street', id: street.id }, 'routesStatus', 'Street deleted.');
                 };
-                actionsTd.appendChild(saveBtn);
                 actionsTd.appendChild(delBtn);
 
                 tr.appendChild(seqTd);
@@ -1589,6 +1670,43 @@
 
                 return tr;
             }
+
+            async function saveStreetChanges(routeDateId) {
+                var ids = Object.keys(pendingStreetEdits).filter(function(id) {
+                    return pendingStreetEdits[id].routeDateId === routeDateId;
+                });
+                if (ids.length === 0) return;
+                var streets = ids.map(function(id) {
+                    var e = pendingStreetEdits[id];
+                    return { id: parseInt(id, 10), sequence: e.sequence || 0, name: e.name.trim(), timeRange: e.timeRange.trim() };
+                });
+                if (streets.some(function(st) { return !st.name; })) {
+                    showToast('Every street needs a name \u2014 use \u2715 to remove one instead.', 'error');
+                    return;
+                }
+                var btn = document.getElementById('saveStreets-' + routeDateId);
+                if (btn) { btn.disabled = true; btn.textContent = 'Saving\u2026'; }
+                var statusEl = document.getElementById('routesStatus');
+                try {
+                    await postOp('/.netlify/functions/admin-routes', { op: 'update-streets', routeDateId: routeDateId, streets: streets });
+                    ids.forEach(function(id) { delete pendingStreetEdits[id]; });
+                    showToast(streets.length + ' street change' + (streets.length === 1 ? '' : 's') + ' saved.', 'success');
+                    statusEl.textContent = '';
+                    await loadAll();
+                } catch (err) {
+                    console.error('Error saving street changes:', err);
+                    statusEl.textContent = "Couldn't save street changes: " + err.message;
+                    showToast("Couldn't save street changes: " + err.message, 'error');
+                    updateStreetSaveButton(routeDateId);
+                }
+            }
+
+            window.addEventListener('beforeunload', function(e) {
+                if (Object.keys(pendingStreetEdits).length > 0) {
+                    e.preventDefault();
+                    e.returnValue = '';
+                }
+            });
 
             function renameRoute(route) {
                 var name = prompt('Route name', route.name);
