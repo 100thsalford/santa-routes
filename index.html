@@ -334,10 +334,26 @@
     </div>
 
     <!-- Sighting Form Modal -->
+    <!-- All Routes Modal (opened by "View All Routes"; filled by
+         showAllRoutes() in script.js) -->
+    <div id="allRoutesModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>📋 All Routes</h2>
+                <button class="close-modal" id="closeModal" aria-label="Close">&times;</button>
+            </div>
+            <div id="allRoutesContent" class="modal-body">
+                <div class="loading">Loading all routes...</div>
+            </div>
+        </div>
+    </div>
+
     <div id="sightingModal" class="modal">
         <div class="modal-content">
-            <button class="modal-close" id="closeModal">&times;</button>
-            <h2 class="modal-title">📍 Report Santa Sighting</h2>
+            <div class="modal-header">
+                <h2>📍 Report Santa Sighting</h2>
+                <button class="close-modal" id="closeSightingModal" aria-label="Close">&times;</button>
+            </div>
             <div class="modal-body">
                 <form id="sightingForm">
                     <div class="form-group">
