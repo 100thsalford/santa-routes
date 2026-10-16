@@ -130,11 +130,12 @@ export default async (req, context) => {
     // 3. Find the nearest street we cover (from upcoming route_dates only).
     const [upcomingRows, geocodeRows] = await Promise.all([
       db.sql`
-        SELECT s.name, to_char(rd.event_date, 'YYYY-MM-DD') AS date, r.name AS route_name
+        SELECT s.name, s.time_range, to_char(rd.event_date, 'YYYY-MM-DD') AS date, r.name AS route_name
         FROM streets s
         JOIN route_dates rd ON rd.id = s.route_date_id
         JOIN routes r ON r.id = rd.route_id
         WHERE rd.event_date >= CURRENT_DATE
+        ORDER BY rd.event_date, s.sequence
       `,
       db.sql`SELECT street_name, lat, lng FROM street_geocodes`
     ]);
@@ -147,14 +148,15 @@ export default async (req, context) => {
     // Collapse to one entry per physical street (a street can appear more
     // than once in the upcoming window -- multiple time segments on the
     // same night, or repeated across different dates) keeping the
-    // soonest upcoming date for each.
+    // soonest upcoming date for each, and that night's first time slot
+    // for it (rows arrive ordered by date then sequence).
     const streetsByKey = new Map();
     for (const row of upcomingRows) {
       const cleaned = cleanStreetName(row.name);
       const key = cleaned.toLowerCase();
       const existing = streetsByKey.get(key);
       if (!existing || row.date < existing.date) {
-        streetsByKey.set(key, { street: cleaned, date: row.date, route: row.route_name });
+        streetsByKey.set(key, { street: cleaned, date: row.date, route: row.route_name, timeRange: (row.time_range || '').trim() || null });
       }
     }
 
@@ -168,7 +170,7 @@ export default async (req, context) => {
       const distance = haversineMiles(point.lat, point.lng, geo.lat, geo.lng);
       if (distance < nearestDistance) {
         nearestDistance = distance;
-        nearest = { street: info.street, date: info.date, route: info.route, distanceMiles: distance };
+        nearest = { street: info.street, date: info.date, route: info.route, timeRange: info.timeRange, distanceMiles: distance };
       }
     }
 
@@ -182,6 +184,7 @@ export default async (req, context) => {
         street: nearest.street,
         date: nearest.date,
         route: nearest.route,
+        timeRange: nearest.timeRange,
         distanceMiles: Math.round(nearest.distanceMiles * 100) / 100
       }
     }), { status: 200, headers });
