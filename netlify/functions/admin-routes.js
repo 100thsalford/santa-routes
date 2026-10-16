@@ -96,10 +96,18 @@ export default async (req, context) => {
         const gatheringTime = body.gatheringTime != null && String(body.gatheringTime).trim() !== ''
           ? String(body.gatheringTime).trim()
           : null;
+        // Optional per-night live-tracking cut-off ("HH:MM"); blank = season default.
+        const trackingEndTime = body.trackingEndTime != null && String(body.trackingEndTime).trim() !== ''
+          ? String(body.trackingEndTime).trim()
+          : null;
+        if (trackingEndTime && !/^([01]\d|2[0-3]):[0-5]\d$/.test(trackingEndTime)) {
+          return badRequest('Tracking end time must be a 24hr time like 21:30');
+        }
         await db.sql`
           UPDATE route_dates
           SET event_date = ${eventDate}, amount_collected = ${amountCollected}, volunteer_capacity = ${volunteerCapacity},
-              what3words = ${what3words}, notes = ${notes}, gathering_time = ${gatheringTime}
+              what3words = ${what3words}, notes = ${notes}, gathering_time = ${gatheringTime},
+              tracking_end_time = ${trackingEndTime}
           WHERE id = ${id}
         `;
         return ok();

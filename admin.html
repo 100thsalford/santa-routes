@@ -450,6 +450,27 @@
             letter-spacing: 0.03em;
         }
 
+        .field-tracking-end { padding: 0.35rem 0.4rem; border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); font: inherit; font-size: 0.9rem; }
+        .tracking-end-label { display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.85rem; color: var(--ink-soft); white-space: nowrap; }
+
+        .tracking-panel {
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+            padding: 0.85rem 1rem;
+            margin-bottom: 1rem;
+            background: var(--surface);
+        }
+        .tracking-panel-head { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap; }
+        .tracking-panel-title { font-weight: bold; color: var(--santa-green); }
+        .tracking-pill { font-size: 0.8rem; font-weight: 600; padding: 0.15rem 0.6rem; border-radius: 999px; background: #eee; color: #555; }
+        .tracking-pill.live { background: #fdecea; color: #c62828; }
+        .tracking-pill.stopped { background: #fff4e0; color: #8a5a00; }
+        .tracking-panel-detail { margin: 0.4rem 0 0; font-size: 0.9rem; color: var(--ink-soft); }
+        .tracking-panel-detail:empty { display: none; }
+        .tracking-panel-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.6rem; }
+        .tracking-panel-actions button[hidden] { display: none; }
+        .tracking-panel-actions:not(:has(button:not([hidden]))) { display: none; }
+
         .dashboard-section-title {
             font-weight: bold;
             font-size: 0.85rem;
@@ -741,6 +762,17 @@
                  overview page is where they live -- Phase 9 restructure,
                  replacing the old flat 5-tab layout) -->
             <div class="admin-card" id="tab-dashboard">
+                <div class="tracking-panel" id="trackingPanel">
+                    <div class="tracking-panel-head">
+                        <span class="tracking-panel-title">📡 Live tracking</span>
+                        <span class="tracking-pill" id="trackingPill">Checking&hellip;</span>
+                    </div>
+                    <p class="tracking-panel-detail" id="trackingDetail"></p>
+                    <div class="tracking-panel-actions">
+                        <button type="button" class="admin-btn small danger" id="stopTrackingBtn" hidden>⛔ Stop live tracking now</button>
+                        <button type="button" class="admin-btn small" id="resumeTrackingBtn" hidden>Resume live tracking tonight</button>
+                    </div>
+                </div>
                 <div class="dashboard-stats" id="dashboardStats"></div>
 
                 <div class="dashboard-section-title">⚙️ Season Settings</div>
@@ -755,12 +787,20 @@
                         <input type="number" id="seasonTrailDays" min="0">
                     </div>
                     <div>
-                        <label for="sightingsWindowStart">Sightings window start (24hr, e.g. 17:00)</label>
+                        <label for="sightingsWindowStart">Sightings window start (24hr, e.g. 17:00) &mdash; when the public can report sightings</label>
                         <input type="text" id="sightingsWindowStart" placeholder="17:00">
                     </div>
                     <div>
                         <label for="sightingsWindowEnd">Sightings window end (24hr, e.g. 22:00)</label>
                         <input type="text" id="sightingsWindowEnd" placeholder="22:00">
+                    </div>
+                    <div>
+                        <label for="trackingWindowStart">Live tracking starts (24hr) &mdash; when the sleigh's live position starts showing</label>
+                        <input type="text" id="trackingWindowStart" placeholder="Blank = same as sightings start">
+                    </div>
+                    <div>
+                        <label for="trackingWindowEnd">Live tracking ends (24hr) &mdash; default for every night; set a different end on a route night if needed</label>
+                        <input type="text" id="trackingWindowEnd" placeholder="Blank = same as sightings end">
                     </div>
                     <div>
                         <label for="riskAssessmentText">Safety guidance shown to volunteers (risk assessment acknowledgment)</label>
@@ -943,6 +983,7 @@
                 }
                 loadSearchActivity();
                 loadGeocodeStatus();
+                loadTrackingStatus();
             }
 
             // ---- Street geocoding (for the "nearest covered street"
@@ -1398,6 +1439,18 @@
                 gatheringTimeInput.value = date.gatheringTime || '';
                 detailsRow.appendChild(gatheringTimeInput);
 
+                var trackingEndInput = document.createElement('input');
+                trackingEndInput.type = 'time';
+                trackingEndInput.className = 'field-tracking-end';
+                trackingEndInput.title = "Live tracking ends (optional) -- stops showing the sleigh's position at this time tonight. Blank = the season default in Season Settings.";
+                trackingEndInput.setAttribute('aria-label', 'Live tracking ends (optional)');
+                trackingEndInput.value = date.trackingEndTime || '';
+                var trackingEndLabel = document.createElement('label');
+                trackingEndLabel.className = 'tracking-end-label';
+                trackingEndLabel.appendChild(document.createTextNode('📡 Tracking ends '));
+                trackingEndLabel.appendChild(trackingEndInput);
+                detailsRow.appendChild(trackingEndLabel);
+
                 var notesInput = document.createElement('input');
                 notesInput.type = 'text';
                 notesInput.placeholder = 'Notes for volunteers (optional)';
@@ -1414,12 +1467,12 @@
                 var saveDateBtn = document.createElement('button');
                 saveDateBtn.className = 'admin-btn small';
                 saveDateBtn.textContent = '💾 Save Night Details';
-                saveDateBtn.title = 'Saves the date, amount collected, volunteer capacity, what3words, gathering time and notes above';
+                saveDateBtn.title = 'Saves the date, amount collected, volunteer capacity, what3words, gathering time, tracking end and notes above';
                 saveDateBtn.onclick = function() {
                     runOp('/.netlify/functions/admin-routes', {
                         op: 'update-date', id: date.id, eventDate: dateInput.value, amountCollected: amountInput.value,
                         volunteerCapacity: capacityInput.value, what3words: w3wInput.value, notes: notesInput.value,
-                        gatheringTime: gatheringTimeInput.value
+                        gatheringTime: gatheringTimeInput.value, trackingEndTime: trackingEndInput.value
                     }, 'routesStatus', 'Night details saved.');
                 };
                 detailsRow.appendChild(saveDateBtn);
@@ -1742,6 +1795,85 @@
 
             document.getElementById('geocodeStreetsBtn').addEventListener('click', runGeocodeStreets);
 
+            // ---- Live tracking status + kill switch (Dashboard) ----
+            // State comes from the public get-site-status.js (same
+            // trackingWindow() logic get-tracking-data.js enforces), so
+            // what this panel says is what the public tracking page does.
+
+            async function loadTrackingStatus() {
+                var pill = document.getElementById('trackingPill');
+                var detail = document.getElementById('trackingDetail');
+                var stopBtn = document.getElementById('stopTrackingBtn');
+                var resumeBtn = document.getElementById('resumeTrackingBtn');
+                try {
+                    var res = await fetch('/.netlify/functions/get-site-status?t=' + Date.now(), { cache: 'no-store' });
+                    var data = await res.json();
+                    var t = data.tracking || {};
+                    pill.className = 'tracking-pill';
+                    stopBtn.hidden = true;
+                    resumeBtn.hidden = true;
+                    if (t.state === 'active') {
+                        pill.textContent = '● Live now';
+                        pill.classList.add('live');
+                        detail.textContent = 'The sleigh\u2019s position is public until ' + t.windowEnd + ' tonight.';
+                        stopBtn.hidden = false;
+                    } else if (t.state === 'stopped') {
+                        pill.textContent = 'Stopped for tonight';
+                        pill.classList.add('stopped');
+                        detail.textContent = 'No position or trail is being shown. Tracking comes back on automatically for the next route night.';
+                        resumeBtn.hidden = false;
+                    } else if (t.state === 'before-window') {
+                        pill.textContent = 'Starts ' + t.windowStart;
+                        detail.textContent = 'Tonight is a route night \u2014 live from ' + t.windowStart + ' to ' + t.windowEnd + '.';
+                        stopBtn.hidden = false;
+                        stopBtn.textContent = '⛔ Don\u2019t track tonight';
+                    } else if (t.state === 'after-window') {
+                        pill.textContent = 'Finished';
+                        detail.textContent = 'Tonight\u2019s tracking ended at ' + t.windowEnd + '. Nothing is being shown.';
+                    } else if (t.state === 'not-a-route-day') {
+                        pill.textContent = 'Off';
+                        detail.textContent = 'Not a route night.';
+                    } else {
+                        pill.textContent = 'Unknown';
+                        detail.textContent = 'Couldn\u2019t check the tracking status.';
+                    }
+                    if (t.state === 'active') stopBtn.textContent = '⛔ Stop live tracking now';
+                } catch (err) {
+                    console.error('Error loading tracking status:', err);
+                    pill.textContent = 'Unknown';
+                    detail.textContent = 'Couldn\u2019t check the tracking status.';
+                }
+            }
+
+            document.getElementById('stopTrackingBtn').addEventListener('click', async function() {
+                if (!confirm('Stop showing the sleigh\u2019s live location for the rest of tonight?\n\nIt will switch back on automatically for the next route night.')) return;
+                this.disabled = true;
+                try {
+                    await postOp('/.netlify/functions/admin-settings', { op: 'stop-tracking' });
+                    showToast('Live tracking stopped for tonight.', 'success');
+                } catch (err) {
+                    showToast("Couldn't stop tracking: " + err.message, 'error');
+                }
+                this.disabled = false;
+                loadTrackingStatus();
+            });
+
+            document.getElementById('resumeTrackingBtn').addEventListener('click', async function() {
+                this.disabled = true;
+                try {
+                    await postOp('/.netlify/functions/admin-settings', { op: 'resume-tracking' });
+                    showToast('Live tracking resumed for tonight.', 'success');
+                } catch (err) {
+                    showToast("Couldn't resume tracking: " + err.message, 'error');
+                }
+                this.disabled = false;
+                loadTrackingStatus();
+            });
+
+            setInterval(function() {
+                if (adminData) loadTrackingStatus();
+            }, 60000);
+
             // ---- Season Settings ----
 
             function renderSettings() {
@@ -1752,6 +1884,8 @@
                 document.getElementById('seasonTrailDays').value = adminData.settings.season_trail_days || '';
                 document.getElementById('sightingsWindowStart').value = adminData.settings.sightings_window_start || '';
                 document.getElementById('sightingsWindowEnd').value = adminData.settings.sightings_window_end || '';
+                document.getElementById('trackingWindowStart').value = adminData.settings.tracking_window_start || '';
+                document.getElementById('trackingWindowEnd').value = adminData.settings.tracking_window_end || '';
                 document.getElementById('riskAssessmentText').value = adminData.settings.risk_assessment_text || '';
                 document.getElementById('riskAssessmentUrl').value = adminData.settings.risk_assessment_url || '';
                 document.getElementById('trutrakAssetRegistration').value = adminData.settings.trutrak_asset_registration || '';
@@ -1764,6 +1898,8 @@
                     season_trail_days: document.getElementById('seasonTrailDays').value,
                     sightings_window_start: document.getElementById('sightingsWindowStart').value,
                     sightings_window_end: document.getElementById('sightingsWindowEnd').value,
+                    tracking_window_start: document.getElementById('trackingWindowStart').value,
+                    tracking_window_end: document.getElementById('trackingWindowEnd').value,
                     risk_assessment_text: document.getElementById('riskAssessmentText').value,
                     risk_assessment_url: document.getElementById('riskAssessmentUrl').value,
                     trutrak_asset_registration: document.getElementById('trutrakAssetRegistration').value

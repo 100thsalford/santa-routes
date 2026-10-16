@@ -16,8 +16,19 @@ const ALLOWED_KEYS = [
   'sightings_window_end',
   'risk_assessment_text',
   'risk_assessment_url',
-  'trutrak_asset_registration'
+  'trutrak_asset_registration',
+  'tracking_window_start',
+  'tracking_window_end'
 ];
+
+const TIME_KEYS = ['sightings_window_start', 'sightings_window_end', 'tracking_window_start', 'tracking_window_end'];
+const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
+
+function londonToday() {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Europe/London', year: 'numeric', month: '2-digit', day: '2-digit'
+  }).format(new Date());
+}
 
 function requireAdmin(user) {
   return !!(user && user.roles && user.roles.includes('admin'));
@@ -36,6 +47,25 @@ export default async (req, context) => {
 
     const body = await req.json();
     const db = getDatabase();
+
+    // Live-tracking kill switch: "stop" records today's (London) date --
+    // get-tracking-data.js / get-site-status.js treat tracking as off for
+    // the rest of that date, so it comes back by itself on the next route
+    // night. "resume" clears it (e.g. pressed by mistake).
+    if (body.op === 'stop-tracking' || body.op === 'resume-tracking') {
+      const value = body.op === 'stop-tracking' ? londonToday() : '';
+      await db.sql`
+        INSERT INTO settings (key, value, updated_at) VALUES ('tracking_stopped_date', ${value}, NOW())
+        ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = NOW()
+      `;
+      return new Response(JSON.stringify({ success: true, trackingStoppedDate: value }), { status: 200, headers });
+    }
+
+    for (const key of TIME_KEYS) {
+      if (body[key] !== undefined && String(body[key]).trim() !== '' && !TIME_RE.test(String(body[key]).trim())) {
+        return new Response(JSON.stringify({ error: key.replace(/_/g, ' ') + ' must be a 24hr time like 21:30' }), { status: 400, headers });
+      }
+    }
 
     for (const key of ALLOWED_KEYS) {
       if (body[key] === undefined) continue;
