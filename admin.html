@@ -2374,9 +2374,16 @@
             // Nothing saves until the admin clicks Save in the preview
             // (op 'import-streets' in admin-routes.js).
 
+            // Public Overpass servers, tried in order. A server that blocks
+            // browser requests (no CORS header in its reply -- seen from
+            // overpass-api.de on 2026-10-16) fails in well under a second,
+            // so falling through to the next costs almost nothing. maps.mail.ru
+            // is slower (~15s) but answered when the others didn't.
             var OVERPASS_ENDPOINTS = [
                 'https://overpass-api.de/api/interpreter',
-                'https://overpass.private.coffee/api/interpreter'
+                'https://maps.mail.ru/osm/tools/overpass/api/interpreter',
+                'https://overpass.private.coffee/api/interpreter',
+                'https://overpass.kumi.systems/api/interpreter'
             ];
             var IMPORT_SAMPLE_M = 8;        // spacing of points walked along the route
             var IMPORT_MATCH_M = 18;        // max distance from the line to a road
@@ -2448,14 +2455,40 @@
                 var xy = points.map(function(p) { return project(p[0], p[1]); });
                 var tol = 4, kept = simplifyLine(xy, tol);
                 while (kept.length > 450 && tol < 40) { tol *= 1.6; kept = simplifyLine(xy, tol); }
-                var coords = kept.map(function(i) { return points[i][0].toFixed(6) + ',' + points[i][1].toFixed(6); }).join(',');
                 var radius = Math.round(IMPORT_MATCH_M + 7 + tol);
+                var keptPoints = kept.map(function(i) { return [points[i][0], points[i][1]]; });
+
+                function usableWays(elements) {
+                    return (elements || []).filter(function(el) {
+                        return el.type === 'way' && el.tags && el.tags.name && el.geometry && el.geometry.length > 1
+                            && !IMPORT_SKIP_HIGHWAY.test(el.tags.highway || '');
+                    });
+                }
+
+                // 1. Our own server (admin-overpass.js) -- not affected by
+                //    browser CORS rules, which is what usually breaks this.
+                var lastErr = null;
+                try {
+                    var proxyRes = await authedFetch('/.netlify/functions/admin-overpass', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ coords: keptPoints, radius: radius })
+                    });
+                    var proxyData = await proxyRes.json();
+                    if (!proxyRes.ok) throw new Error(proxyData.error || 'Lookup failed');
+                    return usableWays(proxyData.elements);
+                } catch (err) {
+                    console.warn('Server-side OpenStreetMap lookup failed, trying from the browser:', err);
+                    lastErr = err;
+                }
+
+                // 2. Public Overpass servers directly from the browser.
+                var coords = keptPoints.map(function(p) { return p[0].toFixed(6) + ',' + p[1].toFixed(6); }).join(',');
                 var query = '[out:json][timeout:90];way(around:' + radius + ',' + coords + ')["highway"]["name"];out tags geom;';
 
-                var lastErr = null;
                 for (var e = 0; e < OVERPASS_ENDPOINTS.length; e++) {
                     var ctrl = new AbortController();
-                    var timer = setTimeout(function() { ctrl.abort(); }, 100000);
+                    var timer = setTimeout(function() { ctrl.abort(); }, 60000);
                     try {
                         var res = await fetch(OVERPASS_ENDPOINTS[e], {
                             method: 'POST',
@@ -2465,10 +2498,7 @@
                         });
                         if (!res.ok) throw new Error('OpenStreetMap lookup returned ' + res.status);
                         var data = await res.json();
-                        return (data.elements || []).filter(function(el) {
-                            return el.type === 'way' && el.tags && el.tags.name && el.geometry && el.geometry.length > 1
-                                && !IMPORT_SKIP_HIGHWAY.test(el.tags.highway || '');
-                        });
+                        return usableWays(data.elements);
                     } catch (err) {
                         lastErr = err.name === 'AbortError' ? new Error('OpenStreetMap lookup timed out') : err;
                     } finally {
@@ -2647,7 +2677,15 @@
                     if (streetImportState !== state) return;
 
                     statusEl.textContent = 'Looking up streets along the route on OpenStreetMap… (can take up to a minute)';
-                    var ways = await fetchRoadsAlongTrack(data.track.points);
+                    // If every map server fails, still build what we can from
+                    // the GPX turn-by-turn directions rather than nothing.
+                    var ways = [];
+                    try {
+                        ways = await fetchRoadsAlongTrack(data.track.points);
+                    } catch (mapErr) {
+                        console.warn('OpenStreetMap lookup failed, using GPX directions only:', mapErr);
+                        state.mapFailed = true;
+                    }
                     if (streetImportState !== state) return;
 
                     state.list = deriveStreetList(data.track, ways);
@@ -2666,7 +2704,11 @@
                 var bodyEl = document.getElementById('streetImportBody');
                 var footerEl = document.getElementById('streetImportFooter');
                 var repeats = state.list.filter(function(e) { return e.repeat; }).length;
-                statusEl.textContent = 'Found ' + state.list.length + ' streets in route order' +
+                statusEl.classList.toggle('error', !!state.mapFailed);
+                statusEl.textContent = (state.mapFailed
+                    ? '\u26A0\uFE0F The OpenStreetMap lookup isn\u2019t responding right now, so this list only has streets named in the GPX directions \u2014 streets joined without a turn will be missing. Close and try again later for the full list. '
+                    : '') +
+                    'Found ' + state.list.length + ' streets in route order' +
                     (repeats ? ' (' + repeats + ' repeat visit' + (repeats === 1 ? '' : 's') + ' unticked)' : '') +
                     '. Untick anything that shouldn’t be listed, fix names, then save. Times stay blank for you to add afterwards.';
 
