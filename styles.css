@@ -1330,3 +1330,54 @@ body {
 @media (prefers-reduced-motion: reduce) {
     .header, .header p, .donate-btn { transition: none; }
 }
+
+/* ---- Special-event flag chips (volunteer portal + admin) ----
+   Rendered by event-flags.js. Colour styles are admin-picked per flag:
+   neutral, amber, city (Man City sky blue) and united (Man Utd red). */
+.event-flags {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+    vertical-align: middle;
+    margin-left: 0.35rem;
+}
+.event-flag {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.2rem;
+    font: inherit;
+    font-size: 0.75rem;
+    font-weight: bold;
+    line-height: 1.2;
+    padding: 0.2rem 0.55rem;
+    border-radius: 999px;
+    border: 1px solid transparent;
+    white-space: nowrap;
+    cursor: pointer;
+    background: #eef0f2;
+    color: #3d434a;
+}
+.event-flag:focus-visible { outline: 2px solid var(--santa-green); outline-offset: 2px; }
+.event-flag.amber  { background: #fff4dc; color: #7a4f00; border-color: #f0d08a; }
+.event-flag.city   { background: #6cabdd; color: #1c2c5b; border-color: #5a9ccf; }
+.event-flag.united { background: #da291c; color: #fff; border-color: #c2241a; }
+.event-flag.is-off { background: #fff; color: #8a9096; border: 1px dashed #c5cad0; }
+
+.event-flag-popover {
+    position: absolute;
+    z-index: 1000;
+    max-width: min(260px, calc(100vw - 32px));
+    background: #1f2429;
+    color: #fff;
+    font-size: 0.85rem;
+    line-height: 1.35;
+    padding: 0.5rem 0.7rem;
+    border-radius: 8px;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
+}
+.event-flag-popover[hidden] { display: none; }
+
+.shift-detail.shift-flags-detail {
+    font-weight: bold;
+    color: var(--text-dark);
+}

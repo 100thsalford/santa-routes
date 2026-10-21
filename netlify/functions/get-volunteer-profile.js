@@ -84,6 +84,22 @@ export default async (req, context) => {
       ORDER BY rd.event_date
     `;
 
+    // Special-event flags on this volunteer's nights.
+    const flagRows = await db.sql`
+      SELECT rdf.route_date_id, f.emoji, f.label, f.description, f.style
+      FROM route_date_flags rdf
+      JOIN event_flags f ON f.id = rdf.flag_id
+      JOIN shift_assignments sa ON sa.route_date_id = rdf.route_date_id
+      WHERE sa.volunteer_id = ${profile.id}
+      ORDER BY f.display_order, f.id
+    `;
+    const flagsByDate = {};
+    for (const f of flagRows) {
+      (flagsByDate[f.route_date_id] = flagsByDate[f.route_date_id] || []).push({
+        emoji: f.emoji || '', label: f.label, description: f.description || '', style: f.style
+      });
+    }
+
     const shifts = shiftRows.map((s) => ({
       routeDateId: s.route_date_id,
       routeName: s.route_name,
@@ -93,7 +109,8 @@ export default async (req, context) => {
       notes: s.notes,
       gatheringTime: s.gathering_time,
       hasRouteMap: !!s.route_map_filename,
-      hasRouteTrack: !!s.has_route_track
+      hasRouteTrack: !!s.has_route_track,
+      flags: flagsByDate[s.route_date_id] || []
     }));
 
     return new Response(JSON.stringify({

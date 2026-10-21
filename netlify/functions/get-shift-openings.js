@@ -103,6 +103,24 @@ export default async (req, context) => {
         r.full_name || (r.email ? String(r.email).split('@')[0] : null);
     }
 
+    // Special-event flags (e.g. "⏳ Long", "⚽ 8pm — City Home 8pm") --
+    // only sent to logged-in volunteers (volunteer portal only, not public).
+    const flagsByDate = {};
+    if (user) {
+      const flagRows = await db.sql`
+        SELECT rdf.route_date_id, f.emoji, f.label, f.description, f.style
+        FROM route_date_flags rdf
+        JOIN event_flags f ON f.id = rdf.flag_id
+        WHERE rdf.route_date_id IN (SELECT id FROM route_dates WHERE event_date >= ${todayDate})
+        ORDER BY f.display_order, f.id
+      `;
+      for (const f of flagRows) {
+        (flagsByDate[f.route_date_id] = flagsByDate[f.route_date_id] || []).push({
+          emoji: f.emoji || '', label: f.label, description: f.description || '', style: f.style
+        });
+      }
+    }
+
     const shifts = rows.map((r) => {
       const capacity = r.volunteer_capacity != null ? Number(r.volunteer_capacity) : null;
       const signupCount = Number(r.signup_count);
@@ -120,7 +138,8 @@ export default async (req, context) => {
         hasRouteMap: !!r.route_map_filename,
         hasRouteTrack: !!r.has_route_track,
         signupNames: signupsByDate[r.id] || null,
-        roles: rolesByDate[r.id] || null
+        roles: rolesByDate[r.id] || null,
+        flags: flagsByDate[r.id] || []
       };
     });
 

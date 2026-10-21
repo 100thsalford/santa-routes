@@ -25,7 +25,7 @@ export default async (req, context) => {
 
     const db = getDatabase();
 
-    const [routeRows, dateRows, streetRows, settingsRows, volunteerRows, assignmentRows, roleRows, inviteRows] = await Promise.all([
+    const [routeRows, dateRows, streetRows, settingsRows, volunteerRows, assignmentRows, roleRows, inviteRows, flagRows, dateFlagRows] = await Promise.all([
       db.sql`SELECT id, name, display_order, internal_name FROM routes ORDER BY display_order NULLS LAST, name`,
       db.sql`SELECT id, route_id, to_char(event_date, 'YYYY-MM-DD') AS event_date, amount_collected, volunteer_capacity, what3words, notes, gathering_time, tracking_end_time, route_map_filename, route_map_content_type, route_track IS NOT NULL AS has_route_track, jsonb_array_length(route_track->'directions') AS route_track_turns, route_track->>'distanceKm' AS route_track_distance_km FROM route_dates ORDER BY event_date`,
       db.sql`SELECT id, route_date_id, sequence, name, time_range, is_partial FROM streets ORDER BY route_date_id, sequence`,
@@ -42,8 +42,20 @@ export default async (req, context) => {
       db.sql`SELECT route_date_id, role, volunteer_id FROM event_role_assignments`,
       // Branded invites not yet used (or cancelled) -- shown under the
       // Volunteers tab's invite form with Resend/Cancel.
-      db.sql`SELECT id, email, full_name, created_at, expires_at, expires_at < NOW() AS expired FROM volunteer_invites WHERE used_at IS NULL AND cancelled_at IS NULL ORDER BY created_at DESC`
+      db.sql`SELECT id, email, full_name, created_at, expires_at, expires_at < NOW() AS expired FROM volunteer_invites WHERE used_at IS NULL AND cancelled_at IS NULL ORDER BY created_at DESC`,
+      // Special-event flag types (admin-managed) and which nights have them.
+      db.sql`SELECT id, emoji, label, description, style, display_order FROM event_flags ORDER BY display_order, id`,
+      db.sql`SELECT route_date_id, flag_id FROM route_date_flags`
     ]);
+
+    const flagIdsByDate = {};
+    for (const f of dateFlagRows) {
+      (flagIdsByDate[f.route_date_id] = flagIdsByDate[f.route_date_id] || []).push(f.flag_id);
+    }
+    const eventFlags = flagRows.map((f) => ({
+      id: f.id, emoji: f.emoji || '', label: f.label, description: f.description || '',
+      style: f.style, displayOrder: f.display_order
+    }));
 
     const signupCountByDate = {};
     const signupsByDate = {};
@@ -96,6 +108,7 @@ export default async (req, context) => {
         notes: d.notes,
         gatheringTime: d.gathering_time,
         trackingEndTime: d.tracking_end_time,
+        flagIds: flagIdsByDate[d.id] || [],
         routeMapFilename: d.route_map_filename,
         routeMapContentType: d.route_map_content_type,
         hasRouteTrack: !!d.has_route_track,
@@ -159,7 +172,7 @@ export default async (req, context) => {
       id: i.id, email: i.email, fullName: i.full_name, createdAt: i.created_at, expiresAt: i.expires_at, expired: !!i.expired
     }));
 
-    return new Response(JSON.stringify({ routes, settings, volunteers, pendingVolunteers, rejectedVolunteers, invites, years }), { status: 200, headers });
+    return new Response(JSON.stringify({ routes, settings, eventFlags, volunteers, pendingVolunteers, rejectedVolunteers, invites, years }), { status: 200, headers });
   } catch (error) {
     console.error('Error fetching admin data:', error);
     return new Response(JSON.stringify({ error: error.message }), { status: 500, headers });

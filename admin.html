@@ -6,7 +6,7 @@
     <meta name="robots" content="noindex">
     <meta name="description" content="Admin screens for Santa Super Sleigh Salford routes, dates, settings and volunteer shifts.">
     <title>Admin | Santa Super Sleigh Salford</title>
-    <link rel="stylesheet" href="styles.css?v=20260912a">
+    <link rel="stylesheet" href="styles.css?v=20261021b">
     <style>
         .admin-card {
             background: var(--surface);
@@ -582,6 +582,28 @@
             font-family: inherit;
         }
 
+        /* Special-event flags: per-night toggle chips + the flag-type editor */
+        .date-flags-row {
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+            flex-wrap: wrap;
+            margin: 0.5rem 0;
+        }
+        .date-flags-row .date-flags-label { font-size: 0.75rem; color: var(--ink-soft); margin-right: 0.15rem; }
+        .date-flags-row .event-flag:disabled { opacity: 0.5; cursor: wait; }
+        .flag-types-details { margin-bottom: 1rem; border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 0.6rem 1rem; }
+        .flag-types-details summary { cursor: pointer; font-weight: bold; }
+        .flag-types-hint { font-size: 0.85rem; color: var(--ink-soft); margin: 0.5rem 0; }
+        .flag-type-row { display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; padding: 0.45rem 0; border-top: 1px solid var(--border-subtle); }
+        .flag-type-row input, .flag-type-row select { padding: 0.3rem 0.4rem; border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); font: inherit; font-size: 0.85rem; box-sizing: border-box; }
+        .flag-type-row .ft-emoji { width: 3.2rem; text-align: center; }
+        .flag-type-row .ft-label { width: 6.5rem; }
+        .flag-type-row .ft-desc { flex: 1; min-width: 12rem; }
+        .flag-type-row .ft-order { width: 4rem; }
+        .flag-type-row .ft-preview { min-width: 4.5rem; }
+        .flag-type-row .ft-count { font-size: 0.75rem; color: var(--ink-soft); }
+
         .signup-names {
             font-size: 0.85rem;
             color: var(--ink-soft);
@@ -935,6 +957,11 @@
                     <button class="admin-btn small" id="geocodeStreetsBtn" type="button">📍 Geocode streets for nearest-match search</button>
                     <span class="admin-status" id="geocodeStatus" style="margin: 0;"></span>
                 </div>
+                <details class="flag-types-details" id="flagTypesDetails">
+                    <summary>📣 Special-event flags</summary>
+                    <p class="flag-types-hint">Flags volunteers see on a night's shift (e.g. a late finish or a football match). Tick them on each night below. The short label shows on the chip; the description shows when a volunteer taps it, and in the shift details.</p>
+                    <div id="flagTypesContent"></div>
+                </details>
                 <div id="routesContent"></div>
                 <div class="add-row-form">
                     <input type="text" id="newRouteName" placeholder="New route name">
@@ -1039,6 +1066,7 @@
     </footer>
 
     <script type="text/javascript" src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
+    <script src="event-flags.js?v=20261021a"></script>
     <script>
         (function() {
             'use strict';
@@ -1357,6 +1385,7 @@
             function renderRoutes() {
                 document.getElementById('routesLoading').classList.add('admin-hidden');
                 populateYearSelector();
+                renderFlagTypes();
                 var container = document.getElementById('routesContent');
                 container.innerHTML = '';
 
@@ -1587,6 +1616,42 @@
                     rolesRow.appendChild(field);
                 });
                 block.appendChild(rolesRow);
+
+                // Special-event flags for this night: tap a chip to toggle it.
+                var flagTypes = adminData.eventFlags || [];
+                if (flagTypes.length > 0) {
+                    var flagsRow = document.createElement('div');
+                    flagsRow.className = 'date-flags-row';
+                    var flagsLabel = document.createElement('span');
+                    flagsLabel.className = 'date-flags-label';
+                    flagsLabel.textContent = '📣 Special events:';
+                    flagsRow.appendChild(flagsLabel);
+                    var activeFlagIds = date.flagIds || [];
+                    flagTypes.forEach(function(flag) {
+                        var isOn = activeFlagIds.indexOf(flag.id) !== -1;
+                        // Admin chips show the full description ("⚽ City Home 8pm")
+                        // since several flags can share the same short label.
+                        var adminChipFlag = Object.assign({}, flag, { label: flag.description || flag.label });
+                        var chipBtn = EventFlags.chip(adminChipFlag, {
+                            off: !isOn,
+                            onClick: function() {
+                                var next = isOn
+                                    ? activeFlagIds.filter(function(id) { return id !== flag.id; })
+                                    : activeFlagIds.concat([flag.id]);
+                                flagsRow.querySelectorAll('.event-flag').forEach(function(b) { b.disabled = true; });
+                                runOp('/.netlify/functions/admin-routes', {
+                                    op: 'set-date-flags', routeDateId: date.id, flagIds: next
+                                }, 'routesStatus', (isOn ? 'Removed ' : 'Added ') + (flag.description || flag.label) + '.')
+                                    .catch(function() {
+                                        flagsRow.querySelectorAll('.event-flag').forEach(function(b) { b.disabled = false; });
+                                    });
+                            }
+                        });
+                        chipBtn.title = (isOn ? 'On — tap to remove: ' : 'Off — tap to add: ') + (flag.description || flag.label);
+                        flagsRow.appendChild(chipBtn);
+                    });
+                    block.appendChild(flagsRow);
+                }
 
                 var detailsRow = document.createElement('div');
                 detailsRow.className = 'date-block-details';
@@ -1962,6 +2027,119 @@
             function deleteRoute(route) {
                 if (!confirm('Delete route "' + route.name + '" and all its dates/streets? This cannot be undone.')) return;
                 runOp('/.netlify/functions/admin-routes', { op: 'delete-route', id: route.id }, 'routesStatus', 'Route deleted.');
+            }
+
+            // ---- Special-event flag types ----
+
+            var FLAG_STYLE_OPTIONS = [
+                ['neutral', 'Grey'],
+                ['amber', 'Amber'],
+                ['city', 'City (sky blue)'],
+                ['united', 'United (red)']
+            ];
+
+            function renderFlagTypes() {
+                var container = document.getElementById('flagTypesContent');
+                container.innerHTML = '';
+                var usage = {};
+                adminData.routes.forEach(function(route) {
+                    route.dates.forEach(function(d) {
+                        (d.flagIds || []).forEach(function(id) { usage[id] = (usage[id] || 0) + 1; });
+                    });
+                });
+                (adminData.eventFlags || []).forEach(function(flag) {
+                    container.appendChild(renderFlagTypeRow(flag, usage[flag.id] || 0));
+                });
+                container.appendChild(renderFlagTypeRow(null, 0));
+            }
+
+            function renderFlagTypeRow(flag, usedCount) {
+                var isNew = !flag;
+                var f = flag || { emoji: '', label: '', description: '', style: 'neutral', displayOrder: '' };
+                var row = document.createElement('div');
+                row.className = 'flag-type-row';
+
+                function input(cls, value, placeholder, aria) {
+                    var el = document.createElement('input');
+                    el.type = 'text';
+                    el.className = cls;
+                    el.value = value == null ? '' : value;
+                    el.placeholder = placeholder;
+                    el.setAttribute('aria-label', aria);
+                    row.appendChild(el);
+                    return el;
+                }
+
+                var emojiInput = input('ft-emoji', f.emoji, '⚽', 'Emoji');
+                var labelInput = input('ft-label', f.label, 'Short label', 'Short label shown on the chip');
+                labelInput.maxLength = 30;
+                var descInput = input('ft-desc', f.description, 'Description, e.g. City Home 8pm', 'Description shown on tap and in shift details');
+                descInput.maxLength = 200;
+
+                var styleSelect = document.createElement('select');
+                styleSelect.setAttribute('aria-label', 'Chip colour');
+                FLAG_STYLE_OPTIONS.forEach(function(o) {
+                    var opt = document.createElement('option');
+                    opt.value = o[0];
+                    opt.textContent = o[1];
+                    if (o[0] === f.style) opt.selected = true;
+                    styleSelect.appendChild(opt);
+                });
+                row.appendChild(styleSelect);
+
+                var orderInput = input('ft-order', f.displayOrder, 'Order', 'Display order');
+                orderInput.type = 'number';
+
+                var preview = document.createElement('span');
+                preview.className = 'ft-preview';
+                function updatePreview() {
+                    preview.innerHTML = '';
+                    if (!labelInput.value.trim() && !emojiInput.value.trim()) return;
+                    var c = EventFlags.chip({
+                        emoji: emojiInput.value.trim(), label: labelInput.value.trim(),
+                        description: descInput.value.trim(), style: styleSelect.value
+                    });
+                    preview.appendChild(c);
+                }
+                [emojiInput, labelInput, descInput].forEach(function(el) { el.addEventListener('input', updatePreview); });
+                styleSelect.addEventListener('change', updatePreview);
+                updatePreview();
+                row.appendChild(preview);
+
+                var saveBtn = document.createElement('button');
+                saveBtn.type = 'button';
+                saveBtn.className = 'admin-btn small';
+                saveBtn.textContent = isNew ? '+ Add flag' : 'Save';
+                saveBtn.onclick = function() {
+                    if (!labelInput.value.trim()) { showToast('Give the flag a short label first.', 'error'); return; }
+                    runOp('/.netlify/functions/admin-routes', {
+                        op: isNew ? 'create-flag' : 'update-flag', id: isNew ? undefined : f.id,
+                        emoji: emojiInput.value, label: labelInput.value, description: descInput.value,
+                        style: styleSelect.value, displayOrder: orderInput.value
+                    }, 'routesStatus', isNew ? 'Flag added.' : 'Flag saved.');
+                };
+                row.appendChild(saveBtn);
+
+                if (!isNew) {
+                    var delBtn = document.createElement('button');
+                    delBtn.type = 'button';
+                    delBtn.className = 'admin-btn small danger';
+                    delBtn.textContent = 'Delete';
+                    delBtn.onclick = function() {
+                        var msg = 'Delete the "' + (f.description || f.label) + '" flag?' +
+                            (usedCount ? ' It will be removed from ' + usedCount + ' night' + (usedCount === 1 ? '' : 's') + '.' : '');
+                        if (!confirm(msg)) return;
+                        runOp('/.netlify/functions/admin-routes', { op: 'delete-flag', id: f.id }, 'routesStatus', 'Flag deleted.');
+                    };
+                    row.appendChild(delBtn);
+
+                    var count = document.createElement('span');
+                    count.className = 'ft-count';
+                    count.textContent = 'On ' + usedCount + ' night' + (usedCount === 1 ? '' : 's');
+                    row.appendChild(count);
+                }
+
+                return row;
             }
 
             function deleteDate(date) {

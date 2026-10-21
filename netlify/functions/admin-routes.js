@@ -312,6 +312,65 @@ export default async (req, context) => {
         return ok();
       }
 
+      // ---- Special-event flags ----
+      // Toggled per night from the chips under each date in admin.html.
+      // Sets the night's whole flag set: drops any not in the list, adds
+      // any missing (unknown flag ids are ignored).
+      case 'set-date-flags': {
+        const routeDateId = parseInt(body.routeDateId, 10);
+        if (!routeDateId) return badRequest('routeDateId is required');
+        if (!Array.isArray(body.flagIds) || body.flagIds.length > 50) return badRequest('flagIds must be an array');
+        const flagIds = Array.from(new Set(body.flagIds.map((x) => parseInt(x, 10)).filter((x) => x > 0)));
+        const idsJson = JSON.stringify(flagIds);
+        await db.sql`
+          DELETE FROM route_date_flags
+          WHERE route_date_id = ${routeDateId}
+            AND flag_id NOT IN (SELECT value::int FROM jsonb_array_elements_text(${idsJson}::jsonb))
+        `;
+        await db.sql`
+          INSERT INTO route_date_flags (route_date_id, flag_id)
+          SELECT ${routeDateId}, f.id FROM event_flags f
+          WHERE f.id IN (SELECT value::int FROM jsonb_array_elements_text(${idsJson}::jsonb))
+          ON CONFLICT DO NOTHING
+        `;
+        return ok();
+      }
+
+      // Admin-managed flag types (emoji, short chip label, longer
+      // description, colour style), edited in the Routes & Streets tab.
+      case 'create-flag':
+      case 'update-flag': {
+        const fields = parseFlagFields(body);
+        if (fields.error) return badRequest(fields.error);
+        const { emoji, label, description, style, displayOrder } = fields;
+        if (body.op === 'create-flag') {
+          const rows = await db.sql`
+            INSERT INTO event_flags (emoji, label, description, style, display_order)
+            VALUES (${emoji}, ${label}, ${description}, ${style},
+                    COALESCE(${displayOrder}::int, (SELECT COALESCE(MAX(display_order), 0) + 1 FROM event_flags)))
+            RETURNING id
+          `;
+          return ok({ id: rows[0].id });
+        }
+        const id = parseInt(body.id, 10);
+        if (!id) return badRequest('Flag id is required');
+        await db.sql`
+          UPDATE event_flags
+          SET emoji = ${emoji}, label = ${label}, description = ${description}, style = ${style},
+              display_order = COALESCE(${displayOrder}::int, display_order)
+          WHERE id = ${id}
+        `;
+        return ok();
+      }
+
+      // Removes the flag type and (via ON DELETE CASCADE) it from every night.
+      case 'delete-flag': {
+        const id = parseInt(body.id, 10);
+        if (!id) return badRequest('Flag id is required');
+        await db.sql`DELETE FROM event_flags WHERE id = ${id}`;
+        return ok();
+      }
+
       default:
         return badRequest('Unknown op: ' + body.op);
     }
@@ -332,6 +391,18 @@ function cleanStreetKey(raw) {
   let name = (raw || '').replace(/^\d+[.\-]\s*/, '');
   name = name.replace(/\s*\([^)]*\)/g, '');
   return name.replace(/\s+/g, ' ').trim().toLowerCase();
+}
+
+const FLAG_STYLES = ['neutral', 'amber', 'city', 'united'];
+
+function parseFlagFields(body) {
+  const label = String(body.label || '').trim().slice(0, 30);
+  if (!label) return { error: 'A short label is required (e.g. "8pm")' };
+  const emoji = String(body.emoji || '').trim().slice(0, 16) || null;
+  const description = String(body.description || '').trim().slice(0, 200) || null;
+  const style = FLAG_STYLES.includes(body.style) ? body.style : 'neutral';
+  const order = body.displayOrder != null && String(body.displayOrder).trim() !== '' ? parseInt(body.displayOrder, 10) : null;
+  return { emoji, label, description, style, displayOrder: Number.isFinite(order) ? order : null };
 }
 
 function badRequest(message) {

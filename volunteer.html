@@ -6,7 +6,7 @@
     <meta name="robots" content="noindex">
     <meta name="description" content="Volunteer portal for Santa Super Sleigh Salford helpers.">
     <title>Volunteer Portal | Santa Super Sleigh Salford</title>
-    <link rel="stylesheet" href="styles.css?v=20260912a">
+    <link rel="stylesheet" href="styles.css?v=20261021b">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
     <style>
         .volunteer-card {
@@ -946,6 +946,7 @@
     </div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="event-flags.js?v=20261021a"></script>
     <script type="text/javascript" src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
     <script>
         (function() {
@@ -1378,6 +1379,9 @@
                 var stamp = new Date().toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
                 var summary = 'Santa Sleigh: ' + shift.routeName + (shift.role ? ' (' + shift.role + ')' : '');
                 var descriptionLines = [];
+                if (shift.flags && shift.flags.length) {
+                    descriptionLines.push('On this night: ' + shift.flags.map(function(f) { return f.description || f.label; }).join(', '));
+                }
                 if (shift.gatheringTime) descriptionLines.push('Gather at: ' + shift.gatheringTime);
                 if (shift.what3words) descriptionLines.push('Meeting point: https://w3w.co/' + shift.what3words);
                 if (shift.notes) descriptionLines.push(shift.notes);
@@ -1466,6 +1470,8 @@
                             dateStrong.textContent = dateLabel;
                             label.appendChild(dateStrong);
                             label.appendChild(document.createTextNode(' — ' + shift.routeName + (shift.role ? ' (' + shift.role + ')' : '')));
+                            var myFlagChips = EventFlags.chips(shift.flags);
+                            if (myFlagChips) label.appendChild(myFlagChips);
                             top.appendChild(label);
 
                             var cancelBtn = document.createElement('button');
@@ -1481,6 +1487,9 @@
                             icsBtn.textContent = '📅 Add to calendar';
                             icsBtn.onclick = function() { downloadIcsForShift(shift); };
                             row.appendChild(icsBtn);
+
+                            var myFlagDetail = EventFlags.detail(shift.flags);
+                            if (myFlagDetail) row.appendChild(myFlagDetail);
 
                             if (shift.gatheringTime) {
                                 var gatherTime = document.createElement('span');
@@ -1576,6 +1585,8 @@
                         dateStrong.textContent = dateLabel;
                         label.appendChild(dateStrong);
                         label.appendChild(document.createTextNode(' — ' + shift.routeName));
+                        var openFlagChips = EventFlags.chips(shift.flags);
+                        if (openFlagChips) label.appendChild(openFlagChips);
                         top.appendChild(label);
 
                         // Badge + Sign Up button grouped together and kept
@@ -1600,6 +1611,9 @@
 
                         top.appendChild(actions);
                         row.appendChild(top);
+
+                        var openFlagDetail = EventFlags.detail(shift.flags);
+                        if (openFlagDetail) row.appendChild(openFlagDetail);
 
                         if (shift.gatheringTime) {
                             var openGatherTime = document.createElement('span');
