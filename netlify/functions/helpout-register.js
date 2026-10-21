@@ -68,15 +68,17 @@ async function notifyAdmin(db, req, volunteer, viaInvite) {
 async function sendPendingEmail(req, volunteer) {
   const first = escapeHtml(volunteer.fullName.split(' ')[0]);
   const html = brandedEmailHtml({
+    status: { tone: 'pending', label: 'Pending approval' },
     heading: "Thanks, we've got your registration",
     paragraphs: [
       'Hi ' + first + ',',
-      'Thanks for registering to help Santa Super Sleigh Salford. Your registration has been submitted and is waiting for one of our team to approve it.',
-      "We'll email you again as soon as you're approved. Then you can log in to the volunteer portal and choose the nights you'd like to help with."
+      'Thanks for registering to help Santa Super Sleigh Salford. Your registration has been submitted and its status is now <strong>Pending approval</strong>.',
+      "One of our team needs to approve it before you can sign up for shifts. You can log in to the volunteer portal in the meantime, but you won't see any shifts until you're approved.",
+      "We'll email you as soon as your registration is <strong>Approved</strong>. There's nothing else you need to do for now."
     ],
     footnote: "Didn't register? Just reply to this email and let us know."
   });
-  await sendEmail({ to: volunteer.email, subject: 'Your Santa Sleigh volunteer registration is in 🎄', html });
+  await sendEmail({ to: volunteer.email, subject: 'Pending approval: Santa Sleigh Volunteer', html });
 }
 
 export default async (req, context) => {

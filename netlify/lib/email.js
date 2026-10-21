@@ -26,9 +26,23 @@ export function siteUrls(req) {
 }
 
 // paragraphs: array of HTML strings (caller escapes any user input).
+// Status banner shown under the header so the state is obvious at a glance.
+const STATUS_STYLES = {
+  pending:  { bg: '#FFF4D6', border: '#EBC96B', color: '#7A4F00', icon: '⏳', heading: '#A8382F' },
+  approved: { bg: '#E3F3E9', border: '#8FC9A6', color: '#1E5B45', icon: '✅', heading: '#1E5B45' }
+};
+
 // bodyHtml: optional pre-built HTML (e.g. a shift table) placed after the
 // paragraphs and before the button.
-export function brandedEmailHtml({ heading, paragraphs, bodyHtml, button, footnote }) {
+// status: optional { tone: 'pending' | 'approved', label } banner.
+export function brandedEmailHtml({ heading, paragraphs, bodyHtml, button, footnote, status }) {
+  const st = status && STATUS_STYLES[status.tone];
+  const statusHtml = st
+    ? '<div style="margin:0 0 20px; padding:14px 16px; background:' + st.bg + '; border:2px solid ' + st.border + '; border-radius:10px; color:' + st.color + '; font-size:17px; font-weight:bold; letter-spacing:0.02em;">' +
+        st.icon + '&nbsp; Status: ' + escapeHtml(status.label) +
+      '</div>'
+    : '';
+  const headingColor = st ? st.heading : '#A8382F';
   const body = (paragraphs || []).map(function(p) {
     return '<p style="margin:0 0 16px; font-size:16px; line-height:1.6; color:#24272E;">' + p + '</p>';
   }).join('');
@@ -44,7 +58,8 @@ export function brandedEmailHtml({ heading, paragraphs, bodyHtml, button, footno
           '<div style="font-size:13px; opacity:0.9; margin-top:4px;">100th Salford (St Luke\'s) Scout Group</div>' +
         '</div>' +
         '<div style="padding:28px 24px 12px;">' +
-          '<h1 style="margin:0 0 20px; font-size:22px; color:#A8382F;">' + escapeHtml(heading) + '</h1>' +
+          statusHtml +
+          '<h1 style="margin:0 0 20px; font-size:22px; color:' + headingColor + ';">' + escapeHtml(heading) + '</h1>' +
           body + (bodyHtml || '') + buttonHtml +
         '</div>' +
         (footnote ? '<div style="padding:16px 24px 24px; font-size:13px; line-height:1.5; color:#5B6169; border-top:1px solid #E7E2D9;">' + footnote + '</div>' : '') +

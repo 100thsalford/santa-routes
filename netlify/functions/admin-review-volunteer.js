@@ -59,12 +59,13 @@ export default async (req, context) => {
     const urls = siteUrls(req);
     const email = status === 'approved'
       ? {
-          subject: "You're approved: welcome to the Santa Sleigh team! 🎄",
+          subject: 'Approved: Santa Sleigh Volunteer ✅',
           html: brandedEmailHtml({
-            heading: "You're in!",
+            status: { tone: 'approved', label: 'Approved' },
+            heading: "You're in! Welcome to the team",
             paragraphs: [
               greeting,
-              'Thanks for registering to help Santa Super Sleigh Salford. Your volunteer account has been approved.',
+              'Good news: your Santa Super Sleigh Salford volunteer registration is now <strong>Approved</strong>.',
               'Log in to the volunteer portal to see the nights we\'re out and pick the ones you can help with.'
             ],
             button: { label: 'Choose my shifts', url: urls.volunteerLogin },
