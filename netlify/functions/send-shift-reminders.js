@@ -12,84 +12,16 @@
 // `netlify functions:invoke send-shift-reminders` via the CLI.
 
 import { getDatabase } from '@netlify/database';
+import { sendEmail } from '../lib/email.js';
+import { shiftReminderEmail } from '../lib/shift-reminder-email.js';
 
 const TIME_ZONE = 'Europe/London';
-const FROM_ADDRESS = 'Santa Super Sleigh Salford <noreply@santasleighsalford.co.uk>';
-const REPLY_TO = 'nathan.talbot@100thsalford.co.uk';
+const PORTAL_URL = 'https://santasleighsalford.co.uk/volunteer.html?login=1';
 
 function londonDateString(date) {
   return new Intl.DateTimeFormat('en-CA', {
     timeZone: TIME_ZONE, year: 'numeric', month: '2-digit', day: '2-digit'
   }).format(date);
-}
-
-function formatDateLabel(iso) {
-  return new Date(iso + 'T00:00:00').toLocaleDateString('en-GB', {
-    weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
-  });
-}
-
-function escapeHtml(str) {
-  return String(str == null ? '' : str).replace(/[&<>"']/g, function(c) {
-    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
-  });
-}
-
-function buildEmailHtml(volunteerShifts) {
-  const sections = volunteerShifts.map(function(shift) {
-    const streetRows = shift.streets.map(function(s) {
-      return '<tr>' +
-        '<td style="padding:4px 8px; color:#666;">' + escapeHtml(s.timeRange || '') + '</td>' +
-        '<td style="padding:4px 8px;">' + escapeHtml(s.name) + '</td>' +
-        '</tr>';
-    }).join('');
-
-    return (
-      '<h2 style="color:#165B33; margin:1.5rem 0 0.5rem;">' + escapeHtml(shift.routeName) +
-      (shift.role ? ' (' + escapeHtml(shift.role) + ')' : '') + '</h2>' +
-      '<p style="margin:0 0 0.75rem;">' + escapeHtml(formatDateLabel(shift.eventDate)) + '</p>' +
-      '<table style="border-collapse:collapse; width:100%; max-width:480px;">' + streetRows + '</table>'
-    );
-  }).join('<hr style="margin:1.5rem 0; border:none; border-top:1px solid #eee;">');
-
-  return (
-    '<div style="font-family: sans-serif; color:#212529;">' +
-    '<h1 style="color:#C41E3A;">🎅 Tonight\'s Santa Sleigh shift</h1>' +
-    '<p>Here\'s your shift for tonight:</p>' +
-    sections +
-    '<p style="margin-top:2rem; color:#777; font-size:0.9rem;">' +
-    'You\'re receiving this because you\'re signed up to volunteer for Santa Super Sleigh Salford. ' +
-    'You can turn off these reminders any time from the <a href="https://santasleighsalford.co.uk/volunteer.html">volunteer portal</a>.' +
-    '</p>' +
-    '</div>'
-  );
-}
-
-async function sendEmail(toEmail, html, subject) {
-  const apiKey = process.env.RESEND_API_KEY;
-  if (!apiKey) {
-    throw new Error('RESEND_API_KEY is not set');
-  }
-
-  const res = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: {
-      'Authorization': 'Bearer ' + apiKey,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      from: FROM_ADDRESS,
-      reply_to: REPLY_TO,
-      to: [toEmail],
-      subject: subject,
-      html: html
-    })
-  });
-
-  if (!res.ok) {
-    const body = await res.text();
-    throw new Error('Resend API error ' + res.status + ': ' + body);
-  }
 }
 
 export default async (req, context) => {
@@ -144,11 +76,10 @@ export default async (req, context) => {
 
     for (const volunteerId of Object.keys(shiftsByVolunteer)) {
       const { toEmail, shifts } = shiftsByVolunteer[volunteerId];
-      const subject = shifts.length === 1
-        ? 'Tonight’s shift: ' + shifts[0].routeName
-        : 'Tonight’s shifts (' + shifts.length + ')';
+      if (!toEmail) continue; // e.g. a guest volunteer with no email on file
+      const { subject, html } = shiftReminderEmail(shifts, { portalUrl: PORTAL_URL, tonight: true });
       try {
-        await sendEmail(toEmail, buildEmailHtml(shifts), subject);
+        await sendEmail({ to: toEmail, subject, html });
         summary.volunteersEmailed++;
       } catch (err) {
         console.error('Failed to email ' + toEmail + ':', err.message);
