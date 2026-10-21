@@ -1321,3 +1321,20 @@ document.addEventListener('keydown', function(e) {
         }
     }
 });
+// Compact the sticky header on mobile once the visitor scrolls (CSS does the rest).
+// Two thresholds (hysteresis) stop it flickering as the header's own height changes.
+(function () {
+    var header = document.querySelector('.header');
+    if (!header) return;
+    var ticking = false;
+    function update() {
+        ticking = false;
+        var y = window.pageYOffset || document.documentElement.scrollTop;
+        if (y > 60) header.classList.add('compact');
+        else if (y < 10) header.classList.remove('compact');
+    }
+    window.addEventListener('scroll', function () {
+        if (!ticking) { ticking = true; window.requestAnimationFrame(update); }
+    }, { passive: true });
+    update();
+})();
