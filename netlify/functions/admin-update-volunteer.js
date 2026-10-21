@@ -4,6 +4,14 @@
 // Santa/Safety Walker/Driver dropdowns when creating or editing a sleigh
 // night (see admin-routes.js's 'set-event-role' op).
 //
+// Also (2026-10-21) optionally updates a guest volunteer's own name/
+// phone/email -- the only way to fix a typo or add contact details after
+// the fact, since a guest has no account/profile page of their own to do
+// it themselves. Deliberately scoped to is_guest = true rows only: a
+// real account-holder's full_name/email are kept in sync from their own
+// Netlify Identity login (see get-volunteer-profile.js), so editing them
+// here would just get silently overwritten next time they log in.
+//
 // Requires a logged-in Identity user with the 'admin' role.
 
 import { getUser } from '@netlify/identity';
@@ -40,6 +48,22 @@ export default async (req, context) => {
           can_be_driver = ${!!body.canBeDriver}
       WHERE id = ${volunteerId}
     `;
+
+    // Guest contact-detail edit (name/phone/email) -- only when at least
+    // one of these was actually sent, and only ever against a guest row.
+    if (body.fullName !== undefined || body.phone !== undefined || body.email !== undefined) {
+      const fullName = (body.fullName || '').toString().trim();
+      if (!fullName) {
+        return new Response(JSON.stringify({ error: 'A name is required' }), { status: 400, headers });
+      }
+      const phone = body.phone != null && String(body.phone).trim() ? String(body.phone).trim() : null;
+      const email = body.email != null && String(body.email).trim() ? String(body.email).trim() : null;
+      await db.sql`
+        UPDATE volunteers
+        SET full_name = ${fullName}, phone = ${phone}, email = ${email}
+        WHERE id = ${volunteerId} AND is_guest = true
+      `;
+    }
 
     return new Response(JSON.stringify({ success: true }), { status: 200, headers });
   } catch (error) {

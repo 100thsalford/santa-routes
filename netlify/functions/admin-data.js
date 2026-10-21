@@ -30,7 +30,7 @@ export default async (req, context) => {
       db.sql`SELECT id, route_id, to_char(event_date, 'YYYY-MM-DD') AS event_date, amount_collected, volunteer_capacity, what3words, notes, gathering_time, tracking_end_time, route_map_filename, route_map_content_type, route_track IS NOT NULL AS has_route_track, jsonb_array_length(route_track->'directions') AS route_track_turns, route_track->>'distanceKm' AS route_track_distance_km FROM route_dates ORDER BY event_date`,
       db.sql`SELECT id, route_date_id, sequence, name, time_range, is_partial FROM streets ORDER BY route_date_id, sequence`,
       db.sql`SELECT key, value FROM settings`,
-      db.sql`SELECT id, email, full_name, reminder_email_opt_in, can_be_santa, can_be_safety_walker, can_be_driver FROM volunteers ORDER BY email`,
+      db.sql`SELECT id, email, full_name, phone, is_guest, reminder_email_opt_in, can_be_santa, can_be_safety_walker, can_be_driver FROM volunteers ORDER BY COALESCE(full_name, email, '')`,
       db.sql`
         SELECT sa.id, sa.route_date_id, sa.volunteer_id, sa.role, sa.source,
                CASE WHEN COALESCE(TRIM(r.internal_name), '') <> '' THEN r.name || ' — ' || TRIM(r.internal_name) ELSE r.name END AS route_name, to_char(rd.event_date, 'YYYY-MM-DD') AS event_date
@@ -68,7 +68,7 @@ export default async (req, context) => {
     // Events view's signup/role-assignment lists.
     const volunteerLabelById = {};
     for (const v of volunteerRows) {
-      volunteerLabelById[v.id] = v.full_name || v.email;
+      volunteerLabelById[v.id] = v.full_name || v.email || 'Guest volunteer';
     }
 
     const datesByRoute = {};
@@ -130,6 +130,8 @@ export default async (req, context) => {
       id: v.id,
       email: v.email,
       fullName: v.full_name,
+      phone: v.phone,
+      isGuest: !!v.is_guest,
       reminderEmailOptIn: v.reminder_email_opt_in,
       qualifiedRoles: {
         santa: !!v.can_be_santa,

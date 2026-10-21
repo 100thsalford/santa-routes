@@ -766,6 +766,18 @@
                 gap: 0.75rem;
             }
         }
+        /* Netlify Identity widget (login/signup modal): our own sticky
+           .header has z-index:100, one higher than the widget's own
+           inline z-index:99, so the header permanently covered the top
+           of the modal on any viewport short enough for them to overlap
+           (which mobile always is) -- the Email field (and the modal's
+           own close button) were hidden behind it. The widget sets its
+           z-index via an inline style attribute, so only !important can
+           override it from our own CSS. Confirmed live (2026-10-21) that
+           this alone fully fixes the clipped/misaligned fields. */
+        #netlify-identity-widget {
+            z-index: 5000 !important;
+        }
     </style>
 </head>
 <body>

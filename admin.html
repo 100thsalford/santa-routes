@@ -732,6 +732,18 @@
             .import-table td:nth-child(5) { display: none; }
             .import-badge { white-space: normal; }
         }
+        /* Netlify Identity widget (login/signup modal): our own sticky
+           .header has z-index:100, one higher than the widget's own
+           inline z-index:99, so the header permanently covered the top
+           of the modal on any viewport short enough for them to overlap
+           (which mobile always is) -- the Email field (and the modal's
+           own close button) were hidden behind it. The widget sets its
+           z-index via an inline style attribute, so only !important can
+           override it from our own CSS. Confirmed live (2026-10-21) that
+           this alone fully fixes the clipped/misaligned fields. */
+        #netlify-identity-widget {
+            z-index: 5000 !important;
+        }
     </style>
 </head>
 <body>
@@ -904,6 +916,13 @@
                 <div class="admin-status" id="broadcastStatus"></div>
 
                 <div class="dashboard-section-title">👥 Volunteers</div>
+                <p style="color:#666; font-size:0.9rem; margin-top:0;">Most volunteers get an account via an invite email. For a helper who doesn't want or need one -- a one-off doorstep helper, a second adult just tagging along -- add them here instead; they can still be assigned to shifts and to the Santa/Safety Walker/Driver roles below, same as anyone else.</p>
+                <form class="add-row-form" id="addGuestVolunteerForm">
+                    <input type="text" id="guestVolunteerName" placeholder="Name" required>
+                    <input type="tel" id="guestVolunteerPhone" placeholder="Phone (optional)">
+                    <input type="email" id="guestVolunteerEmail" placeholder="Email (optional)">
+                    <button type="submit" class="admin-btn small">+ Add Volunteer</button>
+                </form>
                 <p id="volunteersLoading" class="admin-loading">Loading volunteers...</p>
                 <div id="volunteersContent"></div>
                 <div class="admin-status" id="volunteersStatus"></div>
@@ -2093,6 +2112,22 @@
                 }
             });
 
+            document.getElementById('addGuestVolunteerForm').addEventListener('submit', async function(e) {
+                e.preventDefault();
+                var nameInput = document.getElementById('guestVolunteerName');
+                var body = {
+                    fullName: nameInput.value.trim(),
+                    phone: document.getElementById('guestVolunteerPhone').value.trim(),
+                    email: document.getElementById('guestVolunteerEmail').value.trim()
+                };
+                try {
+                    await runOp('/.netlify/functions/admin-add-guest-volunteer', body, 'volunteersStatus', 'Volunteer added.');
+                    document.getElementById('addGuestVolunteerForm').reset();
+                } catch (err) {
+                    // runOp already surfaced the error via toast/status.
+                }
+            });
+
             // ---- Volunteer Shifts ----
 
             function flattenRouteDates() {
@@ -2112,7 +2147,7 @@
                 var routeDates = flattenRouteDates();
 
                 if (adminData.volunteers.length === 0) {
-                    container.textContent = 'No volunteers have logged in yet.';
+                    container.textContent = 'No volunteers yet.';
                     return;
                 }
 
@@ -2120,11 +2155,67 @@
                     var block = document.createElement('div');
                     block.className = 'volunteer-block';
 
-                    var title = document.createElement('div');
+                    var titleRow = document.createElement('div');
+                    titleRow.style.cssText = 'display:flex; align-items:center; gap:0.6rem; flex-wrap:wrap; margin-bottom:0.5rem;';
+
+                    var title = document.createElement('span');
                     title.style.fontWeight = 'bold';
-                    title.style.marginBottom = '0.5rem';
-                    title.textContent = vol.fullName ? (vol.fullName + ' (' + vol.email + ')') : vol.email;
-                    block.appendChild(title);
+                    var contactBits = [vol.email, vol.phone].filter(Boolean);
+                    title.textContent = vol.fullName ?
+                        (vol.fullName + (contactBits.length ? ' (' + contactBits.join(', ') + ')' : '')) :
+                        (vol.email || 'Unnamed guest');
+                    titleRow.appendChild(title);
+                    block.appendChild(titleRow);
+
+                    // Guest volunteers (2026-10-21, no Netlify Identity
+                    // account) get a badge plus an inline edit form, since
+                    // there's no account/profile page of their own where
+                    // they could fix a typo'd name or add their own phone.
+                    if (vol.isGuest) {
+                        var badge = document.createElement('span');
+                        badge.textContent = 'Guest';
+                        badge.style.cssText = 'font-size:0.75rem; font-weight:bold; color:#fff; background:var(--santa-green); border-radius:999px; padding:0.15rem 0.6rem;';
+                        titleRow.appendChild(badge);
+
+                        var editForm = document.createElement('div');
+                        editForm.className = 'add-row-form admin-hidden';
+                        editForm.style.marginBottom = '0.5rem';
+                        var editName = document.createElement('input');
+                        editName.type = 'text'; editName.value = vol.fullName || ''; editName.placeholder = 'Name';
+                        var editPhone = document.createElement('input');
+                        editPhone.type = 'tel'; editPhone.value = vol.phone || ''; editPhone.placeholder = 'Phone (optional)';
+                        var editEmail = document.createElement('input');
+                        editEmail.type = 'email'; editEmail.value = vol.email || ''; editEmail.placeholder = 'Email (optional)';
+                        var editSaveBtn = document.createElement('button');
+                        editSaveBtn.type = 'button';
+                        editSaveBtn.className = 'admin-btn small';
+                        editSaveBtn.textContent = 'Save';
+                        editSaveBtn.onclick = function() {
+                            runOp('/.netlify/functions/admin-update-volunteer', {
+                                volunteerId: vol.id,
+                                canBeSanta: !!(vol.qualifiedRoles && vol.qualifiedRoles.santa),
+                                canBeSafetyWalker: !!(vol.qualifiedRoles && vol.qualifiedRoles.safetyWalker),
+                                canBeDriver: !!(vol.qualifiedRoles && vol.qualifiedRoles.driver),
+                                fullName: editName.value.trim(),
+                                phone: editPhone.value.trim(),
+                                email: editEmail.value.trim()
+                            }, 'volunteersStatus', 'Volunteer details saved.');
+                        };
+                        editForm.appendChild(editName);
+                        editForm.appendChild(editPhone);
+                        editForm.appendChild(editEmail);
+                        editForm.appendChild(editSaveBtn);
+
+                        var editToggleBtn = document.createElement('button');
+                        editToggleBtn.type = 'button';
+                        editToggleBtn.textContent = '✎ Edit details';
+                        editToggleBtn.style.cssText = 'background:none; border:none; color:var(--santa-green); cursor:pointer; font-size:0.85rem; text-decoration:underline; padding:0;';
+                        editToggleBtn.onclick = function() {
+                            editForm.classList.toggle('admin-hidden');
+                        };
+                        titleRow.appendChild(editToggleBtn);
+                        block.appendChild(editForm);
+                    }
 
                     // Phase 9: which special roles this volunteer is
                     // qualified for -- populates the Santa/Safety
