@@ -62,6 +62,23 @@ async function notifyAdmin(db, req, volunteer, viaInvite) {
   });
 }
 
+// Sent to code sign-ups straight away so they know it went through and
+// what happens next. (Invite sign-ups are approved on the spot and the
+// page itself tells them to log in, so they don't get this.)
+async function sendPendingEmail(req, volunteer) {
+  const first = escapeHtml(volunteer.fullName.split(' ')[0]);
+  const html = brandedEmailHtml({
+    heading: "Thanks, we've got your registration",
+    paragraphs: [
+      'Hi ' + first + ',',
+      'Thanks for registering to help Santa Super Sleigh Salford. Your registration has been submitted and is waiting for one of our team to approve it.',
+      "We'll email you again as soon as you're approved. Then you can log in to the volunteer portal and choose the nights you'd like to help with."
+    ],
+    footnote: "Didn't register? Just reply to this email and let us know."
+  });
+  await sendEmail({ to: volunteer.email, subject: 'Your Santa Sleigh volunteer registration is in 🎄', html });
+}
+
 export default async (req, context) => {
   const headers = corsHeaders(req, 'POST, OPTIONS');
   if (req.method === 'OPTIONS') return new Response('', { status: 204, headers });
@@ -173,10 +190,17 @@ export default async (req, context) => {
     }
     await recordAttempt(db, ip, 'registered');
 
+    // Never fail a registration over an email.
+    if (!invite) {
+      try {
+        await sendPendingEmail(req, { fullName, email });
+      } catch (err) {
+        console.error('Pending confirmation email failed:', err.message);
+      }
+    }
     try {
       await notifyAdmin(db, req, { fullName, email, phone }, !!invite);
     } catch (err) {
-      // Never fail a registration over the alert email.
       console.error('Registration alert email failed:', err.message);
     }
 
