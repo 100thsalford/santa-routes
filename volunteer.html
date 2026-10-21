@@ -224,6 +224,12 @@
             white-space: pre-wrap;
         }
 
+        .risk-modal-text { color: var(--text-dark); line-height: 1.6; margin: 0 0 0.75rem; }
+        .risk-modal-text p { margin: 0 0 0.75rem; white-space: normal; }
+        .risk-modal-text ul { margin: 0 0 0.75rem; padding-left: 1.25rem; }
+        .risk-modal-text li { margin-bottom: 0.35rem; }
+        .risk-modal-text a { color: var(--santa-green); font-weight: bold; }
+
         .risk-modal a {
             color: var(--santa-green);
             font-weight: bold;
@@ -890,7 +896,7 @@
     <div class="risk-modal-overlay" id="riskModalOverlay">
         <div class="risk-modal">
             <h2>🦺 Safety guidance</h2>
-            <p id="riskModalText">Loading...</p>
+            <div id="riskModalText" class="risk-modal-text">Loading...</div>
             <p id="riskModalLinkRow" style="display:none;"><a id="riskModalLink" href="#" target="_blank" rel="noopener noreferrer">View the full risk assessment document</a></p>
             <label class="risk-modal-checkbox" id="riskModalCheckboxRow">
                 <input type="checkbox" id="riskAckCheckbox">
@@ -1031,13 +1037,38 @@
                 return fetch(url, options);
             }
 
+            // Tiny, safe formatter for the admin-written safety guidance.
+            // Supports: blank line = new paragraph, "- item" bullets, **bold**, [text](https://link).
+            // Everything is HTML-escaped first, so admin input can never inject markup.
+            function renderGuidance(text) {
+                function esc(t) {
+                    return String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+                }
+                function inline(t) {
+                    return esc(t)
+                        .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+                        .replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+                }
+                var html = '', list = [], para = [];
+                function flushList() { if (list.length) { html += '<ul>' + list.join('') + '</ul>'; list = []; } }
+                function flushPara() { if (para.length) { html += '<p>' + para.join('<br>') + '</p>'; para = []; } }
+                String(text).replace(/\r\n?/g, '\n').split('\n').forEach(function (line) {
+                    var bullet = line.match(/^\s*[-*\u2022]\s+(.*)$/);
+                    if (bullet) { flushPara(); list.push('<li>' + inline(bullet[1]) + '</li>'); }
+                    else if (!line.trim()) { flushPara(); flushList(); }
+                    else { flushList(); para.push(inline(line.trim())); }
+                });
+                flushPara(); flushList();
+                return html;
+            }
+
             function updateRiskUI(profile) {
                 var acknowledged = !!profile.riskAckAt;
                 riskBanner.classList.toggle('visible', !acknowledged);
                 if (!acknowledged) {
                     var text = (profile.riskAssessment && profile.riskAssessment.text) ||
                         'Please take a moment to review our safety guidance before your next shift.';
-                    riskModalText.textContent = text;
+                    riskModalText.innerHTML = renderGuidance(text);
                     var url = profile.riskAssessment && profile.riskAssessment.url;
                     if (url) {
                         riskModalLink.href = url;
