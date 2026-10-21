@@ -824,6 +824,78 @@
         #netlify-identity-widget {
             z-index: 5000 !important;
         }
+
+        /* ---- Collapsible Routes & Streets (mobile-friendly admin) ---- */
+        .back-btn { display: inline-block; text-decoration: none; }
+        details.route-block, details.date-block { padding: 0; overflow: hidden; }
+        details.route-block > summary, details.date-block > summary {
+            list-style: none; cursor: pointer; padding: 0.85rem 2.2rem 0.85rem 1rem;
+            position: relative; display: flex; flex-direction: column; gap: 0.2rem;
+        }
+        details.route-block > summary::-webkit-details-marker,
+        details.date-block > summary::-webkit-details-marker { display: none; }
+        details.route-block > summary::after, details.date-block > summary::after {
+            content: '▾'; position: absolute; right: 1rem; top: 50%; transform: translateY(-50%);
+            color: var(--santa-green); font-size: 1.1rem;
+        }
+        details[open].route-block > summary::after, details[open].date-block > summary::after { content: '▴'; }
+        details.route-block[open] > summary, details.date-block[open] > summary {
+            border-bottom: 1px solid var(--border-subtle); background: var(--surface-muted, #faf7f2);
+        }
+        .route-sum-title { font-weight: bold; color: var(--santa-green); }
+        .route-sum-meta, .date-sum-sub { font-size: 0.85rem; color: var(--ink-soft); }
+        .sum-flag { color: #c62828; font-weight: bold; font-size: 0.8rem; }
+        .date-sum { display: flex; flex-direction: column; gap: 0.25rem; min-width: 0; }
+        .date-sum-top { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+        .block-body { padding: 0.75rem 1rem 1rem; }
+        details.date-block { margin: 0.6rem 0; }
+        .date-edit-grid { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: flex-end; margin: 0.5rem 0; }
+        .field-wrap { display: flex; flex-direction: column; gap: 0.15rem; font-size: 0.85rem; }
+        .field-wrap.first { order: -1; }
+        .field-cap { font-size: 0.72rem; color: var(--ink-soft); font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em; }
+        .field-wrap input { padding: 0.45rem 0.5rem; border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); font-size: 1rem; font-family: inherit; box-sizing: border-box; }
+        details.sub-section, details.more-menu { margin: 0.6rem 0; border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); }
+        details.sub-section > summary, details.more-menu > summary {
+            cursor: pointer; padding: 0.6rem 0.75rem; font-weight: 600; font-size: 0.9rem; color: var(--ink-soft);
+        }
+        details.sub-section > :not(summary), details.more-menu > :not(summary) { margin-left: 0.75rem; margin-right: 0.75rem; }
+        details.sub-section[open] { padding-bottom: 0.5rem; }
+        .more-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.5rem; }
+        details.season-panel { margin: 0 0 1rem; border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 0.1rem 0.9rem; }
+        details.season-panel > summary { cursor: pointer; font-weight: bold; padding: 0.7rem 0; }
+        .needs-attention { margin: 0 0 1rem; }
+        .attention-row {
+            display: block; width: 100%; text-align: left; margin: 0.35rem 0; padding: 0.7rem 0.8rem;
+            border: 1px solid #f0c5c1; background: #fdecea; color: #8c2d25; border-radius: var(--radius-sm);
+            font-size: 0.9rem; font-family: inherit; cursor: pointer;
+        }
+        @media (max-width: 600px) {
+            .admin-tabs.tab-buttons { flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+            .admin-tabs .tab-btn { flex: 0 0 auto; white-space: nowrap; font-size: 0.85rem; padding: 0.6rem 0.8rem; }
+            .block-body { padding: 0.6rem 0.75rem 0.9rem; }
+            .field-wrap { flex: 1 1 8rem; min-width: 0; }
+            .date-edit-grid .field-wrap { flex: 1 1 6rem; }
+            .field-wrap .field-date, .field-wrap .field-amount, .field-wrap .field-narrow, .field-wrap input { width: 100%; }
+            .date-block-details .field-wrap { flex: 1 1 100%; }
+            .date-block-details .tracking-end-label { flex: 1 1 100%; }
+            .event-roles-row { flex-wrap: wrap; }
+
+            /* Street table -> one card per street */
+            table.admin-table.street-cards, table.admin-table.street-cards tbody { display: block; width: 100%; }
+            table.admin-table.street-cards thead { display: none; }
+            table.admin-table.street-cards tr {
+                display: grid; grid-template-columns: 3.2rem 1fr 3.4rem 2.6rem; gap: 0.35rem 0.4rem;
+                align-items: center; padding: 0.55rem 0; border-bottom: 1px solid var(--border-subtle);
+            }
+            table.admin-table.street-cards td { display: block; padding: 0 !important; border: 0; width: auto !important; }
+            table.admin-table.street-cards td:nth-child(2) { grid-column: 2 / 5; }
+            table.admin-table.street-cards td:nth-child(3) { grid-column: 1 / 3; }
+            table.admin-table.street-cards td.col-partial { text-align: center; }
+            table.admin-table.street-cards td.col-partial::before { content: 'Part'; display: block; font-size: 0.65rem; color: var(--ink-soft); }
+            table.admin-table.street-cards td input { font-size: 1rem; padding: 0.5rem 0.4rem; }
+            table.admin-table.street-cards tr.dirty { background: #fff8e6; }
+            table.admin-table.street-cards tr.dirty td { background: transparent; }
+        }
     </style>
 </head>
 <body>
@@ -888,8 +960,10 @@
                     <button type="button" class="admin-btn small" id="pendingDashboardBtn">Review</button>
                 </div>
                 <div class="dashboard-stats" id="dashboardStats"></div>
+                <div class="needs-attention admin-hidden" id="needsAttention"></div>
 
-                <div class="dashboard-section-title">⚙️ Season Settings</div>
+                <details class="season-panel" id="seasonSettingsPanel">
+                <summary>⚙️ Season Settings</summary>
                 <p id="settingsLoading" class="admin-loading">Loading settings...</p>
                 <form class="settings-form admin-hidden" id="settingsForm">
                     <div>
@@ -943,11 +1017,14 @@
                     <button type="submit" class="admin-btn">Save Settings</button>
                 </form>
                 <div class="admin-status" id="settingsStatus"></div>
+                </details>
             </div>
 
             <!-- Routes & Streets -->
             <div class="admin-card admin-hidden" id="tab-routes">
                 <p id="routesLoading" class="admin-loading">Loading routes...</p>
+                <details class="season-panel" id="seasonPanel">
+                <summary>⚙️ Season <span id="seasonPanelYear"></span> — year, geocoding, special-event flags</summary>
                 <div class="add-row-form" id="yearSelectorRow" style="margin-bottom: 1rem;">
                     <label for="yearSelect" style="font-weight: bold;">Season year:</label>
                     <select id="yearSelect"></select>
@@ -961,6 +1038,7 @@
                     <summary>📣 Special-event flags</summary>
                     <p class="flag-types-hint">Flags volunteers see on a night's shift (e.g. a late finish or a football match). Tick them on each night below. The short label shows on the chip; the description shows when a volunteer taps it, and in the shift details.</p>
                     <div id="flagTypesContent"></div>
+                </details>
                 </details>
                 <div id="routesContent"></div>
                 <div class="add-row-form">
@@ -1349,6 +1427,39 @@
                         '<div class="stat-card-label">' + escapeHtml(stat[2]) + '</div>';
                     container.appendChild(card);
                 });
+
+                // Upcoming nights that still need volunteers; tap to jump to
+                // the night on the Routes tab.
+                var attn = document.getElementById('needsAttention');
+                attn.innerHTML = '';
+                var today = new Date().toISOString().slice(0, 10);
+                var needy = [];
+                adminData.routes.forEach(function(route) {
+                    route.dates.forEach(function(d) {
+                        if (d.eventDate >= today && d.volunteerCapacity != null && (d.signupCount || 0) < d.volunteerCapacity) {
+                            needy.push({ route: route, date: d });
+                        }
+                    });
+                });
+                needy.sort(function(x, y) { return x.date.eventDate < y.date.eventDate ? -1 : 1; });
+                if (needy.length) {
+                    var t = document.createElement('div');
+                    t.className = 'dashboard-section-title';
+                    t.textContent = '⚠️ Nights that need volunteers';
+                    attn.appendChild(t);
+                    needy.forEach(function(n) {
+                        var btn = document.createElement('button');
+                        btn.type = 'button';
+                        btn.className = 'attention-row';
+                        btn.textContent = formatDateLabel(n.date.eventDate) + ' — ' + n.route.name + ' — ' +
+                            (n.date.signupCount || 0) + ' / ' + n.date.volunteerCapacity;
+                        btn.onclick = function() { goToNight(n.route.id, n.date.id); };
+                        attn.appendChild(btn);
+                    });
+                    attn.classList.remove('admin-hidden');
+                } else {
+                    attn.classList.add('admin-hidden');
+                }
             }
 
             // ---- Routes & Streets ----
@@ -1382,25 +1493,86 @@
                 renderRoutes();
             });
 
+            // Open/closed state of the collapsible sections, kept outside the
+            // DOM because every save re-renders the whole Routes tab.
+            var uiOpen = {};
+
+            // A native <details> whose open state survives re-renders.
+            // `summaryNode` is a node or an HTML string; `accordionGroup`
+            // (optional) makes siblings in that group close when this opens.
+            function makeDetails(key, summaryNode, className, accordionGroup) {
+                var d = document.createElement('details');
+                d.className = className || 'sub-section';
+                d.dataset.key = key;
+                if (accordionGroup) d.dataset.group = accordionGroup;
+                var sum = document.createElement('summary');
+                if (typeof summaryNode === 'string') sum.innerHTML = summaryNode;
+                else sum.appendChild(summaryNode);
+                d.appendChild(sum);
+                d.open = !!uiOpen[key];
+                d.addEventListener('toggle', function() {
+                    uiOpen[key] = d.open;
+                    if (d.open && accordionGroup) {
+                        Array.prototype.forEach.call(document.querySelectorAll('details[data-group="' + accordionGroup + '"]'), function(o) {
+                            if (o !== d && o.open) { o.open = false; uiOpen[o.dataset.key] = false; }
+                        });
+                    }
+                });
+                return d;
+            }
+
+            // Small caption above a form control.
+            function labelled(text, input, extraClass) {
+                var wrap = document.createElement('label');
+                wrap.className = 'field-wrap' + (extraClass ? ' ' + extraClass : '');
+                var cap = document.createElement('span');
+                cap.className = 'field-cap';
+                cap.textContent = text;
+                wrap.appendChild(cap);
+                wrap.appendChild(input);
+                return wrap;
+            }
+
+            // Jump from the Dashboard to one night on the Routes tab.
+            function goToNight(routeId, dateId) {
+                Object.keys(uiOpen).forEach(function(k) { if (k.charAt(0) === 'r') uiOpen[k] = false; });
+                uiOpen['r' + routeId] = true;
+                uiOpen['d' + dateId] = true;
+                document.querySelector('.tab-btn[data-tab="routes"]').click();
+                renderRoutes();
+                var el = document.querySelector('details[data-key="d' + dateId + '"]');
+                if (el) el.scrollIntoView({ block: 'start' });
+            }
+
             function renderRoutes() {
+                var keepScroll = window.pageYOffset;
                 document.getElementById('routesLoading').classList.add('admin-hidden');
+                var yearLabel = document.getElementById('seasonPanelYear');
                 populateYearSelector();
+                if (yearLabel) yearLabel.textContent = selectedYear;
                 renderFlagTypes();
                 var container = document.getElementById('routesContent');
                 container.innerHTML = '';
 
                 adminData.routes.forEach(function(route) {
+                    var thisYearDates = route.dates.filter(function(d) { return d.year === selectedYear; });
+                    var short = thisYearDates.filter(function(d) {
+                        return d.volunteerCapacity != null && (d.signupCount || 0) < d.volunteerCapacity;
+                    }).length;
+                    var summaryHtml =
+                        '<span class="route-sum-title">' + escapeHtml(route.name) +
+                        (route.internalName ? ' <span class="route-internal-name">\u2014 ' + escapeHtml(route.internalName) + '</span>' : '') + '</span>' +
+                        '<span class="route-sum-meta">' + thisYearDates.length + ' night' + (thisYearDates.length === 1 ? '' : 's') +
+                        (short > 0 ? ' <span class="sum-flag">\u26a0 ' + short + ' need people</span>' : '') + '</span>';
+                    var outer = makeDetails('r' + route.id, summaryHtml, 'route-block', 'routes');
                     var block = document.createElement('div');
-                    block.className = 'route-block';
+                    block.className = 'block-body';
 
-                    var header = document.createElement('div');
-                    header.className = 'route-block-header';
-                    header.innerHTML =
-                        '<span class="route-block-title">' + escapeHtml(route.name) +
-                        (route.internalName ? ' <span class="route-internal-name">\u2014 ' + escapeHtml(route.internalName) + '</span>' : '') +
-                        ' <span style="color:#999; font-weight: normal;">(order ' + (route.displayOrder ?? '—') + ')</span></span>';
-
-                    var actions = document.createElement('span');
+                    // Rare actions live under "More" so the day-to-day fields
+                    // (nights, volunteers, times) come first.
+                    var routeMore = makeDetails('rm' + route.id, '\u22ef More route actions', 'more-menu');
+                    var actions = document.createElement('div');
+                    actions.className = 'more-actions';
 
                     var renameBtn = document.createElement('button');
                     renameBtn.className = 'admin-btn small';
@@ -1410,13 +1582,10 @@
 
                     var delBtn = document.createElement('button');
                     delBtn.className = 'admin-btn small danger';
-                    delBtn.style.marginLeft = '0.5rem';
                     delBtn.textContent = 'Delete Route';
                     delBtn.onclick = function() { deleteRoute(route); };
                     actions.appendChild(delBtn);
-
-                    header.appendChild(actions);
-                    block.appendChild(header);
+                    routeMore.appendChild(actions);
 
                     // Volunteer-only name: shown as "Route 3 — <this>" in the
                     // volunteer portal and reminder emails, never on the public site.
@@ -1448,7 +1617,7 @@
                     internalRow.appendChild(internalLabel);
                     internalRow.appendChild(internalInput);
                     internalRow.appendChild(internalSaveBtn);
-                    block.appendChild(internalRow);
+                    routeMore.appendChild(internalRow);
 
                     var datesThisYear = route.dates.filter(function(d) { return d.year === selectedYear; });
                     var datesOtherYears = route.dates.filter(function(d) { return d.year !== selectedYear; });
@@ -1498,32 +1667,47 @@
                         cloneForm.appendChild(cloneBtn);
                         block.appendChild(cloneForm);
                     }
+                    block.appendChild(routeMore);
 
-                    container.appendChild(block);
+                    outer.appendChild(block);
+                    container.appendChild(outer);
                 });
+                window.scrollTo(0, keepScroll);
             }
 
             function renderDateBlock(route, date) {
+                // Collapsed summary: date, fill status, gather time, names.
+                var sumBadge = document.createElement('span');
+                sumBadge.className = 'shift-status-badge ' + shiftStatusClass(date.volunteerCapacity, date.signupCount);
+                sumBadge.textContent = shiftStatusLabel(date.volunteerCapacity, date.signupCount);
+                var sumWrap = document.createElement('span');
+                sumWrap.className = 'date-sum';
+                var sumTop = document.createElement('span');
+                sumTop.className = 'date-sum-top';
+                var sumDate = document.createElement('strong');
+                sumDate.textContent = '📅 ' + formatDateLabel(date.eventDate);
+                sumTop.appendChild(sumDate);
+                sumTop.appendChild(sumBadge);
+                sumWrap.appendChild(sumTop);
+                var sumSub = document.createElement('span');
+                sumSub.className = 'date-sum-sub';
+                var bits = [];
+                if (date.gatheringTime) bits.push('⏰ ' + date.gatheringTime);
+                if (date.signups && date.signups.length) bits.push('🙋 ' + date.signups.map(function(x) { return x.name; }).join(', '));
+                sumSub.textContent = bits.join('  ·  ');
+                if (bits.length) sumWrap.appendChild(sumSub);
+                var outer = makeDetails('d' + date.id, sumWrap, 'date-block');
                 var block = document.createElement('div');
-                block.className = 'date-block';
+                block.className = 'block-body';
 
                 var header = document.createElement('div');
-                header.className = 'date-block-header';
-
-                var titleSpan = document.createElement('span');
-                titleSpan.className = 'date-block-title';
-                titleSpan.textContent = '📅';
-                header.appendChild(titleSpan);
+                header.className = 'date-edit-grid';
 
                 var dateInput = document.createElement('input');
                 dateInput.type = 'date';
                 dateInput.value = date.eventDate;
                 dateInput.className = 'field-date';
-                header.appendChild(dateInput);
-
-                var amountLabel = document.createElement('span');
-                amountLabel.textContent = '£';
-                header.appendChild(amountLabel);
+                header.appendChild(labelled('Date', dateInput));
 
                 var amountInput = document.createElement('input');
                 amountInput.type = 'number';
@@ -1532,7 +1716,7 @@
                 amountInput.placeholder = 'collected';
                 amountInput.className = 'field-amount';
                 amountInput.value = date.amountCollected != null ? date.amountCollected : '';
-                header.appendChild(amountInput);
+                header.appendChild(labelled('£ collected', amountInput));
 
                 var capacityInput = document.createElement('input');
                 capacityInput.type = 'number';
@@ -1542,19 +1726,12 @@
                 capacityInput.className = 'field-narrow';
                 capacityInput.title = 'Volunteer capacity for self-serve signup (leave blank to not track one)';
                 capacityInput.value = date.volunteerCapacity != null ? date.volunteerCapacity : '';
-                header.appendChild(capacityInput);
-
-                var shiftBadge = document.createElement('span');
-                shiftBadge.className = 'shift-status-badge ' + shiftStatusClass(date.volunteerCapacity, date.signupCount);
-                shiftBadge.textContent = shiftStatusLabel(date.volunteerCapacity, date.signupCount);
-                header.appendChild(shiftBadge);
+                header.appendChild(labelled('Volunteers needed', capacityInput));
 
                 var delBtn = document.createElement('button');
                 delBtn.className = 'admin-btn small danger';
                 delBtn.textContent = 'Delete Date';
                 delBtn.onclick = function() { deleteDate(date); };
-                header.appendChild(delBtn);
-                block.appendChild(header);
 
                 // Phase 9: who's signed up, by name (replaces the
                 // aggregate-only count the shift badge above still shows
@@ -1616,16 +1793,14 @@
                     rolesRow.appendChild(field);
                 });
                 block.appendChild(rolesRow);
+                block.appendChild(header);
 
                 // Special-event flags for this night: tap a chip to toggle it.
                 var flagTypes = adminData.eventFlags || [];
+                var flagsSection = null;
                 if (flagTypes.length > 0) {
                     var flagsRow = document.createElement('div');
                     flagsRow.className = 'date-flags-row';
-                    var flagsLabel = document.createElement('span');
-                    flagsLabel.className = 'date-flags-label';
-                    flagsLabel.textContent = '📣 Special events:';
-                    flagsRow.appendChild(flagsLabel);
                     var activeFlagIds = date.flagIds || [];
                     flagTypes.forEach(function(flag) {
                         var isOn = activeFlagIds.indexOf(flag.id) !== -1;
@@ -1650,7 +1825,8 @@
                         chipBtn.title = (isOn ? 'On — tap to remove: ' : 'Off — tap to add: ') + (flag.description || flag.label);
                         flagsRow.appendChild(chipBtn);
                     });
-                    block.appendChild(flagsRow);
+                    flagsSection = makeDetails('f' + date.id, '📣 Special events (' + activeFlagIds.length + ' on)', 'sub-section');
+                    flagsSection.appendChild(flagsRow);
                 }
 
                 var detailsRow = document.createElement('div');
@@ -1661,7 +1837,7 @@
                 w3wInput.placeholder = 'what3words, e.g. yappy.looks.occurs';
                 w3wInput.className = 'field-w3w';
                 w3wInput.value = date.what3words || '';
-                detailsRow.appendChild(w3wInput);
+                detailsRow.appendChild(labelled('what3words (meeting point)', w3wInput));
 
                 var gatheringTimeInput = document.createElement('input');
                 gatheringTimeInput.type = 'text';
@@ -1669,7 +1845,7 @@
                 gatheringTimeInput.className = 'field-gathering-time';
                 gatheringTimeInput.title = 'When volunteers should gather at the meeting point, shown alongside what3words';
                 gatheringTimeInput.value = date.gatheringTime || '';
-                detailsRow.appendChild(gatheringTimeInput);
+                detailsRow.appendChild(labelled('Gather time', gatheringTimeInput, 'first'));
 
                 var trackingEndInput = document.createElement('input');
                 trackingEndInput.type = 'time';
@@ -1688,7 +1864,7 @@
                 notesInput.placeholder = 'Notes for volunteers (optional)';
                 notesInput.className = 'field-notes';
                 notesInput.value = date.notes || '';
-                detailsRow.appendChild(notesInput);
+                detailsRow.appendChild(labelled('Notes for volunteers', notesInput));
 
                 // Moved down here (next to the fields it actually saves --
                 // date, amount, capacity, what3words, gathering time, notes)
@@ -1710,7 +1886,12 @@
                 detailsRow.appendChild(saveDateBtn);
 
                 block.appendChild(detailsRow);
+                if (flagsSection) block.appendChild(flagsSection);
 
+                var mapsSection = makeDetails('m' + date.id,
+                    '🗺️ Maps — ' + (date.routeMapFilename ? 'PDF ✓' : 'no PDF') + ' · ' +
+                    (date.hasRouteTrack ? 'interactive ' + (date.routeTrackTurns != null ? date.routeTrackTurns + ' turns' : '✓') : 'no interactive route'),
+                    'sub-section');
                 var mapRow = document.createElement('div');
                 mapRow.className = 'date-block-details';
 
@@ -1747,7 +1928,7 @@
                 };
                 mapRow.appendChild(uploadMapBtn);
 
-                block.appendChild(mapRow);
+                mapsSection.appendChild(mapRow);
 
                 var trackRow = document.createElement('div');
                 trackRow.className = 'date-block-details';
@@ -1791,10 +1972,15 @@
                     trackRow.appendChild(importStreetsBtn);
                 }
 
-                block.appendChild(trackRow);
+                mapsSection.appendChild(trackRow);
+                block.appendChild(mapsSection);
 
+                var pendingN = pendingCountForDate(date.id);
+                var streetsSection = makeDetails('s' + date.id,
+                    '🛣️ Streets (' + date.streets.length + ')' + (pendingN ? ' <span class="sum-flag">' + pendingN + ' unsaved</span>' : ''),
+                    'sub-section');
                 var table = document.createElement('table');
-                table.className = 'admin-table';
+                table.className = 'admin-table street-cards';
                 table.innerHTML = '<thead><tr><th class="col-seq">Seq</th><th>Street</th><th class="col-time">Time</th><th class="col-partial" title="Partial street: Santa only visits part of this street on his way to another"><span class="label-long">Partial</span><span class="label-short">Part</span></th><th class="col-actions"></th></tr></thead>';
                 var tbody = document.createElement('tbody');
 
@@ -1806,7 +1992,7 @@
                 var tableScroll = document.createElement('div');
                 tableScroll.className = 'table-scroll';
                 tableScroll.appendChild(table);
-                block.appendChild(tableScroll);
+                streetsSection.appendChild(tableScroll);
 
                 if (date.streets.length > 0) {
                     var saveBar = document.createElement('div');
@@ -1817,7 +2003,7 @@
                     saveStreetsBtn.id = 'saveStreets-' + date.id;
                     saveStreetsBtn.onclick = function() { saveStreetChanges(date.id); };
                     saveBar.appendChild(saveStreetsBtn);
-                    block.appendChild(saveBar);
+                    streetsSection.appendChild(saveBar);
                     updateStreetSaveButton(date.id, saveStreetsBtn);
                 }
 
@@ -1858,9 +2044,18 @@
                 addForm.appendChild(timeInput);
                 addForm.appendChild(addPartialLabel);
                 addForm.appendChild(addBtn);
-                block.appendChild(addForm);
+                streetsSection.appendChild(addForm);
+                block.appendChild(streetsSection);
 
-                return block;
+                var dateMore = makeDetails('x' + date.id, '⋯ More', 'more-menu');
+                var dateMoreActions = document.createElement('div');
+                dateMoreActions.className = 'more-actions';
+                dateMoreActions.appendChild(delBtn);
+                dateMore.appendChild(dateMoreActions);
+                block.appendChild(dateMore);
+
+                outer.appendChild(block);
+                return outer;
             }
 
             // Unsaved street edits (seq/name/time), keyed by street id. Kept
