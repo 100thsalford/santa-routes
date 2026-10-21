@@ -8,6 +8,7 @@
 
 import { getUser } from '@netlify/identity';
 import { getDatabase } from '@netlify/database';
+import { getVolunteerAccess } from '../lib/volunteer-access.js';
 
 const headers = { 'Content-Type': 'application/json' };
 
@@ -23,7 +24,23 @@ export default async (req, context) => {
     // (set via the invite/signup flow) -- denormalized onto the volunteers
     // row so other functions (named shift-signup lists) can show a name
     // without needing the Identity Admin API.
-    const fullName = (user.user_metadata && user.user_metadata.full_name) || null;
+    // (@netlify/identity normalises the user: the name is user.name /
+    // user.userMetadata, not the raw user_metadata the widget exposes.)
+    const fullName = user.name || (user.userMetadata && user.userMetadata.full_name) || null;
+
+    // Self-registered and not yet approved (or rejected): return just
+    // enough for the portal to show a "waiting for approval" message --
+    // no shifts, settings or safety guidance.
+    const access = await getVolunteerAccess(db, user);
+    if (access.status !== 'approved') {
+      const v = await db.sql`SELECT email, full_name FROM volunteers WHERE id = ${access.volunteerId}`;
+      return new Response(JSON.stringify({
+        approvalStatus: access.status,
+        email: v.length ? v[0].email : user.email,
+        fullName: v.length ? v[0].full_name : fullName,
+        shifts: []
+      }), { status: 200, headers });
+    }
 
     let rows = await db.sql`
       SELECT id, identity_user_id, email, full_name, reminder_email_opt_in, preferred_email, risk_ack_at,
@@ -80,6 +97,7 @@ export default async (req, context) => {
     }));
 
     return new Response(JSON.stringify({
+      approvalStatus: 'approved',
       email: profile.email,
       fullName: profile.full_name,
       reminderEmailOptIn: profile.reminder_email_opt_in,

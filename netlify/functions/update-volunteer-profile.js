@@ -3,6 +3,7 @@
 
 import { getUser } from '@netlify/identity';
 import { getDatabase } from '@netlify/database';
+import { getVolunteerAccess, notApprovedResponse } from '../lib/volunteer-access.js';
 
 const headers = { 'Content-Type': 'application/json' };
 
@@ -24,6 +25,9 @@ export default async (req, context) => {
       : null;
 
     const db = getDatabase();
+
+    const access = await getVolunteerAccess(db, user);
+    if (access.status !== 'approved') return notApprovedResponse(access.status, headers);
 
     const rows = await db.sql`
       INSERT INTO volunteers (identity_user_id, email, reminder_email_opt_in, preferred_email)

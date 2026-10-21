@@ -18,7 +18,9 @@ const ALLOWED_KEYS = [
   'risk_assessment_url',
   'trutrak_asset_registration',
   'tracking_window_start',
-  'tracking_window_end'
+  'tracking_window_end',
+  'signup_code',
+  'registration_notify_email'
 ];
 
 const TIME_KEYS = ['sightings_window_start', 'sightings_window_end', 'tracking_window_start', 'tracking_window_end'];

@@ -333,6 +333,64 @@
             to { opacity: 1; transform: translateX(0); }
         }
 
+        /* Volunteer registration approvals + branded invites (2026-10-21) */
+        .tab-badge {
+            display: inline-block;
+            min-width: 1.3rem;
+            margin-left: 0.3rem;
+            padding: 0.05rem 0.4rem;
+            border-radius: 999px;
+            background: var(--santa-red);
+            color: #fff;
+            font-size: 0.75rem;
+            font-weight: bold;
+            line-height: 1.3;
+            text-align: center;
+        }
+        .tab-btn.active .tab-badge { background: #fff; color: var(--santa-red); }
+        .pending-alert {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+            background: #FFF8E8;
+            border: 1px solid #EBD9A8;
+            border-radius: var(--radius-md);
+            padding: 0.8rem 1rem;
+            margin-bottom: 1rem;
+            font-weight: bold;
+        }
+        .approval-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+            border: 1px solid #EBD9A8;
+            background: #FFFCF4;
+            border-radius: var(--radius-md);
+            padding: 0.8rem 1rem;
+            margin-bottom: 0.6rem;
+        }
+        .approval-row.rejected { border-color: var(--border-subtle); background: var(--surface-muted); }
+        .approval-who { line-height: 1.45; }
+        .approval-who small { color: var(--ink-soft); }
+        .approval-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+        .invite-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            padding: 0.5rem 0;
+            border-bottom: 1px dashed var(--border-subtle);
+            font-size: 0.92rem;
+        }
+        .invite-row small { color: var(--ink-soft); }
+        .settings-hint { color: var(--ink-soft); font-size: 0.82rem; margin-top: 0.3rem; word-break: break-all; }
+        .rejected-details summary { cursor: pointer; color: var(--ink-soft); font-size: 0.9rem; margin: 0.5rem 0; }
+
         .volunteer-block {
             border: 1px solid var(--border-subtle);
             border-radius: var(--radius-md);
@@ -783,7 +841,7 @@
             <div class="admin-tabs tab-buttons">
                 <button class="tab-btn active" data-tab="dashboard">📊 Dashboard</button>
                 <button class="tab-btn" data-tab="routes">🗺️ Routes &amp; Streets</button>
-                <button class="tab-btn" data-tab="volunteers">👥 Volunteers</button>
+                <button class="tab-btn" data-tab="volunteers">👥 Volunteers<span class="tab-badge admin-hidden" id="pendingTabBadge"></span></button>
                 <button class="tab-btn" data-tab="search-activity">🔍 Search Activity</button>
             </div>
 
@@ -802,6 +860,10 @@
                         <button type="button" class="admin-btn small danger" id="stopTrackingBtn" hidden>⛔ Stop live tracking now</button>
                         <button type="button" class="admin-btn small" id="resumeTrackingBtn" hidden>Resume live tracking tonight</button>
                     </div>
+                </div>
+                <div class="pending-alert admin-hidden" id="pendingDashboardAlert">
+                    <span id="pendingDashboardText"></span>
+                    <button type="button" class="admin-btn small" id="pendingDashboardBtn">Review</button>
                 </div>
                 <div class="dashboard-stats" id="dashboardStats"></div>
 
@@ -846,6 +908,15 @@
                         <button type="button" class="admin-btn small" id="lookupTrutrakAssetsBtn" style="margin-top: 0.5rem;">Look up registrations from TruTrak</button>
                         <div id="trutrakAssetsResult" class="admin-status"></div>
                     </div>
+                    <div>
+                        <label for="signupCode">Volunteer sign-up code &mdash; people need this to register on the helpout page</label>
+                        <input type="text" id="signupCode" placeholder="Blank = registration closed" autocomplete="off" spellcheck="false">
+                        <div class="settings-hint" id="signupLinkHint"></div>
+                    </div>
+                    <div>
+                        <label for="registrationNotifyEmail">Email new-registration alerts to</label>
+                        <input type="email" id="registrationNotifyEmail" placeholder="Blank = no alerts">
+                    </div>
                     <button type="submit" class="admin-btn">Save Settings</button>
                 </form>
                 <div class="admin-status" id="settingsStatus"></div>
@@ -879,7 +950,19 @@
                  9 restructure), since both are things you do in the course
                  of managing volunteers, not standalone destinations. -->
             <div class="admin-card admin-hidden" id="tab-volunteers">
-                <div class="reminders-panel" style="border-top: none; margin-top: 0; padding-top: 0;">
+                <!-- Self-registrations from the helpout page wait here until
+                     approved/rejected (admin-review-volunteer.js). They're
+                     kept out of the volunteer list and shift/role pickers
+                     below until approved. -->
+                <div class="dashboard-section-title">🆕 New registrations to approve</div>
+                <div id="pendingContent"><p class="admin-loading">Loading...</p></div>
+                <details class="rejected-details admin-hidden" id="rejectedDetails">
+                    <summary id="rejectedSummary">Rejected registrations</summary>
+                    <div id="rejectedContent"></div>
+                </details>
+                <div class="admin-status" id="approvalsStatus"></div>
+
+                <div class="reminders-panel">
                     <h3>✉️ Send tonight's shift reminders now</h3>
                     <p>Normally sent automatically at 7am every day of the event window. Use this to send early, resend, or send for a different date.</p>
                     <div class="add-row-form">
@@ -914,6 +997,16 @@
                     <button type="submit" class="admin-btn">Send Broadcast</button>
                 </form>
                 <div class="admin-status" id="broadcastStatus"></div>
+
+                <div class="dashboard-section-title">✉️ Invite a volunteer</div>
+                <p style="color:#666; font-size:0.9rem; margin-top:0;">Sends a Santa Sleigh–branded email with a personal link to create their account. No sign-up code needed, and they're approved automatically. The link works once and expires after 14 days.</p>
+                <form class="add-row-form" id="inviteVolunteerForm">
+                    <input type="text" id="inviteVolunteerName" placeholder="Name" required>
+                    <input type="email" id="inviteVolunteerEmail" placeholder="Email" required>
+                    <button type="submit" class="admin-btn small">Send Invite</button>
+                </form>
+                <div id="invitesContent"></div>
+                <div class="admin-status" id="invitesStatus"></div>
 
                 <div class="dashboard-section-title">👥 Volunteers</div>
                 <p style="color:#666; font-size:0.9rem; margin-top:0;">Most volunteers get an account via an invite email. For a helper who doesn't want or need one -- a one-off doorstep helper, a second adult just tagging along -- add them here instead; they can still be assigned to shifts and to the Santa/Safety Walker/Driver roles below, same as anyone else.</p>
@@ -1014,6 +1107,8 @@
                     renderRoutes();
                     renderSettings();
                     renderVolunteers();
+                    renderApprovals();
+                    renderInvites();
                     renderBroadcast();
                 } catch (err) {
                     console.error('Error loading admin data:', err);
@@ -1984,7 +2079,26 @@
                 document.getElementById('riskAssessmentText').value = adminData.settings.risk_assessment_text || '';
                 document.getElementById('riskAssessmentUrl').value = adminData.settings.risk_assessment_url || '';
                 document.getElementById('trutrakAssetRegistration').value = adminData.settings.trutrak_asset_registration || '';
+                document.getElementById('signupCode').value = adminData.settings.signup_code || '';
+                document.getElementById('registrationNotifyEmail').value = adminData.settings.registration_notify_email || '';
+                updateSignupLinkHint();
             }
+
+            // Shows the ready-to-share registration link (code pre-filled)
+            // under the sign-up code field.
+            function helpoutBaseUrl() {
+                return /(^|\.)santasleighsalford\.co\.uk$/i.test(location.hostname)
+                    ? 'https://helpout.santasleighsalford.co.uk/'
+                    : location.origin + '/helpout.html';
+            }
+            function updateSignupLinkHint() {
+                var code = document.getElementById('signupCode').value.trim();
+                var hint = document.getElementById('signupLinkHint');
+                hint.textContent = code
+                    ? 'Link to share (code filled in for them): ' + helpoutBaseUrl() + '?code=' + encodeURIComponent(code)
+                    : 'Registration is closed while this is blank. Invites still work.';
+            }
+            document.getElementById('signupCode').addEventListener('input', updateSignupLinkHint);
 
             document.getElementById('settingsForm').addEventListener('submit', function(e) {
                 e.preventDefault();
@@ -1997,7 +2111,9 @@
                     tracking_window_end: document.getElementById('trackingWindowEnd').value,
                     risk_assessment_text: document.getElementById('riskAssessmentText').value,
                     risk_assessment_url: document.getElementById('riskAssessmentUrl').value,
-                    trutrak_asset_registration: document.getElementById('trutrakAssetRegistration').value
+                    trutrak_asset_registration: document.getElementById('trutrakAssetRegistration').value,
+                    signup_code: document.getElementById('signupCode').value,
+                    registration_notify_email: document.getElementById('registrationNotifyEmail').value
                 }, 'settingsStatus', 'Settings saved.');
             });
 
@@ -2125,6 +2241,165 @@
                     document.getElementById('addGuestVolunteerForm').reset();
                 } catch (err) {
                     // runOp already surfaced the error via toast/status.
+                }
+            });
+
+            // ---- Registration approvals (helpout page sign-ups) ----
+
+            function formatDateTime(iso) {
+                if (!iso) return '';
+                return new Date(iso).toLocaleString('en-GB', {
+                    timeZone: 'Europe/London', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'
+                });
+            }
+
+            function approvalRow(vol, rejected) {
+                var row = document.createElement('div');
+                row.className = 'approval-row' + (rejected ? ' rejected' : '');
+                var who = document.createElement('div');
+                who.className = 'approval-who';
+                who.innerHTML = '<strong>' + escapeHtml(vol.fullName || vol.email) + '</strong><br>' +
+                    escapeHtml(vol.email || '') + (vol.phone ? ' · ' + escapeHtml(vol.phone) : '') + '<br>' +
+                    '<small>' + (rejected
+                        ? 'Rejected ' + escapeHtml(formatDateTime(vol.reviewedAt))
+                        : 'Registered ' + escapeHtml(formatDateTime(vol.registeredAt))) + '</small>';
+                row.appendChild(who);
+
+                var actions = document.createElement('div');
+                actions.className = 'approval-actions';
+                var approveBtn = document.createElement('button');
+                approveBtn.type = 'button';
+                approveBtn.className = 'admin-btn small';
+                approveBtn.textContent = rejected ? 'Approve instead' : '✓ Approve';
+                approveBtn.onclick = function() { reviewVolunteer(vol, 'approve', actions); };
+                actions.appendChild(approveBtn);
+                if (!rejected) {
+                    var rejectBtn = document.createElement('button');
+                    rejectBtn.type = 'button';
+                    rejectBtn.className = 'admin-btn small danger';
+                    rejectBtn.textContent = '✕ Reject';
+                    rejectBtn.onclick = function() {
+                        if (!confirm('Reject ' + (vol.fullName || vol.email) + '?\n\nThey\u2019ll get a short \u201cnot this time\u201d email and won\u2019t be able to see shifts. You can approve them later if you change your mind.')) return;
+                        reviewVolunteer(vol, 'reject', actions);
+                    };
+                    actions.appendChild(rejectBtn);
+                }
+                row.appendChild(actions);
+                return row;
+            }
+
+            async function reviewVolunteer(vol, decision, actionsEl) {
+                actionsEl.querySelectorAll('button').forEach(function(b) { b.disabled = true; });
+                try {
+                    var result = await runOp('/.netlify/functions/admin-review-volunteer', {
+                        volunteerId: vol.id, decision: decision
+                    }, 'approvalsStatus', (vol.fullName || vol.email) + (decision === 'approve' ? ' approved.' : ' rejected.'));
+                    if (result && result.emailed === false) {
+                        showToast("Saved, but the email to " + (vol.email || 'them') + " didn't send.", 'error');
+                    }
+                } catch (err) {
+                    actionsEl.querySelectorAll('button').forEach(function(b) { b.disabled = false; });
+                }
+            }
+
+            function renderApprovals() {
+                var pending = adminData.pendingVolunteers || [];
+                var rejected = adminData.rejectedVolunteers || [];
+
+                var badge = document.getElementById('pendingTabBadge');
+                badge.textContent = pending.length;
+                badge.classList.toggle('admin-hidden', pending.length === 0);
+
+                var alertEl = document.getElementById('pendingDashboardAlert');
+                alertEl.classList.toggle('admin-hidden', pending.length === 0);
+                document.getElementById('pendingDashboardText').textContent = '🆕 ' + pending.length +
+                    (pending.length === 1 ? ' new volunteer is' : ' new volunteers are') + ' waiting for approval';
+
+                var container = document.getElementById('pendingContent');
+                container.innerHTML = '';
+                if (pending.length === 0) {
+                    var none = document.createElement('p');
+                    none.style.cssText = 'color:#666; font-size:0.9rem; margin-top:0;';
+                    none.textContent = 'No one waiting for approval.';
+                    container.appendChild(none);
+                } else {
+                    pending.forEach(function(vol) { container.appendChild(approvalRow(vol, false)); });
+                }
+
+                var details = document.getElementById('rejectedDetails');
+                details.classList.toggle('admin-hidden', rejected.length === 0);
+                document.getElementById('rejectedSummary').textContent = 'Rejected registrations (' + rejected.length + ')';
+                var rejContainer = document.getElementById('rejectedContent');
+                rejContainer.innerHTML = '';
+                rejected.forEach(function(vol) { rejContainer.appendChild(approvalRow(vol, true)); });
+            }
+
+            document.getElementById('pendingDashboardBtn').addEventListener('click', function() {
+                document.querySelector('.tab-btn[data-tab="volunteers"]').click();
+            });
+
+            // ---- Branded invites ----
+
+            function renderInvites() {
+                var container = document.getElementById('invitesContent');
+                container.innerHTML = '';
+                var invites = adminData.invites || [];
+                if (invites.length === 0) return;
+                var heading = document.createElement('p');
+                heading.style.cssText = 'font-weight:bold; font-size:0.9rem; margin:0.75rem 0 0.25rem;';
+                heading.textContent = 'Invited, not registered yet';
+                container.appendChild(heading);
+                invites.forEach(function(inv) {
+                    var row = document.createElement('div');
+                    row.className = 'invite-row';
+                    var who = document.createElement('span');
+                    who.innerHTML = escapeHtml(inv.fullName || '') + ' &lt;' + escapeHtml(inv.email) + '&gt; ' +
+                        '<small>' + (inv.expired ? '· expired' : '· expires ' + escapeHtml(formatDateTime(inv.expiresAt))) + '</small>';
+                    row.appendChild(who);
+                    var actions = document.createElement('span');
+                    actions.className = 'approval-actions';
+                    var resendBtn = document.createElement('button');
+                    resendBtn.type = 'button';
+                    resendBtn.className = 'admin-btn small';
+                    resendBtn.textContent = 'Resend';
+                    resendBtn.onclick = function() {
+                        resendBtn.disabled = true;
+                        runOp('/.netlify/functions/admin-invite-volunteer', { op: 'resend', inviteId: inv.id },
+                            'invitesStatus', 'Invite re-sent to ' + inv.email + '.').catch(function() { resendBtn.disabled = false; });
+                    };
+                    var cancelBtn = document.createElement('button');
+                    cancelBtn.type = 'button';
+                    cancelBtn.className = 'admin-btn small danger';
+                    cancelBtn.textContent = 'Cancel';
+                    cancelBtn.onclick = function() {
+                        if (!confirm('Cancel the invite to ' + inv.email + '? Their link will stop working.')) return;
+                        runOp('/.netlify/functions/admin-invite-volunteer', { op: 'cancel', inviteId: inv.id },
+                            'invitesStatus', 'Invite cancelled.').catch(function() {});
+                    };
+                    actions.appendChild(resendBtn);
+                    actions.appendChild(cancelBtn);
+                    row.appendChild(actions);
+                    container.appendChild(row);
+                });
+            }
+
+            document.getElementById('inviteVolunteerForm').addEventListener('submit', async function(e) {
+                e.preventDefault();
+                var form = this;
+                var btn = form.querySelector('button[type="submit"]');
+                var email = document.getElementById('inviteVolunteerEmail').value.trim();
+                btn.disabled = true;
+                try {
+                    await runOp('/.netlify/functions/admin-invite-volunteer', {
+                        op: 'invite',
+                        fullName: document.getElementById('inviteVolunteerName').value.trim(),
+                        email: email
+                    }, 'invitesStatus', 'Invite sent to ' + email + '.');
+                    form.reset();
+                } catch (err) {
+                    // runOp already surfaced the error via toast/status.
+                } finally {
+                    btn.disabled = false;
                 }
             });
 

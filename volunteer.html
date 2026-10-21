@@ -766,6 +766,28 @@
                 gap: 0.75rem;
             }
         }
+        /* Self-registered volunteers awaiting approval (or rejected) see
+           only a notice -- none of the shift/utility UI. */
+        .approval-notice {
+            display: none;
+            background: #FFF8E8;
+            border: 1px solid #EBD9A8;
+            border-radius: var(--radius-md);
+            padding: 1.25rem 1.25rem 0.25rem;
+            margin: 1rem 0 1.5rem;
+            text-align: left;
+        }
+        .approval-notice h2 { font-size: 1.15rem; color: var(--text-dark); margin-bottom: 0.5rem; }
+        .approval-notice.rejected { background: #FBEDEB; border-color: #EBC4BF; }
+        .volunteer-dashboard.not-approved .approval-notice { display: block; }
+        .volunteer-dashboard.not-approved .risk-banner,
+        .volunteer-dashboard.not-approved .utility-row,
+        .volunteer-dashboard.not-approved .volunteer-tabs,
+        .volunteer-dashboard.not-approved .tab-panel { display: none !important; }
+
+        .register-hint { margin: 1.25rem 0 0 !important; font-size: 0.95rem; color: var(--ink-soft) !important; }
+        .register-hint a { color: var(--santa-green); font-weight: bold; }
+
         /* Netlify Identity widget (login/signup modal): our own sticky
            .header has z-index:100, one higher than the widget's own
            inline z-index:99, so the header permanently covered the top
@@ -793,14 +815,20 @@
 
         <!-- Logged-out state -->
         <div class="volunteer-card" id="loggedOutCard">
-            <p>This portal is for invited Santa Sleigh volunteers. If you've received an invite email, click below to log in and finish setting up your account. If you haven't been invited yet, get in touch with your route lead.</p>
+            <p>This portal is for Santa Sleigh volunteers. Log in to see the nights we're out and choose your shifts. If you've been sent an invite email, click the link in it to finish setting up your account.</p>
             <button class="volunteer-login-btn" id="loginBtn">Log In</button>
+            <p class="register-hint">Not registered yet? <a id="registerLink" href="/helpout.html">Register to help</a></p>
         </div>
 
         <!-- Logged-in state -->
         <div class="volunteer-card volunteer-dashboard" id="dashboardCard">
             <div class="volunteer-welcome">
                 <p id="welcomeText" class="volunteer-loading">Loading your profile...</p>
+
+                <div class="approval-notice" id="approvalNotice" role="status">
+                    <h2 id="approvalNoticeTitle">⏳ Waiting for approval</h2>
+                    <p id="approvalNoticeText"></p>
+                </div>
 
                 <div class="risk-banner" id="riskBanner">
                     <span>⚠️ Please review our safety guidance before your next shift.</span>
@@ -1363,7 +1391,24 @@
 
                     currentProfile = profile;
                     var user = netlifyIdentity.currentUser();
-                    var name = (user && user.user_metadata && user.user_metadata.full_name) || profile.email;
+                    var name = (user && user.user_metadata && user.user_metadata.full_name) || profile.fullName || profile.email;
+
+                    // Registered via the helpout page but not approved yet
+                    // (or rejected): show a notice instead of the portal.
+                    var notApproved = profile.approvalStatus && profile.approvalStatus !== 'approved';
+                    dashboardCard.classList.toggle('not-approved', !!notApproved);
+                    if (notApproved) {
+                        var rejected = profile.approvalStatus === 'rejected';
+                        welcomeText.textContent = 'Hi, ' + name + '!';
+                        welcomeText.classList.remove('volunteer-loading');
+                        document.getElementById('approvalNotice').classList.toggle('rejected', rejected);
+                        document.getElementById('approvalNoticeTitle').textContent = rejected ? 'Registration not approved' : '⏳ Waiting for approval';
+                        document.getElementById('approvalNoticeText').textContent = rejected
+                            ? "We weren't able to approve your volunteer registration. If you think this is a mistake, please reply to the email we sent you."
+                            : "Thanks for registering! We're checking your details and will email " + (profile.email || 'you') + " as soon as you're approved. Then you'll be able to choose your shifts here.";
+                        return;
+                    }
+
                     welcomeText.textContent = 'Welcome back, ' + name + '!';
                     welcomeText.classList.remove('volunteer-loading');
 
@@ -1729,6 +1774,16 @@
                 netlifyIdentity.logout();
             });
 
+            // "Register to help" goes to the helpout subdomain in
+            // production, or /helpout.html on staging/previews.
+            if (/(^|\.)santasleighsalford\.co\.uk$/i.test(location.hostname)) {
+                document.getElementById('registerLink').href = 'https://helpout.santasleighsalford.co.uk/';
+            }
+
+            // ?login=1 (from the helpout page and the "you're approved"
+            // email) opens the login box straight away.
+            var autoOpenLogin = new URLSearchParams(location.search).get('login') === '1';
+
             netlifyIdentity.on('init', function(user) {
                 if (user) {
                     showDashboard();
@@ -1736,6 +1791,9 @@
                     loadOpenShifts();
                 } else {
                     showLoggedOut();
+                    if (autoOpenLogin && !/(invite|recovery|confirmation|email_change)_token=/.test(location.hash)) {
+                        netlifyIdentity.open('login');
+                    }
                 }
             });
 

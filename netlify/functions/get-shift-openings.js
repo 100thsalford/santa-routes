@@ -13,6 +13,7 @@
 
 import { getUser } from '@netlify/identity';
 import { getDatabase } from '@netlify/database';
+import { getVolunteerAccess } from '../lib/volunteer-access.js';
 
 const headers = {
   'Access-Control-Allow-Origin': '*',
@@ -43,11 +44,14 @@ export default async (req, context) => {
     const db = getDatabase();
     const todayDate = londonDateString(new Date());
 
-    const user = await getUser();
+    // A logged-in volunteer still awaiting approval (or rejected) is
+    // treated exactly like an anonymous visitor: no names.
+    let user = await getUser();
     let volunteerId = null;
     if (user) {
-      const rows = await db.sql`SELECT id FROM volunteers WHERE identity_user_id = ${user.id}`;
-      if (rows.length > 0) volunteerId = rows[0].id;
+      const access = await getVolunteerAccess(db, user);
+      if (access.status === 'approved') volunteerId = access.volunteerId;
+      else user = null;
     }
 
     const rows = await db.sql`
