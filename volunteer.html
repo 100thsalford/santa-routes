@@ -616,7 +616,7 @@
         .open-default-gather { font-size: 0.8rem; color: var(--ink-soft); margin: 0 0 0.6rem; text-align: left; }
         .open-default-gather:empty { display: none; }
         .open-shift-row.is-mine { border: 1px solid var(--santa-green); }
-        .open-shift-head { display: flex; align-items: center; gap: 0.5rem; }
+        .open-shift-head { display: flex; align-items: center; gap: 0.6rem; }
         .open-shift-title {
             flex: 1;
             min-width: 0;
@@ -641,17 +641,23 @@
         .open-shift-sub .shift-status-badge { font-size: 0.75rem; padding: 0.2rem 0.55rem; }
         .open-shift-head .shift-claim-btn { padding: 0.45rem 0.9rem; font-size: 0.85rem; }
         .shift-mine-tag { font-size: 0.8rem; font-weight: bold; color: var(--santa-green); white-space: nowrap; flex-shrink: 0; }
-        .open-shift-chevron {
-            background: none;
-            border: none;
-            color: var(--ink-soft);
-            font-size: 1.1rem;
-            padding: 0.4rem 0.3rem;
-            cursor: pointer;
-            transition: transform 0.15s ease;
+        .open-shift-head { cursor: pointer; }
+        .open-shift-side {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 0.4rem;
             flex-shrink: 0;
         }
-        .open-shift-row.is-open .open-shift-chevron { transform: rotate(180deg); }
+        .open-shift-more {
+            color: var(--santa-green);
+            font-weight: bold;
+            font-size: 0.8rem;
+            border: 1px solid var(--santa-green);
+            border-radius: 999px;
+            padding: 0.25rem 0.7rem;
+            white-space: nowrap;
+        }
         .open-shift-details {
             display: none;
             border-top: 1px solid var(--border-subtle);
@@ -1690,12 +1696,13 @@
                 return need + ' more needed!';
             }
 
-            function toggleOpenShift(id, row, titleBtn, chevBtn) {
+            function toggleOpenShift(id, row, titleBtn) {
                 var open = !row.classList.contains('is-open');
                 row.classList.toggle('is-open', open);
                 openShiftsExpanded[id] = open;
                 titleBtn.setAttribute('aria-expanded', String(open));
-                chevBtn.setAttribute('aria-expanded', String(open));
+                var more = row.querySelector('.open-shift-more');
+                if (more) more.textContent = open ? 'Hide ▴' : 'Details ▾';
             }
 
             function renderOpenShifts() {
@@ -1786,11 +1793,17 @@
                     titleBtn.appendChild(sub);
                     head.appendChild(titleBtn);
 
+                    // Right-hand column: Sign up (or "You're on") with the
+                    // labelled Details pill under it, so the pill sits next to
+                    // the button instead of making each card taller.
+                    var side = document.createElement('div');
+                    side.className = 'open-shift-side';
+
                     if (shift.viewerSignedUp) {
                         var mine = document.createElement('span');
                         mine.className = 'shift-mine-tag';
                         mine.textContent = "✓ You're on";
-                        head.appendChild(mine);
+                        side.appendChild(mine);
                     } else if (shift.status !== 'full') {
                         // (A full night already says "Full" in its badge, so
                         // it gets no second, greyed-out button.)
@@ -1798,16 +1811,15 @@
                         claimBtn.className = 'shift-claim-btn';
                         claimBtn.textContent = 'Sign up';
                         claimBtn.onclick = function() { claimShift(shift.id, claimBtn); };
-                        head.appendChild(claimBtn);
+                        side.appendChild(claimBtn);
                     }
 
-                    var chevBtn = document.createElement('button');
-                    chevBtn.type = 'button';
-                    chevBtn.className = 'open-shift-chevron';
-                    chevBtn.setAttribute('aria-label', 'Show details for ' + dateLabel);
-                    chevBtn.setAttribute('aria-expanded', 'false');
-                    chevBtn.textContent = '▾';
-                    head.appendChild(chevBtn);
+                    var moreLabel = document.createElement('span');
+                    moreLabel.className = 'open-shift-more';
+                    moreLabel.setAttribute('aria-hidden', 'true');
+                    moreLabel.textContent = 'Details ▾';
+                    side.appendChild(moreLabel);
+                    head.appendChild(side);
 
                     row.appendChild(head);
 
@@ -1889,9 +1901,14 @@
 
                     row.appendChild(details);
 
-                    titleBtn.onclick = function() { toggleOpenShift(shift.id, row, titleBtn, chevBtn); };
-                    chevBtn.onclick = function() { toggleOpenShift(shift.id, row, titleBtn, chevBtn); };
-                    if (openShiftsExpanded[shift.id]) toggleOpenShift(shift.id, row, titleBtn, chevBtn);
+                    // The whole header is the tap target (not just the label),
+                    // apart from the Sign up button itself. The title button
+                    // keeps keyboard/screen-reader access.
+                    head.addEventListener('click', function(e) {
+                        if (e.target.closest && e.target.closest('.shift-claim-btn')) return;
+                        toggleOpenShift(shift.id, row, titleBtn);
+                    });
+                    if (openShiftsExpanded[shift.id]) toggleOpenShift(shift.id, row, titleBtn);
 
                     openShiftsContent.appendChild(row);
                 });
