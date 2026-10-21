@@ -802,6 +802,13 @@
             margin-bottom: 0.5rem;
         }
 
+        .route-track-hint {
+            font-size: 0.8rem;
+            color: var(--ink-soft);
+            margin: 0 0 0.4rem;
+            text-align: left;
+        }
+
         .direction-list {
             list-style: none;
             margin: 0;
@@ -1030,6 +1037,7 @@
             <div id="routeTrackMap" class="route-track-map"></div>
             <button type="button" id="routeTrackLocateBtn" class="locate-btn">📍 Show my location</button>
             <div id="routeTrackStatus" class="route-track-status"></div>
+            <p id="routeTrackHint" class="route-track-hint">👆 Tap a turn below, or an icon on the map, to zoom in on it.</p>
             <ol id="routeTrackDirections" class="direction-list"></ol>
             <button type="button" class="info-modal-close-btn" data-close-modal="routeTrackModalOverlay">Close</button>
         </div>
@@ -1350,6 +1358,9 @@
 
                     listEl.appendChild(item);
                 });
+
+                // Only hint at tappable turns when there are some.
+                document.getElementById('routeTrackHint').style.display = track.directions.length ? '' : 'none';
 
                 // The modal is hidden (display:none via the overlay class)
                 // while Leaflet first measures its container, so it thinks
