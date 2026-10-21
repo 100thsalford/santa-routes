@@ -6,6 +6,7 @@
 
 import { getUser } from '@netlify/identity';
 import { getDatabase } from '@netlify/database';
+import { getVolunteerAccess, notApprovedResponse } from '../lib/volunteer-access.js';
 import { getStore } from '@netlify/blobs';
 
 const jsonHeaders = { 'Content-Type': 'application/json' };
@@ -24,6 +25,9 @@ export default async (req, context) => {
     }
 
     const db = getDatabase();
+
+    const access = await getVolunteerAccess(db, user);
+    if (access.status !== 'approved') return notApprovedResponse(access.status, jsonHeaders);
     const rows = await db.sql`
       SELECT route_map_key, route_map_filename, route_map_content_type
       FROM route_dates WHERE id = ${routeDateId}

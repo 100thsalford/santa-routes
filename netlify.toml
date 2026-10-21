@@ -34,6 +34,13 @@
   [headers.values]
     Cache-Control = "public, max-age=300, s-maxage=300"
 
+# Registration status (is sign-up open / is this invite valid) must never
+# be served stale either.
+[[headers]]
+  for = "/.netlify/functions/helpout-status"
+  [headers.values]
+    Cache-Control = "no-store"
+
 # ...except the live sleigh-tracking endpoint, which must never be served
 # stale from the CDN -- this more specific rule overrides the wildcard
 # above for this one path.
@@ -41,6 +48,30 @@
   for = "/.netlify/functions/get-tracking-data"
   [headers.values]
     Cache-Control = "no-store"
+
+# helpout.santasleighsalford.co.uk -- the volunteer registration page.
+# The subdomain is a domain alias on this same site: its root serves
+# helpout.html (plus the stylesheet it uses), and every other path
+# redirects to the same path on the main domain so the subdomain never
+# becomes a second copy of the site. helpout.html calls its functions on
+# the main domain directly (CORS in netlify/lib/helpout-cors.js).
+[[redirects]]
+  from = "https://helpout.santasleighsalford.co.uk/"
+  to = "/helpout.html"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "https://helpout.santasleighsalford.co.uk/styles.css"
+  to = "/styles.css"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "https://helpout.santasleighsalford.co.uk/*"
+  to = "https://santasleighsalford.co.uk/:splat"
+  status = 301
+  force = true
 
 # Redirects (if needed)
 # [[redirects]]

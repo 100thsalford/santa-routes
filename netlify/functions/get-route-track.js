@@ -6,6 +6,7 @@
 
 import { getUser } from '@netlify/identity';
 import { getDatabase } from '@netlify/database';
+import { getVolunteerAccess, notApprovedResponse } from '../lib/volunteer-access.js';
 
 const headers = { 'Content-Type': 'application/json' };
 
@@ -23,6 +24,9 @@ export default async (req, context) => {
     }
 
     const db = getDatabase();
+
+    const access = await getVolunteerAccess(db, user);
+    if (access.status !== 'approved') return notApprovedResponse(access.status, headers);
     const rows = await db.sql`SELECT route_track FROM route_dates WHERE id = ${routeDateId}`;
     if (rows.length === 0 || !rows[0].route_track) {
       return new Response(JSON.stringify({ error: 'No interactive route for this date' }), { status: 404, headers });

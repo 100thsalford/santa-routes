@@ -105,7 +105,7 @@ export default async (req, context) => {
         WHERE sa.route_date_id = ${body.routeDateId}
       `;
     } else {
-      recipientRows = await db.sql`SELECT email, preferred_email FROM volunteers`;
+      recipientRows = await db.sql`SELECT email, preferred_email FROM volunteers WHERE approval_status = 'approved'`;
     }
 
     const html = buildEmailHtml(message);

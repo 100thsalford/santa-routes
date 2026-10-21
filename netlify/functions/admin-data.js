@@ -25,12 +25,12 @@ export default async (req, context) => {
 
     const db = getDatabase();
 
-    const [routeRows, dateRows, streetRows, settingsRows, volunteerRows, assignmentRows, roleRows] = await Promise.all([
+    const [routeRows, dateRows, streetRows, settingsRows, volunteerRows, assignmentRows, roleRows, inviteRows] = await Promise.all([
       db.sql`SELECT id, name, display_order, internal_name FROM routes ORDER BY display_order NULLS LAST, name`,
       db.sql`SELECT id, route_id, to_char(event_date, 'YYYY-MM-DD') AS event_date, amount_collected, volunteer_capacity, what3words, notes, gathering_time, tracking_end_time, route_map_filename, route_map_content_type, route_track IS NOT NULL AS has_route_track, jsonb_array_length(route_track->'directions') AS route_track_turns, route_track->>'distanceKm' AS route_track_distance_km FROM route_dates ORDER BY event_date`,
       db.sql`SELECT id, route_date_id, sequence, name, time_range, is_partial FROM streets ORDER BY route_date_id, sequence`,
       db.sql`SELECT key, value FROM settings`,
-      db.sql`SELECT id, email, full_name, phone, is_guest, reminder_email_opt_in, can_be_santa, can_be_safety_walker, can_be_driver FROM volunteers ORDER BY COALESCE(full_name, email, '')`,
+      db.sql`SELECT id, email, full_name, phone, is_guest, reminder_email_opt_in, can_be_santa, can_be_safety_walker, can_be_driver, approval_status, registration_source, registered_at, reviewed_at FROM volunteers ORDER BY COALESCE(full_name, email, '')`,
       db.sql`
         SELECT sa.id, sa.route_date_id, sa.volunteer_id, sa.role, sa.source,
                CASE WHEN COALESCE(TRIM(r.internal_name), '') <> '' THEN r.name || ' — ' || TRIM(r.internal_name) ELSE r.name END AS route_name, to_char(rd.event_date, 'YYYY-MM-DD') AS event_date
@@ -39,7 +39,10 @@ export default async (req, context) => {
         JOIN routes r ON rd.route_id = r.id
         ORDER BY rd.event_date
       `,
-      db.sql`SELECT route_date_id, role, volunteer_id FROM event_role_assignments`
+      db.sql`SELECT route_date_id, role, volunteer_id FROM event_role_assignments`,
+      // Branded invites not yet used (or cancelled) -- shown under the
+      // Volunteers tab's invite form with Resend/Cancel.
+      db.sql`SELECT id, email, full_name, created_at, expires_at, expires_at < NOW() AS expired FROM volunteer_invites WHERE used_at IS NULL AND cancelled_at IS NULL ORDER BY created_at DESC`
     ]);
 
     const signupCountByDate = {};
@@ -126,7 +129,10 @@ export default async (req, context) => {
       });
     }
 
-    const volunteers = volunteerRows.map((v) => ({
+    // Self-registered volunteers awaiting review (or rejected) are kept out
+    // of `volunteers` entirely, so they can't be picked for shifts/roles or
+    // counted on the dashboard until approved.
+    const toVolunteer = (v) => ({
       id: v.id,
       email: v.email,
       fullName: v.full_name,
@@ -138,10 +144,22 @@ export default async (req, context) => {
         safetyWalker: !!v.can_be_safety_walker,
         driver: !!v.can_be_driver
       },
-      shifts: assignmentsByVolunteer[v.id] || []
+      shifts: assignmentsByVolunteer[v.id] || [],
+      approvalStatus: v.approval_status,
+      registrationSource: v.registration_source,
+      registeredAt: v.registered_at,
+      reviewedAt: v.reviewed_at
+    });
+    const volunteers = volunteerRows.filter((v) => v.approval_status === 'approved').map(toVolunteer);
+    const pendingVolunteers = volunteerRows.filter((v) => v.approval_status === 'pending').map(toVolunteer)
+      .sort((a, b) => String(a.registeredAt || '').localeCompare(String(b.registeredAt || '')));
+    const rejectedVolunteers = volunteerRows.filter((v) => v.approval_status === 'rejected').map(toVolunteer);
+
+    const invites = inviteRows.map((i) => ({
+      id: i.id, email: i.email, fullName: i.full_name, createdAt: i.created_at, expiresAt: i.expires_at, expired: !!i.expired
     }));
 
-    return new Response(JSON.stringify({ routes, settings, volunteers, years }), { status: 200, headers });
+    return new Response(JSON.stringify({ routes, settings, volunteers, pendingVolunteers, rejectedVolunteers, invites, years }), { status: 200, headers });
   } catch (error) {
     console.error('Error fetching admin data:', error);
     return new Response(JSON.stringify({ error: error.message }), { status: 500, headers });

@@ -11,6 +11,7 @@
 
 import { getUser } from '@netlify/identity';
 import { getDatabase } from '@netlify/database';
+import { getVolunteerAccess, notApprovedResponse } from '../lib/volunteer-access.js';
 
 const headers = { 'Content-Type': 'application/json' };
 const TIME_ZONE = 'Europe/London';
@@ -49,7 +50,10 @@ export default async (req, context) => {
 
     const db = getDatabase();
 
-    const fullName = (user.user_metadata && user.user_metadata.full_name) || null;
+    const access = await getVolunteerAccess(db, user);
+    if (access.status !== 'approved') return notApprovedResponse(access.status, headers);
+
+    const fullName = user.name || (user.userMetadata && user.userMetadata.full_name) || null;
     const volRows = await db.sql`
       INSERT INTO volunteers (identity_user_id, email, full_name)
       VALUES (${user.id}, ${user.email}, ${fullName})

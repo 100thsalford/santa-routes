@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Register to volunteer with Santa Super Sleigh Salford, or log in to choose the nights you'll help.">
+    <title>Help Santa's Sleigh | Santa Super Sleigh Salford</title>
+    <link rel="stylesheet" href="styles.css?v=20260912a">
+    <style>
+        /* Served at helpout.santasleighsalford.co.uk/ (see netlify.toml)
+           and at /helpout.html on staging. Registration posts to
+           helpout-register.js; "I've registered" goes to the volunteer
+           portal's login. */
+        .helpout-card {
+            background: var(--surface);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-lg);
+            padding: 2rem 1.5rem;
+            margin: 1rem 0 1.5rem;
+            box-shadow: var(--shadow-sm);
+        }
+        .helpout-card h2 {
+            color: var(--santa-red);
+            font-size: 1.4rem;
+            margin-bottom: 0.75rem;
+        }
+        .helpout-card p {
+            line-height: 1.65;
+            margin-bottom: 1rem;
+        }
+        .helpout-lede { color: var(--ink-soft); }
+
+        .choice-list { display: grid; gap: 0.9rem; margin-top: 1.25rem; }
+        .choice-btn {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            width: 100%;
+            text-align: left;
+            background: var(--surface);
+            border: 1.5px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+            padding: 1.1rem 1.2rem;
+            font: inherit;
+            color: var(--text-dark);
+            text-decoration: none;
+            cursor: pointer;
+            transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+        }
+        .choice-btn:hover, .choice-btn:focus-visible {
+            border-color: var(--santa-green);
+            box-shadow: var(--shadow-md);
+            transform: translateY(-1px);
+            outline: none;
+        }
+        .choice-btn.primary { border-color: var(--santa-green); background: #F3F8F5; }
+        .choice-emoji { font-size: 2rem; line-height: 1; flex-shrink: 0; }
+        .choice-title { display: block; font-weight: bold; font-size: 1.08rem; }
+        .choice-sub { display: block; color: var(--ink-soft); font-size: 0.92rem; margin-top: 0.2rem; }
+        .choice-arrow { margin-left: auto; color: var(--santa-green); font-size: 1.3rem; }
+
+        .text-btn {
+            background: none;
+            border: none;
+            color: var(--santa-green);
+            font: inherit;
+            font-weight: bold;
+            cursor: pointer;
+            padding: 0;
+            text-decoration: underline;
+        }
+
+        .invite-banner {
+            background: #F3F8F5;
+            border: 1px solid #CFE2D8;
+            border-radius: var(--radius-sm);
+            padding: 0.8rem 1rem;
+            margin-bottom: 1.25rem;
+            color: var(--santa-green);
+            font-weight: 600;
+        }
+
+        .reg-form { display: grid; gap: 1rem; }
+        .field label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 0.35rem;
+        }
+        .field .hint { font-weight: normal; color: var(--ink-soft); font-size: 0.88rem; }
+        .field input {
+            width: 100%;
+            padding: 0.75rem 0.85rem;
+            border: 1.5px solid var(--border-subtle);
+            border-radius: var(--radius-sm);
+            font: inherit;
+            font-size: 1rem;
+            background: #fff;
+        }
+        .field input:focus { outline: none; border-color: var(--santa-green); box-shadow: 0 0 0 3px rgba(30, 91, 69, 0.15); }
+        .field input[readonly] { background: var(--surface-muted); color: var(--ink-soft); }
+        .field.has-error input { border-color: var(--santa-red); }
+        .field-error { color: var(--santa-red); font-size: 0.88rem; margin-top: 0.35rem; display: none; }
+        .field.has-error .field-error { display: block; }
+        .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+        @media (max-width: 520px) { .field-row { grid-template-columns: 1fr; } }
+
+        /* Honeypot: off-screen, not display:none (some bots skip those) */
+        .hp-field { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+
+        .form-error {
+            background: #FBEDEB;
+            border: 1px solid #EBC4BF;
+            color: #7A2A23;
+            border-radius: var(--radius-sm);
+            padding: 0.8rem 1rem;
+            display: none;
+            line-height: 1.5;
+        }
+        .form-error.visible { display: block; }
+        .form-error a { color: inherit; font-weight: bold; }
+
+        .privacy-note { font-size: 0.86rem; color: var(--ink-soft); line-height: 1.55; }
+        .privacy-note a { color: var(--santa-green); }
+
+        .submit-btn, .go-btn {
+            display: inline-block;
+            background: var(--santa-green);
+            color: #fff;
+            border: none;
+            border-radius: 999px;
+            padding: 0.95rem 2rem;
+            font: inherit;
+            font-size: 1.05rem;
+            font-weight: bold;
+            cursor: pointer;
+            text-decoration: none;
+            text-align: center;
+            transition: background 0.15s ease;
+        }
+        .submit-btn:hover, .go-btn:hover { background: #163F30; }
+        .submit-btn:disabled { opacity: 0.65; cursor: wait; }
+
+        .done-icon { font-size: 3rem; text-align: center; margin-bottom: 0.5rem; }
+        #doneView { text-align: center; }
+        .notice { color: var(--ink-soft); }
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🎅 Help Santa's Sleigh</h1>
+        <p>Santa Super Sleigh Salford | 100th Salford Scout Group</p>
+    </div>
+
+    <div class="container">
+        <!-- Step 1: the two choices -->
+        <div class="helpout-card" id="choiceView">
+            <h2>Thanks for helping out!</h2>
+            <p class="helpout-lede">Every December our sleigh visits streets across Salford, and it can't go anywhere without volunteers. What would you like to do?</p>
+            <div class="choice-list">
+                <button type="button" class="choice-btn primary" id="chooseRegister">
+                    <span class="choice-emoji">🙋</span>
+                    <span>
+                        <span class="choice-title">Are you registering to help?</span>
+                        <span class="choice-sub">Create your volunteer account. You'll need the sign-up code we sent you.</span>
+                    </span>
+                    <span class="choice-arrow">›</span>
+                </button>
+                <a class="choice-btn" id="chooseLogin" href="/volunteer.html?login=1">
+                    <span class="choice-emoji">🗓️</span>
+                    <span>
+                        <span class="choice-title">I've registered, show shifts to help with</span>
+                        <span class="choice-sub">Log in to the volunteer portal and pick your nights.</span>
+                    </span>
+                    <span class="choice-arrow">›</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- Step 2: registration form -->
+        <div class="helpout-card hidden" id="formView">
+            <p style="margin-bottom:1rem;"><button type="button" class="text-btn" id="backToChoices">← Back</button></p>
+            <h2>Register to help</h2>
+            <div class="invite-banner hidden" id="inviteBanner">You've been invited to join the team, so no sign-up code needed.</div>
+            <p class="helpout-lede" id="formIntro">Fill this in and we'll check your details. Once you're approved we'll email you, and you can log in to choose your shifts.</p>
+
+            <div class="notice hidden" id="closedNotice">
+                <p><strong>Registration is closed right now.</strong></p>
+                <p>If you've been asked to help, please check back soon or reply to the email you were sent. Already registered? <a id="closedLoginLink" href="/volunteer.html?login=1">Log in to see shifts</a>.</p>
+            </div>
+
+            <form class="reg-form" id="regForm" novalidate>
+                <div class="form-error" id="formError" role="alert"></div>
+
+                <div class="field" id="f-fullName">
+                    <label for="fullName">Your name</label>
+                    <input type="text" id="fullName" name="fullName" autocomplete="name" maxlength="100" required>
+                    <div class="field-error">Please enter your name.</div>
+                </div>
+
+                <div class="field-row">
+                    <div class="field" id="f-email">
+                        <label for="email">Email</label>
+                        <input type="email" id="email" name="email" autocomplete="email" required>
+                        <div class="field-error">Please enter a valid email address.</div>
+                    </div>
+                    <div class="field" id="f-phone">
+                        <label for="phone">Mobile <span class="hint">(optional)</span></label>
+                        <input type="tel" id="phone" name="phone" autocomplete="tel" maxlength="30">
+                    </div>
+                </div>
+
+                <div class="field-row">
+                    <div class="field" id="f-password">
+                        <label for="password">Choose a password</label>
+                        <input type="password" id="password" name="password" autocomplete="new-password" minlength="8" required>
+                        <div class="field-error">At least 8 characters, please.</div>
+                    </div>
+                    <div class="field" id="f-password2">
+                        <label for="password2">Confirm password</label>
+                        <input type="password" id="password2" name="password2" autocomplete="new-password" required>
+                        <div class="field-error">The passwords don't match.</div>
+                    </div>
+                </div>
+
+                <div class="field" id="f-code">
+                    <label for="code">Sign-up code <span class="hint">(from your invite email or message)</span></label>
+                    <input type="text" id="code" name="code" autocomplete="off" autocapitalize="characters" spellcheck="false" required>
+                    <div class="field-error" id="codeError">Please enter the sign-up code.</div>
+                </div>
+
+                <div class="hp-field" aria-hidden="true">
+                    <label for="website">Leave this empty</label>
+                    <input type="text" id="website" name="website" tabindex="-1" autocomplete="off">
+                </div>
+
+                <p class="privacy-note">We'll only use your details to organise volunteering for Santa Super Sleigh Salford. See our <a id="privacyLink" href="/privacy.html" target="_blank" rel="noopener">privacy notice</a>.</p>
+
+                <div><button type="submit" class="submit-btn" id="submitBtn">Create my account</button></div>
+                <p class="privacy-note">Already registered? <a id="formLoginLink" href="/volunteer.html?login=1">Log in to see shifts</a></p>
+            </form>
+        </div>
+
+        <!-- Step 3: done -->
+        <div class="helpout-card hidden" id="doneView">
+            <div class="done-icon" id="doneIcon">🎄</div>
+            <h2 id="doneTitle">Thanks for registering!</h2>
+            <p id="doneText"></p>
+            <a class="go-btn hidden" id="doneLoginBtn" href="/volunteer.html?login=1">Log in and choose shifts</a>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <p>🎄 Supporting <a href="https://www.facebook.com/100thsalford" target="_blank" rel="noopener noreferrer" class="footer-link">100th Salford Scout Group</a> 🎄</p>
+        <p class="footer-note"><a id="homeLink" href="/" class="footer-link" style="font-weight:normal;">santasleighsalford.co.uk</a></p>
+    </footer>
+
+    <script>
+        (function() {
+            // On helpout.santasleighsalford.co.uk every other path redirects
+            // to the main site, so links and API calls go to the main domain
+            // explicitly. On staging/previews everything is same-origin.
+            var onHelpout = /^helpout\./i.test(location.hostname);
+            var mainOrigin = onHelpout ? 'https://' + location.hostname.replace(/^helpout\./i, '') : '';
+            var api = mainOrigin + '/.netlify/functions/';
+            var loginUrl = mainOrigin + '/volunteer.html?login=1';
+
+            ['chooseLogin', 'closedLoginLink', 'formLoginLink', 'doneLoginBtn'].forEach(function(id) {
+                document.getElementById(id).href = loginUrl;
+            });
+            document.getElementById('privacyLink').href = mainOrigin + '/privacy.html';
+            document.getElementById('homeLink').href = mainOrigin + '/';
+
+            var params = new URLSearchParams(location.search);
+            var inviteToken = params.get('invite') || '';
+            var codeParam = params.get('code') || '';
+
+            var views = {
+                choice: document.getElementById('choiceView'),
+                form: document.getElementById('formView'),
+                done: document.getElementById('doneView')
+            };
+            function show(name) {
+                Object.keys(views).forEach(function(k) { views[k].classList.toggle('hidden', k !== name); });
+                window.scrollTo(0, 0);
+            }
+
+            var form = document.getElementById('regForm');
+            var formError = document.getElementById('formError');
+            var submitBtn = document.getElementById('submitBtn');
+            var fields = {
+                fullName: document.getElementById('fullName'),
+                email: document.getElementById('email'),
+                phone: document.getElementById('phone'),
+                password: document.getElementById('password'),
+                password2: document.getElementById('password2'),
+                code: document.getElementById('code'),
+                website: document.getElementById('website')
+            };
+
+            var state = { open: true, inviteValid: false };
+
+            function setFieldError(name, message) {
+                var wrap = document.getElementById('f-' + name);
+                if (!wrap) return;
+                wrap.classList.toggle('has-error', !!message);
+                if (message && wrap.querySelector('.field-error')) wrap.querySelector('.field-error').textContent = message;
+            }
+            function clearErrors() {
+                ['fullName', 'email', 'password', 'password2', 'code'].forEach(function(n) {
+                    document.getElementById('f-' + n).classList.remove('has-error');
+                });
+                formError.classList.remove('visible');
+                formError.textContent = '';
+            }
+            function showFormError(html) {
+                formError.innerHTML = html;
+                formError.classList.add('visible');
+                formError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+
+            function openForm() {
+                var closed = !state.inviteValid && !state.open;
+                document.getElementById('closedNotice').classList.toggle('hidden', !closed);
+                form.classList.toggle('hidden', closed);
+                document.getElementById('formIntro').classList.toggle('hidden', closed);
+                show('form');
+                if (!closed) setTimeout(function() { (state.inviteValid ? fields.password : fields.fullName).focus(); }, 50);
+            }
+
+            document.getElementById('chooseRegister').addEventListener('click', openForm);
+            document.getElementById('backToChoices').addEventListener('click', function() { show('choice'); });
+
+            function applyInvite(invite) {
+                state.inviteValid = true;
+                document.getElementById('inviteBanner').classList.remove('hidden');
+                document.getElementById('f-code').classList.add('hidden');
+                document.getElementById('formIntro').textContent = 'Set your password to finish creating your account. You can choose shifts straight away.';
+                fields.email.value = invite.email;
+                fields.email.readOnly = true;
+                if (invite.fullName && !fields.fullName.value) fields.fullName.value = invite.fullName;
+            }
+
+            async function loadStatus() {
+                try {
+                    var url = api + 'helpout-status' + (inviteToken ? '?invite=' + encodeURIComponent(inviteToken) : '');
+                    var res = await fetch(url, { cache: 'no-store' });
+                    var data = await res.json();
+                    state.open = !!data.open;
+                    if (inviteToken) {
+                        if (data.invite && data.invite.valid) {
+                            applyInvite(data.invite);
+                            openForm();
+                            return;
+                        }
+                        var reason = data.invite && data.invite.reason;
+                        var msg = reason === 'used'
+                            ? 'That invite link has already been used. If you created your account, <a href="' + loginUrl + '">log in here</a>.'
+                            : reason === 'expired'
+                                ? 'That invite link has expired. Reply to the invite email and we\'ll send you a new one.'
+                                : 'That invite link isn\'t valid. Check you copied the whole link from the email.';
+                        var note = document.createElement('div');
+                        note.className = 'form-error visible';
+                        note.style.marginBottom = '1rem';
+                        note.innerHTML = msg;
+                        var heading = views.choice.querySelector('h2');
+                        heading.parentNode.insertBefore(note, heading.nextSibling);
+                    }
+                    if (codeParam && state.open) {
+                        fields.code.value = codeParam;
+                        openForm();
+                    }
+                } catch (err) {
+                    console.error('Could not load registration status', err);
+                }
+            }
+
+            form.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                clearErrors();
+
+                var ok = true;
+                var name = fields.fullName.value.trim();
+                var email = fields.email.value.trim();
+                if (!name) { setFieldError('fullName', 'Please enter your name.'); ok = false; }
+                if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { setFieldError('email', 'Please enter a valid email address.'); ok = false; }
+                if (fields.password.value.length < 8) { setFieldError('password', 'At least 8 characters, please.'); ok = false; }
+                else if (fields.password.value !== fields.password2.value) { setFieldError('password2', "The passwords don't match."); ok = false; }
+                if (!state.inviteValid && !fields.code.value.trim()) { setFieldError('code', 'Please enter the sign-up code.'); ok = false; }
+                if (!ok) {
+                    var firstBad = form.querySelector('.has-error input');
+                    if (firstBad) firstBad.focus();
+                    return;
+                }
+
+                submitBtn.disabled = true;
+                submitBtn.textContent = 'Creating your account...';
+                try {
+                    var res = await fetch(api + 'helpout-register', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            fullName: name,
+                            email: email,
+                            phone: fields.phone.value.trim(),
+                            password: fields.password.value,
+                            code: state.inviteValid ? '' : fields.code.value.trim(),
+                            inviteToken: state.inviteValid ? inviteToken : '',
+                            website: fields.website.value
+                        })
+                    });
+                    var data = await res.json().catch(function() { return {}; });
+                    if (!res.ok) {
+                        if (data.field === 'code') {
+                            setFieldError('code', data.error);
+                            fields.code.focus();
+                        } else if (data.exists) {
+                            showFormError(escapeHtml(data.error) + ' <a href="' + loginUrl + '">Log in</a>');
+                        } else if (data.closed) {
+                            state.open = false;
+                            openForm();
+                        } else {
+                            showFormError(escapeHtml(data.error || 'Something went wrong. Please try again.'));
+                        }
+                        return;
+                    }
+                    showDone(data, name, email);
+                } catch (err) {
+                    showFormError('We couldn\'t reach the server. Check your connection and try again.');
+                } finally {
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Create my account';
+                }
+            });
+
+            function showDone(data, name, email) {
+                var first = escapeHtml(name.split(' ')[0]);
+                if (data.status === 'approved') {
+                    document.getElementById('doneIcon').textContent = '🎉';
+                    document.getElementById('doneTitle').textContent = "You're all set!";
+                    document.getElementById('doneText').innerHTML = 'Welcome to the team, ' + first + '. Log in with <strong>' + escapeHtml(email) + '</strong> and the password you just chose to pick your nights.';
+                    document.getElementById('doneLoginBtn').classList.remove('hidden');
+                } else {
+                    document.getElementById('doneIcon').textContent = '🎄';
+                    document.getElementById('doneTitle').textContent = 'Thanks for registering, ' + name.split(' ')[0] + '!';
+                    document.getElementById('doneText').innerHTML = "We'll check your details and email <strong>" + escapeHtml(email) + "</strong> as soon as you're approved. Then you can log in and choose the nights you'd like to help with.";
+                    document.getElementById('doneLoginBtn').classList.add('hidden');
+                }
+                form.reset();
+                show('done');
+            }
+
+            function escapeHtml(str) {
+                return String(str == null ? '' : str).replace(/[&<>"']/g, function(c) {
+                    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+                });
+            }
+
+            loadStatus();
+        })();
+    </script>
+
+    <!-- Cloudflare Web Analytics --><script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "3b7106934eac4fcfa830d632dc201682"}'></script><!-- End Cloudflare Web Analytics -->
+</body>
+</html>
