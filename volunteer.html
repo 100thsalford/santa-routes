@@ -578,6 +578,88 @@
             border-color: var(--santa-green);
         }
 
+        /* Compact, expandable Open Nights list */
+        .utility-row { flex-direction: column; gap: 0.6rem; }
+        .donate-primary-btn {
+            width: 100%;
+            background: var(--gold);
+            color: #2B2312;
+            border: 1px solid rgba(0,0,0,0.08);
+            border-radius: 999px;
+            padding: 0.85rem 1rem;
+            font-size: 1.05rem;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: var(--shadow-sm);
+        }
+        .donate-primary-btn:hover { opacity: 0.92; }
+        .utility-mini { display: flex; gap: 0.5rem; }
+        .utility-mini .utility-btn {
+            flex: 1;
+            justify-content: center;
+            padding: 0.5rem 0.3rem;
+            font-size: 0.8rem;
+            white-space: nowrap;
+        }
+        .open-filter-row { display: flex; gap: 0.4rem; flex-wrap: wrap; margin: 0 0 0.6rem; }
+        .open-filter-chip {
+            border: 1px solid var(--border-subtle);
+            background: var(--surface);
+            color: var(--text-dark);
+            border-radius: 999px;
+            padding: 0.35rem 0.8rem;
+            font-size: 0.8rem;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .open-filter-chip.active { background: var(--santa-green); color: #fff; border-color: var(--santa-green); }
+        .open-default-gather { font-size: 0.8rem; color: var(--ink-soft); margin: 0 0 0.6rem; text-align: left; }
+        .open-default-gather:empty { display: none; }
+        .open-shift-row.is-mine { border: 1px solid var(--santa-green); }
+        .open-shift-head { display: flex; align-items: center; gap: 0.5rem; }
+        .open-shift-title {
+            flex: 1;
+            min-width: 0;
+            background: none;
+            border: none;
+            padding: 0;
+            text-align: left;
+            font: inherit;
+            color: inherit;
+            cursor: pointer;
+        }
+        .open-shift-line1 { display: block; font-size: 0.95rem; }
+        .open-shift-sub {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 0.4rem;
+            margin-top: 0.3rem;
+            font-size: 0.8rem;
+            color: var(--ink-soft);
+        }
+        .open-shift-sub .shift-status-badge { font-size: 0.75rem; padding: 0.2rem 0.55rem; }
+        .open-shift-head .shift-claim-btn { padding: 0.45rem 0.9rem; font-size: 0.85rem; }
+        .shift-mine-tag { font-size: 0.8rem; font-weight: bold; color: var(--santa-green); white-space: nowrap; flex-shrink: 0; }
+        .open-shift-chevron {
+            background: none;
+            border: none;
+            color: var(--ink-soft);
+            font-size: 1.1rem;
+            padding: 0.4rem 0.3rem;
+            cursor: pointer;
+            transition: transform 0.15s ease;
+            flex-shrink: 0;
+        }
+        .open-shift-row.is-open .open-shift-chevron { transform: rotate(180deg); }
+        .open-shift-details {
+            display: none;
+            border-top: 1px solid var(--border-subtle);
+            margin-top: 0.6rem;
+            padding-top: 0.4rem;
+        }
+        .open-shift-row.is-open .open-shift-details { display: block; }
+
         .info-modal-overlay {
             display: none;
             position: fixed;
@@ -845,10 +927,12 @@
                      on-demand utility buttons (matching the Replit reference
                      app) instead of an always-open banner + section. -->
                 <div class="utility-row">
-                    <a class="utility-btn" href="https://chat.whatsapp.com/BcxtgyZBZ4B42NltCxmyM4?mode=gi_t" target="_blank" rel="noopener noreferrer">📱 WhatsApp Group</a>
-                    <button type="button" class="utility-btn" id="donateUtilityBtn">💝 Scan to Donate</button>
-                    <button type="button" class="utility-btn" id="safetyBriefUtilityBtn">🦺 Safety Brief</button>
-                    <button type="button" class="utility-btn" id="faqUtilityBtn">❓ FAQs</button>
+                    <button type="button" class="donate-primary-btn" id="donateUtilityBtn">💝 Scan to Donate</button>
+                    <div class="utility-mini">
+                        <a class="utility-btn" href="https://chat.whatsapp.com/BcxtgyZBZ4B42NltCxmyM4?mode=gi_t" target="_blank" rel="noopener noreferrer">📱 WhatsApp</a>
+                        <button type="button" class="utility-btn" id="safetyBriefUtilityBtn">🦺 Safety</button>
+                        <button type="button" class="utility-btn" id="faqUtilityBtn">❓ FAQs</button>
+                    </div>
                 </div>
 
                 <div class="volunteer-tabs">
@@ -858,6 +942,12 @@
 
                 <div class="tab-panel" id="tab-events">
                     <div class="block-title" style="margin-top: 0;">🙋 Available Sleigh Nights</div>
+                    <div class="open-filter-row" id="openShiftsFilters">
+                        <button type="button" class="open-filter-chip active" data-filter="all">All</button>
+                        <button type="button" class="open-filter-chip" data-filter="free">Not signed up</button>
+                        <button type="button" class="open-filter-chip" data-filter="needed">Needs people</button>
+                    </div>
+                    <p class="open-default-gather" id="openDefaultGather"></p>
                     <div id="openShiftsContent" class="shifts-empty">
                         Loading open shifts...
                     </div>
@@ -1547,152 +1637,278 @@
                 }
             }
 
+            var openShiftsData = [];
+            var openShiftsFilter = 'all';
+            var openShiftsExpanded = {};
+
+            // Gather times are free text and written inconsistently
+            // ("17:45", "5:45pm", "5.45"), so compare them by the time they
+            // describe rather than by their spelling. A string with more than
+            // one time in it is compared as written.
+            function gatherKey(text) {
+                var s = String(text || '').trim().toLowerCase();
+                if (!s) return '';
+                var re = /(\d{1,2})(?:[:.](\d{2}))?\s*(am|pm)|(\d{1,2})[:.](\d{2})/g;
+                var m, mins = [];
+                while ((m = re.exec(s))) {
+                    var h = parseInt(m[1] || m[4], 10);
+                    var mi = parseInt(m[2] || m[5] || '0', 10);
+                    var mer = m[3];
+                    if (mer === 'pm' && h < 12) h += 12;
+                    else if (mer === 'am' && h === 12) h = 0;
+                    else if (!mer && h < 12) h += 12;
+                    mins.push(h * 60 + mi);
+                }
+                if (mins.length === 1) return 't' + mins[0];
+                return 's' + s.replace(/\s+/g, ' ');
+            }
+
+            function formatGatherKey(key, original) {
+                if (key.charAt(0) !== 't') return original;
+                var total = parseInt(key.slice(1), 10);
+                var h = Math.floor(total / 60), mi = total % 60;
+                var suffix = h >= 12 ? 'pm' : 'am';
+                var h12 = h % 12 === 0 ? 12 : h % 12;
+                return h12 + ':' + (mi < 10 ? '0' + mi : mi) + suffix;
+            }
+
+            function needLabel(capacity, signupCount) {
+                if (capacity == null) return signupCount + ' signed up';
+                var need = capacity - signupCount;
+                if (need <= 0) return 'Full';
+                return need + ' more needed!';
+            }
+
+            function toggleOpenShift(id, row, titleBtn, chevBtn) {
+                var open = !row.classList.contains('is-open');
+                row.classList.toggle('is-open', open);
+                openShiftsExpanded[id] = open;
+                titleBtn.setAttribute('aria-expanded', String(open));
+                chevBtn.setAttribute('aria-expanded', String(open));
+            }
+
+            function renderOpenShifts() {
+                var shifts = openShiftsData;
+                var defaultEl = document.getElementById('openDefaultGather');
+
+                if (shifts.length === 0) {
+                    defaultEl.textContent = '';
+                    openShiftsContent.classList.add('shifts-empty');
+                    openShiftsContent.textContent = 'No open shifts to claim right now — check back once more dates are added.';
+                    return;
+                }
+
+                // The most common gather time is stated once up top; a night
+                // only shows its own time on the collapsed row when it differs.
+                var counts = {}, firstText = {}, modeKey = '', modeCount = 0;
+                shifts.forEach(function(s) {
+                    var k = gatherKey(s.gatheringTime);
+                    if (!k) return;
+                    counts[k] = (counts[k] || 0) + 1;
+                    if (!firstText[k]) firstText[k] = s.gatheringTime;
+                    if (counts[k] > modeCount) { modeCount = counts[k]; modeKey = k; }
+                });
+                if (modeCount >= 2) {
+                    defaultEl.textContent = '⏰ Most nights gather ' + formatGatherKey(modeKey, firstText[modeKey]) +
+                        '. A night shows its own time only if different.';
+                } else {
+                    defaultEl.textContent = '';
+                    modeKey = '';
+                }
+
+                var visible = shifts.filter(function(s) {
+                    if (openShiftsFilter === 'free') return !s.viewerSignedUp;
+                    if (openShiftsFilter === 'needed') {
+                        return !s.viewerSignedUp && s.capacity != null && s.signupCount < s.capacity;
+                    }
+                    return true;
+                });
+                // Nights the volunteer is already on come first.
+                visible = visible.filter(function(s) { return s.viewerSignedUp; })
+                    .concat(visible.filter(function(s) { return !s.viewerSignedUp; }));
+
+                openShiftsContent.innerHTML = '';
+                if (visible.length === 0) {
+                    openShiftsContent.classList.add('shifts-empty');
+                    openShiftsContent.textContent = 'No nights match that filter.';
+                    return;
+                }
+                openShiftsContent.classList.remove('shifts-empty');
+
+                visible.forEach(function(shift) {
+                    var row = document.createElement('div');
+                    row.className = 'open-shift-row' + (shift.viewerSignedUp ? ' is-mine' : '');
+
+                    // ---- Collapsed row: what a volunteer needs to decide ----
+                    var head = document.createElement('div');
+                    head.className = 'open-shift-head';
+
+                    var titleBtn = document.createElement('button');
+                    titleBtn.type = 'button';
+                    titleBtn.className = 'open-shift-title';
+                    titleBtn.setAttribute('aria-expanded', 'false');
+
+                    var dateLabel = new Date(shift.eventDate + 'T00:00:00').toLocaleDateString('en-GB', {
+                        weekday: 'short', day: 'numeric', month: 'short'
+                    });
+                    var line1 = document.createElement('span');
+                    line1.className = 'open-shift-line1';
+                    var dateStrong = document.createElement('strong');
+                    dateStrong.textContent = dateLabel;
+                    line1.appendChild(dateStrong);
+                    line1.appendChild(document.createTextNode(' — ' + shift.routeName));
+                    var flagChips = EventFlags.chips(shift.flags);
+                    if (flagChips) line1.appendChild(flagChips);
+                    titleBtn.appendChild(line1);
+
+                    var sub = document.createElement('span');
+                    sub.className = 'open-shift-sub';
+                    var badge = document.createElement('span');
+                    badge.className = 'shift-status-badge ' + shiftStatusClass(shift.capacity, shift.signupCount);
+                    badge.textContent = needLabel(shift.capacity, shift.signupCount);
+                    sub.appendChild(badge);
+                    if (shift.gatheringTime && gatherKey(shift.gatheringTime) !== modeKey) {
+                        var gatherVar = document.createElement('span');
+                        gatherVar.textContent = '⏰ ' + shift.gatheringTime;
+                        sub.appendChild(gatherVar);
+                    }
+                    titleBtn.appendChild(sub);
+                    head.appendChild(titleBtn);
+
+                    if (shift.viewerSignedUp) {
+                        var mine = document.createElement('span');
+                        mine.className = 'shift-mine-tag';
+                        mine.textContent = "✓ You're on";
+                        head.appendChild(mine);
+                    } else if (shift.status !== 'full') {
+                        // (A full night already says "Full" in its badge, so
+                        // it gets no second, greyed-out button.)
+                        var claimBtn = document.createElement('button');
+                        claimBtn.className = 'shift-claim-btn';
+                        claimBtn.textContent = 'Sign up';
+                        claimBtn.onclick = function() { claimShift(shift.id, claimBtn); };
+                        head.appendChild(claimBtn);
+                    }
+
+                    var chevBtn = document.createElement('button');
+                    chevBtn.type = 'button';
+                    chevBtn.className = 'open-shift-chevron';
+                    chevBtn.setAttribute('aria-label', 'Show details for ' + dateLabel);
+                    chevBtn.setAttribute('aria-expanded', 'false');
+                    chevBtn.textContent = '▾';
+                    head.appendChild(chevBtn);
+
+                    row.appendChild(head);
+
+                    // ---- Expanded details: always includes the gather time ----
+                    var details = document.createElement('div');
+                    details.className = 'open-shift-details';
+
+                    var flagDetail = EventFlags.detail(shift.flags);
+                    if (flagDetail) details.appendChild(flagDetail);
+
+                    if (shift.gatheringTime) {
+                        var gatherEl = document.createElement('span');
+                        gatherEl.className = 'shift-detail';
+                        gatherEl.textContent = '⏰ Gather at: ' + shift.gatheringTime;
+                        details.appendChild(gatherEl);
+                    }
+
+                    if (shift.what3words) {
+                        var w3wEl = document.createElement('span');
+                        w3wEl.className = 'shift-detail';
+                        w3wEl.appendChild(document.createTextNode('📍 Meeting point: '));
+                        var w3wLink = document.createElement('a');
+                        w3wLink.href = 'https://w3w.co/' + encodeURIComponent(shift.what3words);
+                        w3wLink.target = '_blank';
+                        w3wLink.rel = 'noopener noreferrer';
+                        w3wLink.textContent = '///' + shift.what3words;
+                        w3wEl.appendChild(w3wLink);
+                        details.appendChild(w3wEl);
+                    }
+
+                    if (shift.notes) {
+                        var notesEl = document.createElement('span');
+                        notesEl.className = 'shift-detail';
+                        notesEl.textContent = shift.notes;
+                        details.appendChild(notesEl);
+                    }
+
+                    if (shift.signupNames && shift.signupNames.length > 0) {
+                        var namesEl = document.createElement('span');
+                        namesEl.className = 'shift-detail';
+                        namesEl.textContent = '🙋 Signed up: ' + shift.signupNames.join(', ');
+                        details.appendChild(namesEl);
+                    }
+                    if (shift.roles) {
+                        var roleLabels = [];
+                        if (shift.roles.santa) roleLabels.push('🎅 Santa: ' + shift.roles.santa);
+                        if (shift.roles.safety_walker) roleLabels.push('🦺 Safety Walker: ' + shift.roles.safety_walker);
+                        if (shift.roles.driver) roleLabels.push('🚗 Driver: ' + shift.roles.driver);
+                        if (roleLabels.length > 0) {
+                            var rolesEl = document.createElement('span');
+                            rolesEl.className = 'shift-detail';
+                            rolesEl.textContent = roleLabels.join(' · ');
+                            details.appendChild(rolesEl);
+                        }
+                    }
+
+                    // Route preview before signing up (both endpoints only
+                    // need a logged-in volunteer, not an assignment).
+                    if (shift.hasRouteTrack) {
+                        var trackBtn = document.createElement('button');
+                        trackBtn.className = 'shift-map-btn';
+                        trackBtn.textContent = '🗺️ View interactive map';
+                        trackBtn.onclick = function() { openRouteTrackModal(shift.id, shift.routeName); };
+                        details.appendChild(trackBtn);
+                    }
+
+                    if (shift.hasRouteMap) {
+                        var mapBtn = document.createElement('button');
+                        mapBtn.className = shift.hasRouteTrack ? 'shift-ics-btn' : 'shift-map-btn';
+                        mapBtn.textContent = shift.hasRouteTrack ? 'Printable map' : 'View route map';
+                        mapBtn.onclick = function() { viewRouteMap(shift.id, mapBtn); };
+                        details.appendChild(mapBtn);
+
+                        var mapWarning = document.createElement('span');
+                        mapWarning.className = 'shift-map-warning';
+                        mapWarning.textContent = '⚠️ Please don\'t share the route map outside the volunteer group.';
+                        details.appendChild(mapWarning);
+                    }
+
+                    row.appendChild(details);
+
+                    titleBtn.onclick = function() { toggleOpenShift(shift.id, row, titleBtn, chevBtn); };
+                    chevBtn.onclick = function() { toggleOpenShift(shift.id, row, titleBtn, chevBtn); };
+                    if (openShiftsExpanded[shift.id]) toggleOpenShift(shift.id, row, titleBtn, chevBtn);
+
+                    openShiftsContent.appendChild(row);
+                });
+            }
+
             async function loadOpenShifts() {
                 try {
                     var res = await authedFetch('/.netlify/functions/get-shift-openings');
                     var data = await res.json();
                     if (!res.ok) throw new Error(data.error || 'Could not load open shifts');
-
-                    var shifts = (data.shifts || []).filter(function(s) { return !s.viewerSignedUp; });
-
-                    if (shifts.length === 0) {
-                        openShiftsContent.classList.add('shifts-empty');
-                        openShiftsContent.textContent = 'No open shifts to claim right now — check back once more dates are added.';
-                        return;
-                    }
-
-                    openShiftsContent.innerHTML = '';
-                    openShiftsContent.classList.remove('shifts-empty');
-                    shifts.forEach(function(shift) {
-                        // Restructured to match the My Shifts row layout
-                        // (bold date on a top line, details below) rather
-                        // than one run-on paragraph -- and to surface the
-                        // same route-map/interactive-map info My Shifts
-                        // shows, so a volunteer can see what a night
-                        // actually involves before deciding to sign up.
-                        var row = document.createElement('div');
-                        row.className = 'open-shift-row';
-
-                        var top = document.createElement('div');
-                        top.className = 'shift-row-top';
-
-                        var dateLabel = new Date(shift.eventDate + 'T00:00:00').toLocaleDateString('en-GB', {
-                            weekday: 'short', day: 'numeric', month: 'short'
-                        });
-
-                        var label = document.createElement('span');
-                        var dateStrong = document.createElement('strong');
-                        dateStrong.textContent = dateLabel;
-                        label.appendChild(dateStrong);
-                        label.appendChild(document.createTextNode(' — ' + shift.routeName));
-                        var openFlagChips = EventFlags.chips(shift.flags);
-                        if (openFlagChips) label.appendChild(openFlagChips);
-                        top.appendChild(label);
-
-                        // Badge + Sign Up button grouped together and kept
-                        // prominent -- this is the pair a volunteer most
-                        // needs to notice (is there room, and how to claim
-                        // it), so they sit together at the top of the row
-                        // rather than buried among the detail lines below.
-                        var actions = document.createElement('div');
-                        actions.className = 'open-shift-actions';
-
-                        var badge = document.createElement('span');
-                        badge.className = 'shift-status-badge ' + shiftStatusClass(shift.capacity, shift.signupCount);
-                        badge.textContent = shiftStatusLabel(shift.capacity, shift.signupCount);
-                        actions.appendChild(badge);
-
-                        var claimBtn = document.createElement('button');
-                        claimBtn.className = 'shift-claim-btn';
-                        claimBtn.textContent = shift.status === 'full' ? 'Full' : 'Sign up to help';
-                        claimBtn.disabled = shift.status === 'full';
-                        claimBtn.onclick = function() { claimShift(shift.id, claimBtn); };
-                        actions.appendChild(claimBtn);
-
-                        top.appendChild(actions);
-                        row.appendChild(top);
-
-                        var openFlagDetail = EventFlags.detail(shift.flags);
-                        if (openFlagDetail) row.appendChild(openFlagDetail);
-
-                        if (shift.gatheringTime) {
-                            var openGatherTime = document.createElement('span');
-                            openGatherTime.className = 'shift-detail';
-                            openGatherTime.textContent = '⏰ Gather at: ' + shift.gatheringTime;
-                            row.appendChild(openGatherTime);
-                        }
-
-                        if (shift.what3words) {
-                            var openW3w = document.createElement('span');
-                            openW3w.className = 'shift-detail';
-                            openW3w.innerHTML = '📍 Meeting point: <a href="https://w3w.co/' + encodeURIComponent(shift.what3words) +
-                                '" target="_blank" rel="noopener noreferrer">///' + shift.what3words + '</a>';
-                            row.appendChild(openW3w);
-                        }
-
-                        if (shift.notes) {
-                            var openNotes = document.createElement('span');
-                            openNotes.className = 'shift-detail';
-                            openNotes.textContent = shift.notes;
-                            row.appendChild(openNotes);
-                        }
-
-                        // Phase 9: named signups + Santa/Safety Walker/Driver,
-                        // shown to any logged-in volunteer (superseding the
-                        // earlier aggregate-count-only privacy decision).
-                        if (shift.signupNames && shift.signupNames.length > 0) {
-                            var namesEl = document.createElement('span');
-                            namesEl.className = 'shift-detail';
-                            namesEl.textContent = '🙋 Signed up: ' + shift.signupNames.join(', ');
-                            row.appendChild(namesEl);
-                        }
-                        if (shift.roles) {
-                            var roleLabels = [];
-                            if (shift.roles.santa) roleLabels.push('🎅 Santa: ' + shift.roles.santa);
-                            if (shift.roles.safety_walker) roleLabels.push('🦺 Safety Walker: ' + shift.roles.safety_walker);
-                            if (shift.roles.driver) roleLabels.push('🚗 Driver: ' + shift.roles.driver);
-                            if (roleLabels.length > 0) {
-                                var rolesEl = document.createElement('span');
-                                rolesEl.className = 'shift-detail';
-                                rolesEl.textContent = roleLabels.join(' · ');
-                                row.appendChild(rolesEl);
-                            }
-                        }
-
-                        // Let a volunteer preview the route before signing
-                        // up, same as they'd see it in My Shifts once
-                        // they're on it -- both endpoints only require
-                        // being logged in, not already assigned to this
-                        // date.
-                        if (shift.hasRouteTrack) {
-                            var openTrackBtn = document.createElement('button');
-                            openTrackBtn.className = 'shift-map-btn';
-                            openTrackBtn.textContent = '🗺️ View interactive map';
-                            openTrackBtn.onclick = function() { openRouteTrackModal(shift.id, shift.routeName); };
-                            row.appendChild(openTrackBtn);
-                        }
-
-                        if (shift.hasRouteMap) {
-                            var openMapBtn = document.createElement('button');
-                            openMapBtn.className = shift.hasRouteTrack ? 'shift-ics-btn' : 'shift-map-btn';
-                            openMapBtn.textContent = shift.hasRouteTrack ? 'Printable map' : 'View route map';
-                            openMapBtn.onclick = function() { viewRouteMap(shift.id, openMapBtn); };
-                            row.appendChild(openMapBtn);
-
-                            var openWarning = document.createElement('span');
-                            openWarning.className = 'shift-map-warning';
-                            openWarning.textContent = '⚠️ Please don\'t share the route map outside the volunteer group.';
-                            row.appendChild(openWarning);
-                        }
-
-                        openShiftsContent.appendChild(row);
-                    });
+                    openShiftsData = data.shifts || [];
+                    renderOpenShifts();
                 } catch (err) {
                     console.error('Error loading open shifts:', err);
                     openShiftsContent.classList.add('shifts-empty');
                     openShiftsContent.textContent = "Couldn't load open shifts — please try refreshing the page.";
                 }
             }
+
+            Array.prototype.forEach.call(document.querySelectorAll('#openShiftsFilters .open-filter-chip'), function(chip) {
+                chip.addEventListener('click', function() {
+                    openShiftsFilter = chip.getAttribute('data-filter');
+                    Array.prototype.forEach.call(document.querySelectorAll('#openShiftsFilters .open-filter-chip'), function(c) {
+                        c.classList.toggle('active', c === chip);
+                    });
+                    renderOpenShifts();
+                });
+            });
 
             async function viewRouteMap(routeDateId, btn) {
                 var originalText = btn.textContent;
