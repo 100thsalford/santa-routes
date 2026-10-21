@@ -12,7 +12,7 @@ import { corsHeaders } from '../lib/helpout-cors.js';
 
 export default async (req, context) => {
   const headers = corsHeaders(req, 'GET, OPTIONS');
-  if (req.method === 'OPTIONS') return new Response('', { status: 204, headers });
+  if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers });
 
   try {
     const db = getDatabase();

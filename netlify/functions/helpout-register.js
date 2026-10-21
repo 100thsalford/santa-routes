@@ -81,7 +81,7 @@ async function sendPendingEmail(req, volunteer) {
 
 export default async (req, context) => {
   const headers = corsHeaders(req, 'POST, OPTIONS');
-  if (req.method === 'OPTIONS') return new Response('', { status: 204, headers });
+  if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers });
   if (req.method !== 'POST') {
     return new Response(JSON.stringify({ error: 'Method not allowed' }), { status: 405, headers });
   }
