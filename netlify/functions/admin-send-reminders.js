@@ -2,22 +2,20 @@
 // lets an admin fire off "tonight's shift reminders" on demand from
 // admin.html instead of only via the Netlify dashboard's "Run now" button
 // on the scheduled function (which isn't reachable from the site itself
-// and isn't admin-role gated). Deliberately duplicates the scheduled
-// function's query/email-building logic rather than importing it, per
-// this codebase's per-function self-contained-helpers convention -- also
-// lets this one return a JSON summary to the caller, which a scheduled
-// function can't do.
+// and isn't admin-role gated). Duplicates the scheduled function's query
+// (so this one can return a JSON summary to the caller, which a scheduled
+// function can't do) but shares its email template via
+// lib/shift-reminder-email.js.
 //
 // POST body: { date?: 'YYYY-MM-DD' } -- defaults to today (Europe/London).
 
 import { getUser } from '@netlify/identity';
 import { getDatabase } from '@netlify/database';
+import { sendEmail, siteUrls } from '../lib/email.js';
+import { shiftReminderEmail } from '../lib/shift-reminder-email.js';
 
 const headers = { 'Content-Type': 'application/json' };
 const TIME_ZONE = 'Europe/London';
-const FROM_ADDRESS = 'Santa Super Sleigh Salford <noreply@santasleighsalford.co.uk>';
-const REPLY_TO = 'nathan.talbot@100thsalford.co.uk';
-
 function requireAdmin(user) {
   return !!(user && user.roles && user.roles.includes('admin'));
 }
@@ -26,75 +24,6 @@ function londonDateString(date) {
   return new Intl.DateTimeFormat('en-CA', {
     timeZone: TIME_ZONE, year: 'numeric', month: '2-digit', day: '2-digit'
   }).format(date);
-}
-
-function formatDateLabel(iso) {
-  return new Date(iso + 'T00:00:00').toLocaleDateString('en-GB', {
-    weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
-  });
-}
-
-function escapeHtml(str) {
-  return String(str == null ? '' : str).replace(/[&<>"']/g, function(c) {
-    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
-  });
-}
-
-function buildEmailHtml(volunteerShifts) {
-  const sections = volunteerShifts.map(function(shift) {
-    const streetRows = shift.streets.map(function(s) {
-      return '<tr>' +
-        '<td style="padding:4px 8px; color:#666;">' + escapeHtml(s.timeRange || '') + '</td>' +
-        '<td style="padding:4px 8px;">' + escapeHtml(s.name) + '</td>' +
-        '</tr>';
-    }).join('');
-
-    return (
-      '<h2 style="color:#165B33; margin:1.5rem 0 0.5rem;">' + escapeHtml(shift.routeName) +
-      (shift.role ? ' (' + escapeHtml(shift.role) + ')' : '') + '</h2>' +
-      '<p style="margin:0 0 0.75rem;">' + escapeHtml(formatDateLabel(shift.eventDate)) + '</p>' +
-      '<table style="border-collapse:collapse; width:100%; max-width:480px;">' + streetRows + '</table>'
-    );
-  }).join('<hr style="margin:1.5rem 0; border:none; border-top:1px solid #eee;">');
-
-  return (
-    '<div style="font-family: sans-serif; color:#212529;">' +
-    '<h1 style="color:#C41E3A;">🎅 Your Santa Sleigh shift</h1>' +
-    '<p>Here\'s your shift:</p>' +
-    sections +
-    '<p style="margin-top:2rem; color:#777; font-size:0.9rem;">' +
-    'You\'re receiving this because you\'re signed up to volunteer for Santa Super Sleigh Salford. ' +
-    'You can turn off these reminders any time from the <a href="https://santasleighsalford.co.uk/volunteer.html">volunteer portal</a>.' +
-    '</p>' +
-    '</div>'
-  );
-}
-
-async function sendEmail(toEmail, html, subject) {
-  const apiKey = process.env.RESEND_API_KEY;
-  if (!apiKey) {
-    throw new Error('RESEND_API_KEY is not set');
-  }
-
-  const res = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: {
-      'Authorization': 'Bearer ' + apiKey,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      from: FROM_ADDRESS,
-      reply_to: REPLY_TO,
-      to: [toEmail],
-      subject: subject,
-      html: html
-    })
-  });
-
-  if (!res.ok) {
-    const body = await res.text();
-    throw new Error('Resend API error ' + res.status + ': ' + body);
-  }
 }
 
 export default async (req, context) => {
@@ -158,13 +87,14 @@ export default async (req, context) => {
       });
     }
 
+    const portalUrl = siteUrls(req).volunteerLogin;
+    const isToday = targetDate === londonDateString(new Date());
     for (const volunteerId of Object.keys(shiftsByVolunteer)) {
       const { toEmail, shifts } = shiftsByVolunteer[volunteerId];
-      const subject = shifts.length === 1
-        ? 'Shift reminder: ' + shifts[0].routeName
-        : 'Shift reminders (' + shifts.length + ')';
+      if (!toEmail) continue; // e.g. a guest volunteer with no email on file
+      const { subject, html } = shiftReminderEmail(shifts, { portalUrl, tonight: isToday });
       try {
-        await sendEmail(toEmail, buildEmailHtml(shifts), subject);
+        await sendEmail({ to: toEmail, subject, html });
         summary.volunteersEmailed++;
       } catch (err) {
         console.error('Failed to email ' + toEmail + ':', err.message);

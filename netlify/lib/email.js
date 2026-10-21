@@ -26,7 +26,9 @@ export function siteUrls(req) {
 }
 
 // paragraphs: array of HTML strings (caller escapes any user input).
-export function brandedEmailHtml({ heading, paragraphs, button, footnote }) {
+// bodyHtml: optional pre-built HTML (e.g. a shift table) placed after the
+// paragraphs and before the button.
+export function brandedEmailHtml({ heading, paragraphs, bodyHtml, button, footnote }) {
   const body = (paragraphs || []).map(function(p) {
     return '<p style="margin:0 0 16px; font-size:16px; line-height:1.6; color:#24272E;">' + p + '</p>';
   }).join('');
@@ -43,7 +45,7 @@ export function brandedEmailHtml({ heading, paragraphs, button, footnote }) {
         '</div>' +
         '<div style="padding:28px 24px 12px;">' +
           '<h1 style="margin:0 0 20px; font-size:22px; color:#A8382F;">' + escapeHtml(heading) + '</h1>' +
-          body + buttonHtml +
+          body + (bodyHtml || '') + buttonHtml +
         '</div>' +
         (footnote ? '<div style="padding:16px 24px 24px; font-size:13px; line-height:1.5; color:#5B6169; border-top:1px solid #E7E2D9;">' + footnote + '</div>' : '') +
       '</div>' +
