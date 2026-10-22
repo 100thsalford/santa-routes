@@ -1510,8 +1510,26 @@
                 ].join('\r\n');
             }
 
+            // iOS Safari (and iPadOS, which reports as "Macintosh" but has
+            // touch support) doesn't honour <a download> for a blob: URL --
+            // it just saves the raw file into Files with no obvious way to
+            // open it as a calendar event. Giving it a data: URI instead
+            // (no download attribute) makes Safari recognise the
+            // text/calendar type and open its native "Add to Calendar"
+            // preview directly. Everywhere else, the blob+download approach
+            // still works and is kept as-is.
+            function isIosDevice() {
+                var ua = navigator.userAgent || '';
+                if (/iPad|iPhone|iPod/.test(ua)) return true;
+                return /Macintosh/.test(ua) && navigator.maxTouchPoints > 1;
+            }
+
             function downloadIcsForShift(shift) {
                 var ics = buildIcsForShift(shift);
+                if (isIosDevice()) {
+                    window.location.href = 'data:text/calendar;charset=utf-8,' + encodeURIComponent(ics);
+                    return;
+                }
                 var blob = new Blob([ics], { type: 'text/calendar' });
                 var url = URL.createObjectURL(blob);
                 var a = document.createElement('a');
