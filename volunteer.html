@@ -135,6 +135,8 @@
             margin-right: 0.5rem;
         }
 
+        .ics-choices { display: block; margin: 0.4rem 0; }
+        a.shift-ics-btn { display: inline-block; text-decoration: none; }
         .shift-ics-btn:hover {
             background: var(--santa-green);
             color: white;
@@ -1524,12 +1526,68 @@
                 return /Macintosh/.test(ua) && navigator.maxTouchPoints > 1;
             }
 
-            function downloadIcsForShift(shift) {
-                var ics = buildIcsForShift(shift);
-                if (isIosDevice()) {
-                    window.location.href = 'data:text/calendar;charset=utf-8,' + encodeURIComponent(ics);
+            // Pieces of a shift's calendar entry, shared by the file
+            // download, the server-built .ics link and the Google link.
+            function shiftCalendarParts(shift) {
+                var startHM = (currentProfile && currentProfile.sightingsWindowStart) || '17:00';
+                var endHM = (currentProfile && currentProfile.sightingsWindowEnd) || '22:00';
+                var lines = [];
+                if (shift.flags && shift.flags.length) {
+                    lines.push('On this night: ' + shift.flags.map(function(f) { return f.description || f.label; }).join(', '));
+                }
+                if (shift.gatheringTime) lines.push('Gather at: ' + shift.gatheringTime);
+                if (shift.what3words) lines.push('Meeting point: https://w3w.co/' + shift.what3words);
+                if (shift.notes) lines.push(shift.notes);
+                return {
+                    date: shift.eventDate, startHM: startHM, endHM: endHM,
+                    summary: 'Santa Sleigh: ' + shift.routeName + (shift.role ? ' (' + shift.role + ')' : ''),
+                    description: lines.join('\n'),
+                    location: shift.what3words ? '///' + shift.what3words : '',
+                    uid: 'shift-' + shift.routeDateId
+                };
+            }
+
+            // On iPhone/iPad, calendar files built in the page (blob: and
+            // data: URLs) are ignored by Chrome and friends, so instead of
+            // trying to open one we show two reliable links: an ordinary
+            // https .ics from our server (Safari opens its Add to Calendar
+            // sheet; other browsers pass a webcal:// link to the Calendar
+            // app) and a Google Calendar link that works in any browser.
+            function showIosCalendarChoices(shift, btn) {
+                var existing = btn.parentNode.querySelector('.ics-choices[data-shift="' + shift.routeDateId + '"]');
+                if (existing) { existing.parentNode.removeChild(existing); return; }
+                var c = shiftCalendarParts(shift);
+                var qs = 'd=' + encodeURIComponent(c.date) + '&s=' + encodeURIComponent(c.startHM) + '&e=' + encodeURIComponent(c.endHM) +
+                    '&t=' + encodeURIComponent(c.summary) + '&desc=' + encodeURIComponent(c.description) +
+                    '&loc=' + encodeURIComponent(c.location) + '&uid=' + encodeURIComponent(c.uid);
+                var path = '/.netlify/functions/shift-ics?' + qs;
+                var isSafari = /Safari/.test(navigator.userAgent) && !/CriOS|FxiOS|EdgiOS|OPiOS|GSA/.test(navigator.userAgent);
+                var appleHref = isSafari ? path : 'webcal://' + location.host + path;
+                function stamp(hm) { return c.date.replace(/-/g, '') + 'T' + hm.replace(':', '') + '00'; }
+                var googleHref = 'https://calendar.google.com/calendar/render?action=TEMPLATE' +
+                    '&text=' + encodeURIComponent(c.summary) + '&dates=' + stamp(c.startHM) + '/' + stamp(c.endHM) +
+                    '&ctz=Europe%2FLondon&details=' + encodeURIComponent(c.description) + '&location=' + encodeURIComponent(c.location);
+
+                var box = document.createElement('div');
+                box.className = 'ics-choices';
+                box.setAttribute('data-shift', shift.routeDateId);
+                [['🍎 Apple Calendar', appleHref, false], ['📆 Google Calendar', googleHref, true]].forEach(function(o) {
+                    var a = document.createElement('a');
+                    a.className = 'shift-ics-btn';
+                    a.href = o[1];
+                    a.textContent = o[0];
+                    if (o[2]) { a.target = '_blank'; a.rel = 'noopener noreferrer'; }
+                    box.appendChild(a);
+                });
+                btn.parentNode.insertBefore(box, btn.nextSibling);
+            }
+
+            function downloadIcsForShift(shift, btn) {
+                if (isIosDevice() && btn) {
+                    showIosCalendarChoices(shift, btn);
                     return;
                 }
+                var ics = buildIcsForShift(shift);
                 var blob = new Blob([ics], { type: 'text/calendar' });
                 var url = URL.createObjectURL(blob);
                 var a = document.createElement('a');
@@ -1610,7 +1668,7 @@
                             var icsBtn = document.createElement('button');
                             icsBtn.className = 'shift-ics-btn';
                             icsBtn.textContent = '📅 Add to calendar';
-                            icsBtn.onclick = function() { downloadIcsForShift(shift); };
+                            icsBtn.onclick = function() { downloadIcsForShift(shift, icsBtn); };
                             row.appendChild(icsBtn);
 
                             var myFlagDetail = EventFlags.detail(shift.flags);
