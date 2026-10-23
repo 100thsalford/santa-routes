@@ -1381,3 +1381,10 @@ body {
     font-weight: bold;
     color: var(--text-dark);
 }
+
+/* Facebook plugin must never be wider than the card on small screens. */
+.updates-section { overflow: hidden; }
+.fb-page, .fb-page span, .fb-page iframe { max-width: 100% !important; }
+/* Keep each footer line balanced so an emoji never ends up alone. */
+.footer p { text-wrap: balance; }
+html { scroll-padding-top: 1rem; }
