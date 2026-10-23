@@ -1388,3 +1388,17 @@ body {
 /* Keep each footer line balanced so an emoji never ends up alone. */
 .footer p { text-wrap: balance; }
 html { scroll-padding-top: 1rem; }
+
+/* Facebook posts feed (Latest Updates) */
+.fb-posts-loading { color: var(--ink-soft, #666); margin: 0; }
+.fb-post {
+    background: var(--surface-muted);
+    border-radius: var(--radius-sm);
+    padding: 1rem;
+    margin-bottom: 0.75rem;
+}
+.fb-post-date { font-size: 0.8rem; color: var(--ink-soft, #666); margin-bottom: 0.35rem; }
+.fb-post-text { margin: 0 0 0.5rem; white-space: pre-line; overflow-wrap: anywhere; }
+.fb-post-img { display: block; width: 100%; height: auto; border-radius: var(--radius-sm); margin: 0.5rem 0; }
+.fb-post-more { color: var(--santa-red); font-weight: bold; text-decoration: none; font-size: 0.9rem; }
+.fb-post-more:hover { text-decoration: underline; }

@@ -22,7 +22,7 @@
             }
         })();
     </script>
-    <link rel="stylesheet" href="styles.css?v=20261023a">
+    <link rel="stylesheet" href="styles.css?v=20261023b">
     <style>
         /* Additional styles for holding page */
         .holding-card {
@@ -303,7 +303,12 @@
                     📢 Latest Updates
                 </div>
                 
-                <!-- Facebook Page Plugin - Simple Integration -->
+                <!-- Posts come from /.netlify/functions/facebook-posts. If that is
+                     unavailable, the Page Plugin below is shown instead (and the
+                     Facebook SDK is only loaded then, and only after consent). -->
+                <div id="fbPosts" class="fb-posts" aria-live="polite">
+                    <p class="fb-posts-loading">Loading latest updates…</p>
+                </div>
                 <div class="fb-page" 
                      data-href="https://www.facebook.com/SuperSleighSalford"
                      data-tabs="timeline"
@@ -468,14 +473,12 @@
         })();
     </script>
 
-    <script src="script.js?v=20261021a"></script>
+    <script src="script.js?v=20261023a"></script>
     <script src="analytics.js"></script>
     
-    <!-- Facebook SDK for Page Plugin -->
+    <!-- Facebook SDK for Page Plugin: loaded on demand by script.js, only if
+         the posts feed is unavailable and cookies have been accepted. -->
     <div id="fb-root"></div>
-    <script async defer crossorigin="anonymous" 
-            src="https://connect.facebook.net/en_GB/sdk.js#xfbml=1&version=v18.0">
-    </script>
 			<!-- Cookie Banner - Add this just before closing </body> tag -->
 			<div id="cookieBanner" class="cookie-banner">
 			    <div class="cookie-content">
