@@ -937,6 +937,7 @@
                 <button class="tab-btn" data-tab="routes">🗺️ Routes &amp; Streets</button>
                 <button class="tab-btn" data-tab="volunteers">👥 Volunteers<span class="tab-badge admin-hidden" id="pendingTabBadge"></span></button>
                 <button class="tab-btn" data-tab="search-activity">🔍 Search Activity</button>
+                <button class="tab-btn" data-tab="site-activity">📈 Site Activity</button>
             </div>
 
             <!-- Dashboard: at-a-glance stats + season-wide settings (the
@@ -1133,6 +1134,16 @@
                 <div id="searchActivityContent"></div>
             </div>
 
+            <!-- Site Activity: page views for the live sleigh-tracking map
+                 (track.html), from the same cookie-free analytics_events the
+                 rest of the site already logs -- no new tracking added.
+                 "Unique visitors" is an approximation (distinct IP per
+                 period), since no visitor ID is stored anywhere here. -->
+            <div class="admin-card admin-hidden" id="tab-site-activity">
+                <p id="siteActivityLoading" class="admin-loading">Loading site activity...</p>
+                <div id="siteActivityContent"></div>
+            </div>
+
             <div style="text-align: right;">
                 <button class="admin-btn danger" id="logoutBtn">Log Out</button>
             </div>
@@ -1222,6 +1233,7 @@
                     document.getElementById('routesLoading').textContent = "Couldn't load data — please try refreshing.";
                 }
                 loadSearchActivity();
+                loadSiteActivity();
                 loadGeocodeStatus();
                 loadTrackingStatus();
             }
@@ -1368,6 +1380,76 @@
                         '<td>' + (r.matchFound ? '✅' : '❌') + '</td>' +
                         '<td class="truncate">' + escapeHtml(r.matchedStreet || '—') + '</td>' +
                         '<td>' + r.resultsCount + '</td>';
+                    tbody.appendChild(tr);
+                });
+                table.appendChild(tbody);
+                var tableScroll = document.createElement('div');
+                tableScroll.className = 'table-scroll';
+                tableScroll.appendChild(table);
+                container.appendChild(tableScroll);
+            }
+
+            async function loadSiteActivity() {
+                try {
+                    var res = await authedFetch('/.netlify/functions/admin-site-activity');
+                    var data = await res.json();
+                    if (!res.ok) throw new Error(data.error || 'Could not load site activity');
+                    renderSiteActivity(data);
+                } catch (err) {
+                    console.error('Error loading site activity:', err);
+                    document.getElementById('siteActivityLoading').textContent = "Couldn't load site activity \u2014 please try refreshing.";
+                }
+            }
+
+            function renderSiteActivity(data) {
+                document.getElementById('siteActivityLoading').classList.add('admin-hidden');
+                var container = document.getElementById('siteActivityContent');
+                container.innerHTML = '';
+
+                var intro = document.createElement('p');
+                intro.className = 'no-match-empty';
+                intro.textContent = 'Views of the live tracking page (track.html). Cookie-free and anonymous \u2014 no IP addresses or visitor IDs are stored, so only view counts are shown. Records are deleted after 13 months.';
+                container.appendChild(intro);
+
+                var stats = document.createElement('div');
+                stats.className = 'search-stats-row';
+                [
+                    ['Total views', data.totals.totalViews],
+                    ['Last 24 hours', data.totals.views24h],
+                    ['Last 7 days', data.totals.views7d]
+                ].forEach(function(row) {
+                    var stat = document.createElement('div');
+                    stat.className = 'search-stat';
+                    stat.innerHTML = '<div class="search-stat-value">' + row[1] + '</div><div class="search-stat-label">' + escapeHtml(row[0]) + '</div>';
+                    stats.appendChild(stat);
+                });
+                container.appendChild(stats);
+
+                var dailyTitle = document.createElement('div');
+                dailyTitle.className = 'search-activity-subtitle';
+                dailyTitle.textContent = 'Last 14 days';
+                container.appendChild(dailyTitle);
+
+                if (data.daily.length === 0) {
+                    var empty = document.createElement('p');
+                    empty.className = 'no-match-empty';
+                    empty.textContent = 'No views logged yet.';
+                    container.appendChild(empty);
+                    return;
+                }
+
+                var table = document.createElement('table');
+                table.className = 'admin-table';
+                table.innerHTML = '<thead><tr><th>Date</th><th>Views</th></tr></thead>';
+                var tbody = document.createElement('tbody');
+                data.daily.forEach(function(d) {
+                    var tr = document.createElement('tr');
+                    var when = new Date(d.day).toLocaleDateString('en-GB', {
+                        weekday: 'short', day: 'numeric', month: 'short'
+                    });
+                    tr.innerHTML =
+                        '<td>' + escapeHtml(when) + '</td>' +
+                        '<td>' + d.views + '</td>';
                     tbody.appendChild(tr);
                 });
                 table.appendChild(tbody);
@@ -3661,7 +3743,7 @@
                 btn.addEventListener('click', function() {
                     document.querySelectorAll('.admin-tabs .tab-btn').forEach(function(b) { b.classList.remove('active'); });
                     btn.classList.add('active');
-                    ['dashboard', 'routes', 'volunteers', 'search-activity'].forEach(function(tab) {
+                    ['dashboard', 'routes', 'volunteers', 'search-activity', 'site-activity'].forEach(function(tab) {
                         document.getElementById('tab-' + tab).classList.toggle('admin-hidden', tab !== btn.dataset.tab);
                     });
                 });

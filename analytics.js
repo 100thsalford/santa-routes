@@ -64,7 +64,7 @@
     window.addEventListener('load', function() {
         trackEvent('page_view', {
             title: document.title,
-            url: window.location.href
+            url: window.location.pathname
         });
     });
 
@@ -120,9 +120,9 @@
             clearTimeout(searchTimeout);
             searchTimeout = setTimeout(function() {
                 if (e.target.value.length >= 2) {
-                    trackEvent('street_search', {
-                        query: e.target.value.substring(0, 50) // Limit length for privacy
-                    });
+                    // Only note that a search happened; what was typed is never sent here
+                    // (searches are logged, minimised, through logSearch instead).
+                    trackEvent('street_search');
                 }
             }, 2000); // Only log after user stops typing for 2 seconds
         });
