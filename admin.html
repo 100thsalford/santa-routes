@@ -1408,19 +1408,19 @@
 
                 var intro = document.createElement('p');
                 intro.className = 'no-match-empty';
-                intro.textContent = 'Views of the live tracking page (track.html). Cookie-free \u2014 "unique" is an estimate based on distinct IP addresses.';
+                intro.textContent = 'Views of the live tracking page (track.html). Cookie-free and anonymous \u2014 no IP addresses or visitor IDs are stored, so only view counts are shown. Records are deleted after 13 months.';
                 container.appendChild(intro);
 
                 var stats = document.createElement('div');
                 stats.className = 'search-stats-row';
                 [
-                    ['Total views', data.totals.totalViews, data.totals.uniqueAllTime],
-                    ['Last 24 hours', data.totals.views24h, data.totals.unique24h],
-                    ['Last 7 days', data.totals.views7d, data.totals.unique7d]
+                    ['Total views', data.totals.totalViews],
+                    ['Last 24 hours', data.totals.views24h],
+                    ['Last 7 days', data.totals.views7d]
                 ].forEach(function(row) {
                     var stat = document.createElement('div');
                     stat.className = 'search-stat';
-                    stat.innerHTML = '<div class="search-stat-value">' + row[1] + '</div><div class="search-stat-label">' + escapeHtml(row[0]) + ' \u00b7 ~' + row[2] + ' unique</div>';
+                    stat.innerHTML = '<div class="search-stat-value">' + row[1] + '</div><div class="search-stat-label">' + escapeHtml(row[0]) + '</div>';
                     stats.appendChild(stat);
                 });
                 container.appendChild(stats);
@@ -1440,7 +1440,7 @@
 
                 var table = document.createElement('table');
                 table.className = 'admin-table';
-                table.innerHTML = '<thead><tr><th>Date</th><th>Views</th><th>~Unique visitors</th></tr></thead>';
+                table.innerHTML = '<thead><tr><th>Date</th><th>Views</th></tr></thead>';
                 var tbody = document.createElement('tbody');
                 data.daily.forEach(function(d) {
                     var tr = document.createElement('tr');
@@ -1449,8 +1449,7 @@
                     });
                     tr.innerHTML =
                         '<td>' + escapeHtml(when) + '</td>' +
-                        '<td>' + d.views + '</td>' +
-                        '<td>' + d.uniqueVisitors + '</td>';
+                        '<td>' + d.views + '</td>';
                     tbody.appendChild(tr);
                 });
                 table.appendChild(tbody);

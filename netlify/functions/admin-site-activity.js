@@ -32,18 +32,14 @@ export default async (req, context) => {
         SELECT
           COUNT(*) AS total_views,
           COUNT(*) FILTER (WHERE created_at >= now() - interval '24 hours') AS views_24h,
-          COUNT(*) FILTER (WHERE created_at >= now() - interval '7 days') AS views_7d,
-          COUNT(DISTINCT ip) AS unique_all_time,
-          COUNT(DISTINCT ip) FILTER (WHERE created_at >= now() - interval '24 hours') AS unique_24h,
-          COUNT(DISTINCT ip) FILTER (WHERE created_at >= now() - interval '7 days') AS unique_7d
+          COUNT(*) FILTER (WHERE created_at >= now() - interval '7 days') AS views_7d
         FROM analytics_events
         WHERE page = ${TRACK_PAGE} AND event_type = 'page_view'
       `,
       db.sql`
         SELECT
           date_trunc('day', created_at) AS day,
-          COUNT(*) AS views,
-          COUNT(DISTINCT ip) AS unique_visitors
+          COUNT(*) AS views
         FROM analytics_events
         WHERE page = ${TRACK_PAGE} AND event_type = 'page_view'
           AND created_at >= now() - interval '14 days'
@@ -52,24 +48,17 @@ export default async (req, context) => {
       `
     ]);
 
-    const t = totalsRows[0] || {
-      total_views: 0, views_24h: 0, views_7d: 0,
-      unique_all_time: 0, unique_24h: 0, unique_7d: 0
-    };
+    const t = totalsRows[0] || { total_views: 0, views_24h: 0, views_7d: 0 };
 
     return new Response(JSON.stringify({
       totals: {
         totalViews: Number(t.total_views),
         views24h: Number(t.views_24h),
-        views7d: Number(t.views_7d),
-        uniqueAllTime: Number(t.unique_all_time),
-        unique24h: Number(t.unique_24h),
-        unique7d: Number(t.unique_7d)
+        views7d: Number(t.views_7d)
       },
       daily: dailyRows.map((r) => ({
         day: r.day,
-        views: Number(r.views),
-        uniqueVisitors: Number(r.unique_visitors)
+        views: Number(r.views)
       }))
     }), { status: 200, headers });
   } catch (error) {
