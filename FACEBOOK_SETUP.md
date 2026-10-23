@@ -1,5 +1,10 @@
 # Facebook "Latest Updates" feed – setup and upkeep
 
+> **Status (Oct 2026): not in use.** The home page currently shows a plain "Open our Facebook page" button.
+> The function below is ready but nothing on the site calls it. It was shelved while waiting for the
+> Page owner to add the Page to a Business portfolio. To switch it on later, re-add the posts panel
+> (see git history, commit d7a8841) after setting the two environment variables.
+
 The home page's **Latest Updates** panel is filled by the Netlify function
 `netlify/functions/facebook-posts.js`, which reads the latest public posts from the
 Super Sleigh Facebook Page via Meta's Graph API.

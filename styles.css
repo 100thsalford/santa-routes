@@ -1389,16 +1389,18 @@ body {
 .footer p { text-wrap: balance; }
 html { scroll-padding-top: 1rem; }
 
-/* Facebook posts feed (Latest Updates) */
-.fb-posts-loading { color: var(--ink-soft, #666); margin: 0; }
-.fb-post {
-    background: var(--surface-muted);
-    border-radius: var(--radius-sm);
-    padding: 1rem;
-    margin-bottom: 0.75rem;
+/* Facebook link button with logo */
+.fb-link-logo { display: flex; align-items: center; justify-content: center; gap: 0.6rem; }
+.fb-logo { flex: 0 0 auto; }
+
+/* iOS/Android date inputs ignore width:100% unless told otherwise, which
+   pushed the date box outside its card on phones. */
+.date-picker {
+    display: block;
+    min-width: 0;
+    max-width: 100%;
+    -webkit-appearance: none;
+    appearance: none;
+    min-height: 3.4rem;
+    -webkit-min-logical-width: 0;
 }
-.fb-post-date { font-size: 0.8rem; color: var(--ink-soft, #666); margin-bottom: 0.35rem; }
-.fb-post-text { margin: 0 0 0.5rem; white-space: pre-line; overflow-wrap: anywhere; }
-.fb-post-img { display: block; width: 100%; height: auto; border-radius: var(--radius-sm); margin: 0.5rem 0; }
-.fb-post-more { color: var(--santa-red); font-weight: bold; text-decoration: none; font-size: 0.9rem; }
-.fb-post-more:hover { text-decoration: underline; }
