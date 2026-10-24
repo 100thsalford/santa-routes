@@ -461,6 +461,10 @@
         .contact-email-reset[hidden] { display: none; }
         .contact-email-error { color: #A8382F; font-size: 0.85rem; margin-top: 0.5rem; }
         .contact-email-error:empty { display: none; }
+        .details-list { text-align: left; padding: 0.5rem 0; }
+        .details-list div { padding: 0.2rem 0; word-break: break-word; }
+        .details-list span { display: inline-block; min-width: 4.5rem; color: var(--ink-soft); font-size: 0.85rem; }
+        .details-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; }
         .square-link-btn { background: none; border: none; padding: 0; color: var(--santa-green); font: inherit; font-weight: bold; text-decoration: underline; cursor: pointer; }
 
         .volunteer-save-status {
@@ -1056,6 +1060,26 @@
                         </label>
                     </div>
                     <div class="volunteer-save-status" id="saveStatus"></div>
+
+                    <div class="block-title">👤 Your Details</div>
+                    <div class="details-head">
+                        <div class="details-list">
+                            <div><span>Name</span> <strong id="detailsNameValue"></strong></div>
+                            <div><span>Mobile</span> <strong id="detailsPhoneValue"></strong></div>
+                        </div>
+                        <button type="button" class="contact-email-change-btn" id="detailsEditBtn">Edit</button>
+                    </div>
+                    <form class="contact-email-form" id="detailsForm" hidden novalidate>
+                        <label for="detailsName">Name</label>
+                        <input type="text" id="detailsName" autocomplete="name" maxlength="100" required>
+                        <label for="detailsPhone">Mobile <span style="font-weight:normal; color:var(--ink-soft);">(optional)</span></label>
+                        <input type="tel" id="detailsPhone" autocomplete="tel" inputmode="tel" maxlength="20" placeholder="07700 900123">
+                        <div class="contact-email-error" id="detailsError" role="alert"></div>
+                        <div class="contact-email-actions">
+                            <button type="submit" class="contact-email-save-btn" id="detailsSave">Save details</button>
+                            <button type="button" class="contact-email-cancel-btn" id="detailsCancel">Cancel</button>
+                        </div>
+                    </form>
 
                     <div class="block-title">📧 Contact Email</div>
                     <div class="contact-email-row">
@@ -1914,7 +1938,7 @@
 
                     currentProfile = profile;
                     var user = netlifyIdentity.currentUser();
-                    var name = (user && user.user_metadata && user.user_metadata.full_name) || profile.fullName || profile.email;
+                    var name = profile.fullName || (user && user.user_metadata && user.user_metadata.full_name) || profile.email;
 
                     // Registered via the helpout page but not approved yet
                     // (or rejected): show a notice instead of the portal.
@@ -1937,6 +1961,7 @@
 
                     reminderToggle.checked = !!profile.reminderEmailOptIn;
                     renderContactEmail();
+                    renderDetails();
 
                     updateRiskUI(profile);
                     updateCardPayButton();
@@ -2437,6 +2462,90 @@
             reminderToggle.addEventListener('change', function() {
                 clearTimeout(saveTimer);
                 saveTimer = setTimeout(saveReminderPreference, 300);
+            });
+
+            // ---- Your details (name + mobile) ----
+            // Same rules as the sign-up page; the server (lib/validate.js)
+            // enforces them.
+
+            var detailsForm = document.getElementById('detailsForm');
+            var detailsName = document.getElementById('detailsName');
+            var detailsPhone = document.getElementById('detailsPhone');
+            var detailsError = document.getElementById('detailsError');
+            var detailsSave = document.getElementById('detailsSave');
+            var detailsEditBtn = document.getElementById('detailsEditBtn');
+            var DETAILS_BLOCKED = /[<>;()&]/;
+
+            function normaliseUkMobile(value) {
+                var d = String(value || '').trim().replace(/[\s.-]/g, '');
+                if (d.indexOf('+44') === 0) d = '0' + d.slice(3);
+                else if (d.indexOf('0044') === 0) d = '0' + d.slice(4);
+                else if (/^447\d{9}$/.test(d)) d = '0' + d.slice(2);
+                if (d.indexOf('007') === 0) d = d.slice(1);
+                if (!/^07\d{9}$/.test(d)) return null;
+                return d.slice(0, 5) + ' ' + d.slice(5);
+            }
+
+            function renderDetails() {
+                if (!currentProfile) return;
+                document.getElementById('detailsNameValue').textContent = currentProfile.fullName || '—';
+                document.getElementById('detailsPhoneValue').textContent = currentProfile.phone || 'Not given';
+            }
+
+            function closeDetailsForm() {
+                detailsForm.hidden = true;
+                detailsEditBtn.hidden = false;
+            }
+
+            detailsEditBtn.addEventListener('click', function() {
+                detailsName.value = (currentProfile && currentProfile.fullName) || '';
+                detailsPhone.value = (currentProfile && currentProfile.phone) || '';
+                detailsError.textContent = '';
+                detailsForm.hidden = false;
+                detailsEditBtn.hidden = true;
+                detailsName.focus();
+            });
+            document.getElementById('detailsCancel').addEventListener('click', closeDetailsForm);
+
+            detailsForm.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                var name = detailsName.value.trim();
+                var rawPhone = detailsPhone.value.trim();
+                if (!name) { detailsError.textContent = 'Please enter your name.'; return; }
+                if (DETAILS_BLOCKED.test(name) || DETAILS_BLOCKED.test(rawPhone)) {
+                    detailsError.textContent = 'Please remove these characters: < > ; ( ) &'; return;
+                }
+                var phone = rawPhone ? normaliseUkMobile(rawPhone) : null;
+                if (rawPhone && !phone) { detailsError.textContent = 'Please enter a UK mobile number, e.g. 07700 900123.'; return; }
+
+                detailsSave.disabled = true;
+                detailsError.textContent = '';
+                try {
+                    var res = await authedFetch('/.netlify/functions/update-volunteer-profile', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ fullName: name, phone: phone })
+                    });
+                    var updated = await res.json();
+                    if (!res.ok) throw new Error(updated.error || "Couldn't save — please try again.");
+                    currentProfile.fullName = updated.fullName;
+                    currentProfile.phone = updated.phone;
+                    renderDetails();
+                    welcomeText.textContent = 'Welcome back, ' + updated.fullName + '!';
+                    closeDetailsForm();
+                    showToast('Your details have been updated.', 'success');
+                    // Keep the login account's name in step too (best-effort).
+                    var user = netlifyIdentity.currentUser();
+                    if (user && user.update) {
+                        user.update({ data: { full_name: updated.fullName } }).catch(function(err) {
+                            console.warn('Identity name update failed:', err);
+                        });
+                    }
+                } catch (err) {
+                    detailsError.textContent = err.message;
+                } finally {
+                    detailsSave.disabled = false;
+                }
             });
 
             // ---- Contact email (preferred_email) ----
