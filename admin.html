@@ -45,6 +45,8 @@
             background: #163F30;
         }
 
+        a.admin-btn { text-decoration: none; }
+
         .admin-btn.danger {
             background: var(--santa-red);
         }
@@ -1061,6 +1063,19 @@
                      approved/rejected (admin-review-volunteer.js). They're
                      kept out of the volunteer list and shift/role pickers
                      below until approved. -->
+                <!-- Volunteers asking to take card payments (volunteer-square-access.js).
+                     They're already in our Square team; assign their permission set +
+                     passcode in the Square Dashboard, then Mark approved here. -->
+                <div id="square-access">
+                    <div class="dashboard-section-title">💳 Card payment access (Square)</div>
+                    <div id="squareAccessContent"></div>
+                    <details class="rejected-details admin-hidden" id="squareApprovedDetails">
+                        <summary id="squareApprovedSummary">Set up in Square</summary>
+                        <div id="squareApprovedContent"></div>
+                    </details>
+                    <div class="admin-status" id="squareAccessStatus"></div>
+                </div>
+
                 <div class="dashboard-section-title">🆕 New registrations to approve</div>
                 <div id="pendingContent"><p class="admin-loading">Loading...</p></div>
                 <details class="rejected-details admin-hidden" id="rejectedDetails">
@@ -1228,6 +1243,7 @@
                     renderSettings();
                     renderVolunteers();
                     renderApprovals();
+                    renderSquareAccess();
                     renderInvites();
                     renderBroadcast();
                 } catch (err) {
@@ -2791,6 +2807,102 @@
                 var rejContainer = document.getElementById('rejectedContent');
                 rejContainer.innerHTML = '';
                 rejected.forEach(function(vol) { rejContainer.appendChild(approvalRow(vol, true)); });
+            }
+
+            // ---- Card payment access (Square) ----
+
+            var SQUARE_TEAM_URL = 'https://app.squareup.com/dashboard/team/team-members';
+            var squareHashHandled = false;
+
+            function squareAccessRow(vol, approved) {
+                var sq = vol.squareAccess;
+                var row = document.createElement('div');
+                row.className = 'approval-row' + (approved ? ' rejected' : '');
+                var who = document.createElement('div');
+                who.className = 'approval-who';
+                who.innerHTML = '<strong>' + escapeHtml(vol.fullName || vol.email) + '</strong><br>' +
+                    escapeHtml(sq.email || vol.email || '') + '<br><small>' + (approved
+                        ? 'Approved ' + escapeHtml(formatDateTime(sq.approvedAt))
+                        : 'Requested ' + escapeHtml(formatDateTime(sq.requestedAt))) + '</small>';
+                row.appendChild(who);
+
+                var actions = document.createElement('div');
+                actions.className = 'approval-actions';
+                if (!approved) {
+                    var open = document.createElement('a');
+                    open.className = 'admin-btn small';
+                    open.href = SQUARE_TEAM_URL;
+                    open.target = '_blank';
+                    open.rel = 'noopener noreferrer';
+                    open.textContent = 'Open Square';
+                    actions.appendChild(open);
+                    var approveBtn = document.createElement('button');
+                    approveBtn.type = 'button';
+                    approveBtn.className = 'admin-btn small';
+                    approveBtn.textContent = '✓ Mark approved';
+                    approveBtn.onclick = function() {
+                        if (!confirm('Have you assigned ' + (vol.fullName || sq.email) + '\u2019s permission set and passcode in Square?\n\nThey\u2019ll get an email saying they\u2019re set up.')) return;
+                        squareAccessOp(vol, 'approve', actions, (vol.fullName || sq.email) + ' marked approved.');
+                    };
+                    actions.appendChild(approveBtn);
+                }
+                var revokeBtn = document.createElement('button');
+                revokeBtn.type = 'button';
+                revokeBtn.className = 'admin-btn small danger';
+                revokeBtn.textContent = approved ? 'Revoke' : 'Decline';
+                revokeBtn.onclick = function() {
+                    if (!confirm((approved ? 'Revoke' : 'Decline') + ' card payment access for ' + (vol.fullName || sq.email) + '?\n\nThis deactivates them in Square. They aren\u2019t emailed, and can ask again later.')) return;
+                    squareAccessOp(vol, 'revoke', actions, 'Card payment access removed.');
+                };
+                actions.appendChild(revokeBtn);
+                row.appendChild(actions);
+                return row;
+            }
+
+            async function squareAccessOp(vol, op, actionsEl, message) {
+                actionsEl.querySelectorAll('button').forEach(function(b) { b.disabled = true; });
+                try {
+                    var result = await runOp('/.netlify/functions/admin-square-access', { volunteerId: vol.id, op: op }, 'squareAccessStatus', message);
+                    if (result && result.emailed === false) showToast('Saved, but the email to them didn\u2019t send.', 'error');
+                } catch (err) {
+                    actionsEl.querySelectorAll('button').forEach(function(b) { b.disabled = false; });
+                }
+            }
+
+            function renderSquareAccess() {
+                var withAccess = (adminData.volunteers || []).filter(function(v) { return v.squareAccess; });
+                var pending = withAccess.filter(function(v) { return !v.squareAccess.approvedAt; })
+                    .sort(function(a, b) { return String(a.squareAccess.requestedAt).localeCompare(String(b.squareAccess.requestedAt)); });
+                var approved = withAccess.filter(function(v) { return v.squareAccess.approvedAt; });
+
+                var container = document.getElementById('squareAccessContent');
+                container.innerHTML = '';
+                if (pending.length === 0) {
+                    var none = document.createElement('p');
+                    none.style.cssText = 'color:#666; font-size:0.9rem; margin-top:0;';
+                    none.textContent = 'No card payment requests waiting.';
+                    container.appendChild(none);
+                } else {
+                    var help = document.createElement('p');
+                    help.style.cssText = 'color:#666; font-size:0.9rem; margin-top:0;';
+                    help.textContent = 'Already added to our Square team. In Square, assign the volunteer permission set and a passcode and save (Square then emails them), then press Mark approved.';
+                    container.appendChild(help);
+                    pending.forEach(function(v) { container.appendChild(squareAccessRow(v, false)); });
+                }
+
+                var details = document.getElementById('squareApprovedDetails');
+                details.classList.toggle('admin-hidden', approved.length === 0);
+                document.getElementById('squareApprovedSummary').textContent = 'Set up in Square (' + approved.length + ')';
+                var approvedEl = document.getElementById('squareApprovedContent');
+                approvedEl.innerHTML = '';
+                approved.forEach(function(v) { approvedEl.appendChild(squareAccessRow(v, true)); });
+
+                // Link from the "Square access to approve" email.
+                if (!squareHashHandled && location.hash === '#square-access') {
+                    squareHashHandled = true;
+                    document.querySelector('.tab-btn[data-tab="volunteers"]').click();
+                    document.getElementById('square-access').scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
             }
 
             document.getElementById('pendingDashboardBtn').addEventListener('click', function() {

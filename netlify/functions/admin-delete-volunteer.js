@@ -5,13 +5,15 @@
 // Removes, in order: their Netlify Identity account (if they have one),
 // their invite records, then the volunteers row itself. shift_assignments
 // rows go with it (ON DELETE CASCADE) and any Santa/Safety Walker/Driver
-// slot is cleared (ON DELETE SET NULL). Copies of past emails held by
+// slot is cleared (ON DELETE SET NULL). If they had card payment access,
+// their Square team member is deactivated. Copies of past emails held by
 // Resend are not touched here.
 //
 // POST body: { volunteerId }
 
 import { getUser, admin } from '@netlify/identity';
 import { getDatabase } from '@netlify/database';
+import { setTeamMemberStatus } from '../lib/square.js';
 
 const headers = { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' };
 
@@ -33,7 +35,7 @@ export default async (req) => {
     if (!volunteerId) return json({ error: 'volunteerId is required' }, 400);
 
     const db = getDatabase();
-    const rows = await db.sql`SELECT identity_user_id FROM volunteers WHERE id = ${volunteerId}`;
+    const rows = await db.sql`SELECT identity_user_id, square_team_member_id FROM volunteers WHERE id = ${volunteerId}`;
     if (rows.length === 0) return json({ error: 'Volunteer not found' }, 404);
 
     const identityId = rows[0].identity_user_id;
@@ -48,6 +50,15 @@ export default async (req) => {
           console.error('admin-delete-volunteer: Identity delete failed:', err.message);
           return json({ error: 'Could not delete their login account: ' + err.message }, 502);
         }
+      }
+    }
+
+    if (rows[0].square_team_member_id) {
+      try {
+        await setTeamMemberStatus(rows[0].square_team_member_id, 'INACTIVE');
+      } catch (err) {
+        // Don't block an erasure on Square; flag it in the logs instead.
+        console.error('admin-delete-volunteer: Square deactivate failed (deactivate by hand):', err.message);
       }
     }
 
