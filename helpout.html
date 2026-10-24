@@ -203,12 +203,13 @@
                 <div class="field-row">
                     <div class="field" id="f-email">
                         <label for="email">Email</label>
-                        <input type="email" id="email" name="email" autocomplete="email" required>
+                        <input type="email" id="email" name="email" autocomplete="username" required>
                         <div class="field-error">Please enter a valid email address.</div>
                     </div>
                     <div class="field" id="f-phone">
                         <label for="phone">Mobile <span class="hint">(optional)</span></label>
-                        <input type="tel" id="phone" name="phone" autocomplete="tel" maxlength="30">
+                        <input type="tel" id="phone" name="phone" autocomplete="tel" inputmode="tel" maxlength="20" placeholder="07700 900123">
+                        <div class="field-error">Please enter a UK mobile number, e.g. 07700 900123.</div>
                     </div>
                 </div>
 
@@ -312,6 +313,45 @@
 
             var state = { open: true, inviteValid: false };
 
+            // Mirrors netlify/lib/validate.js (which is what actually
+            // enforces these). Passwords are deliberately not checked.
+            var BLOCKED_CHARS = /[<>;()&]/;
+            var BLOCKED_MSG = 'Please remove these characters: < > ; ( ) &';
+            var PHONE_MSG = 'Please enter a UK mobile number, e.g. 07700 900123.';
+            function normaliseUkMobile(value) {
+                var d = String(value || '').trim().replace(/[\s.-]/g, '');
+                if (d.indexOf('+44') === 0) d = '0' + d.slice(3);
+                else if (d.indexOf('0044') === 0) d = '0' + d.slice(4);
+                else if (/^447\d{9}$/.test(d)) d = '0' + d.slice(2);
+                if (d.indexOf('007') === 0) d = d.slice(1);
+                if (!/^07\d{9}$/.test(d)) return null;
+                return d.slice(0, 5) + ' ' + d.slice(5);
+            }
+
+            // Instant feedback while typing/pasting/autofilling.
+            ['fullName', 'email', 'code'].forEach(function(n) {
+                fields[n].addEventListener('input', function() {
+                    if (BLOCKED_CHARS.test(fields[n].value)) setFieldError(n, BLOCKED_MSG);
+                    else document.getElementById('f-' + n).classList.remove('has-error');
+                });
+            });
+            function checkPhone() {
+                var v = fields.phone.value.trim();
+                if (!v) { document.getElementById('f-phone').classList.remove('has-error'); return true; }
+                var tidy = normaliseUkMobile(v);
+                if (!tidy) { setFieldError('phone', PHONE_MSG); return false; }
+                document.getElementById('f-phone').classList.remove('has-error');
+                return true;
+            }
+            // 'change' also fires when the browser autofills the field.
+            fields.phone.addEventListener('change', checkPhone);
+            fields.phone.addEventListener('blur', function() {
+                if (checkPhone() && fields.phone.value.trim()) fields.phone.value = normaliseUkMobile(fields.phone.value);
+            });
+            fields.phone.addEventListener('input', function() {
+                if (document.getElementById('f-phone').classList.contains('has-error')) checkPhone();
+            });
+
             function setFieldError(name, message) {
                 var wrap = document.getElementById('f-' + name);
                 if (!wrap) return;
@@ -319,7 +359,7 @@
                 if (message && wrap.querySelector('.field-error')) wrap.querySelector('.field-error').textContent = message;
             }
             function clearErrors() {
-                ['fullName', 'email', 'password', 'password2', 'code', 'adult'].forEach(function(n) {
+                ['fullName', 'email', 'phone', 'password', 'password2', 'code', 'adult'].forEach(function(n) {
                     document.getElementById('f-' + n).classList.remove('has-error');
                 });
                 formError.classList.remove('visible');
@@ -395,10 +435,14 @@
                 var name = fields.fullName.value.trim();
                 var email = fields.email.value.trim();
                 if (!name) { setFieldError('fullName', 'Please enter your name.'); ok = false; }
-                if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { setFieldError('email', 'Please enter a valid email address.'); ok = false; }
+                else if (BLOCKED_CHARS.test(name)) { setFieldError('fullName', BLOCKED_MSG); ok = false; }
+                if (BLOCKED_CHARS.test(email)) { setFieldError('email', BLOCKED_MSG); ok = false; }
+                else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { setFieldError('email', 'Please enter a valid email address.'); ok = false; }
+                if (!checkPhone()) ok = false;
                 if (fields.password.value.length < 8) { setFieldError('password', 'At least 8 characters, please.'); ok = false; }
                 else if (fields.password.value !== fields.password2.value) { setFieldError('password2', "The passwords don't match."); ok = false; }
                 if (!state.inviteValid && !fields.code.value.trim()) { setFieldError('code', 'Please enter the sign-up code.'); ok = false; }
+                else if (!state.inviteValid && BLOCKED_CHARS.test(fields.code.value)) { setFieldError('code', BLOCKED_MSG); ok = false; }
                 if (!fields.adult.checked) { setFieldError('adult', 'The volunteer portal is for adults aged 18 or over.'); ok = false; }
                 if (!ok) {
                     var firstBad = form.querySelector('.has-error input');
@@ -415,7 +459,7 @@
                         body: JSON.stringify({
                             fullName: name,
                             email: email,
-                            phone: fields.phone.value.trim(),
+                            phone: fields.phone.value.trim() ? normaliseUkMobile(fields.phone.value) : '',
                             password: fields.password.value,
                             code: state.inviteValid ? '' : fields.code.value.trim(),
                             inviteToken: state.inviteValid ? inviteToken : '',
@@ -425,9 +469,9 @@
                     });
                     var data = await res.json().catch(function() { return {}; });
                     if (!res.ok) {
-                        if (data.field === 'code') {
-                            setFieldError('code', data.error);
-                            fields.code.focus();
+                        if (data.field && fields[data.field] && document.getElementById('f-' + data.field)) {
+                            setFieldError(data.field, data.error);
+                            fields[data.field].focus();
                         } else if (data.exists) {
                             showFormError(escapeHtml(data.error) + ' <a href="' + loginUrl + '">Log in</a>');
                         } else if (data.closed) {

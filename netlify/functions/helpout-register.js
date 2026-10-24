@@ -23,6 +23,7 @@ import { getDatabase } from '@netlify/database';
 import { createHash } from 'node:crypto';
 import { corsHeaders } from '../lib/helpout-cors.js';
 import { brandedEmailHtml, escapeHtml, sendEmail, siteUrls } from '../lib/email.js';
+import { BLOCKED_CHARS_MESSAGE, checkContactDetails, hasBlockedChars } from '../lib/validate.js';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MAX_BAD_CODES_PER_HOUR = 10;
@@ -96,13 +97,23 @@ export default async (req, context) => {
     // Honeypot: bots fill every field. Pretend it worked, do nothing.
     if (body.website) return reply(200, { success: true, status: 'pending' });
 
-    const fullName = String(body.fullName || '').trim().slice(0, 100);
-    const phone = String(body.phone || '').trim().slice(0, 30) || null;
+    // Password deliberately skips checkContactDetails: it goes straight to
+    // Netlify Identity (stored as a bcrypt hash, never in our database).
+    const checked = checkContactDetails({
+      fullName: String(body.fullName || '').slice(0, 100),
+      email: body.email,
+      phone: String(body.phone || '').slice(0, 30)
+    });
+    if (checked.error) return reply(400, { error: checked.error, field: checked.field });
+    if (hasBlockedChars(body.code)) return reply(400, { error: BLOCKED_CHARS_MESSAGE, field: 'code' });
+
+    const fullName = checked.fullName;
+    const phone = checked.phone;
     const password = String(body.password || '');
     const inviteToken = String(body.inviteToken || '').trim();
-    let email = String(body.email || '').trim().toLowerCase();
+    let email = checked.email.toLowerCase();
 
-    if (!fullName) return reply(400, { error: 'Please enter your name.' });
+    if (!fullName) return reply(400, { error: 'Please enter your name.', field: 'fullName' });
     if (password.length < 8) return reply(400, { error: 'Please choose a password of at least 8 characters.' });
     // The volunteer portal is for adults only (privacy policy).
     if (body.adultConfirmed !== true) return reply(400, { error: 'Please confirm you are 18 or over.' });
