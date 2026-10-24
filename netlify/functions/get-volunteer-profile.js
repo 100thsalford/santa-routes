@@ -9,6 +9,7 @@
 import { getUser } from '@netlify/identity';
 import { getDatabase } from '@netlify/database';
 import { getVolunteerAccess } from '../lib/volunteer-access.js';
+import { squareAccessState } from '../lib/square.js';
 
 const headers = { 'Content-Type': 'application/json' };
 
@@ -120,8 +121,12 @@ export default async (req, context) => {
       flags: flagsByDate[s.route_date_id] || []
     }));
 
+    // "Take card payments" button state (volunteer-square-access.js).
+    const squareAccess = await squareAccessState(db, profile.id);
+
     return new Response(JSON.stringify({
       approvalStatus: 'approved',
+      squareAccess,
       email: profile.email,
       fullName: profile.full_name,
       reminderEmailOptIn: profile.reminder_email_opt_in,

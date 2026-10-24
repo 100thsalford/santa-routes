@@ -595,6 +595,43 @@
             box-shadow: var(--shadow-sm);
         }
         .donate-primary-btn:hover { opacity: 0.92; }
+        /* Scan to Donate + Take Card Payments share the top row, half each. */
+        .utility-pair { display: flex; gap: 0.5rem; }
+        .utility-pair > button { flex: 1 1 0; min-width: 0; font-size: 0.95rem; padding: 0.8rem 0.6rem; line-height: 1.25; }
+        .card-pay-btn {
+            background: var(--santa-green);
+            color: #fff;
+            border: 1px solid rgba(0,0,0,0.08);
+            border-radius: 999px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: var(--shadow-sm);
+        }
+        .card-pay-btn:hover { opacity: 0.92; }
+        .card-pay-btn small { display: block; font-size: 0.72rem; font-weight: normal; opacity: 0.9; }
+        .card-pay-btn.is-locked { background: var(--surface-muted); color: var(--ink-soft); border-color: var(--border-subtle); box-shadow: none; }
+        .square-step { display: none; }
+        .square-step.active { display: block; }
+        .square-req { margin: 0 0 0.9rem; padding: 0.75rem 0.9rem; border: 1px solid var(--border-subtle); border-radius: var(--radius-md); font-size: 0.9rem; line-height: 1.5; }
+        .square-req strong { display: block; margin-bottom: 0.2rem; color: var(--text-dark); }
+        .square-req ul { margin: 0.2rem 0 0 1.1rem; padding: 0; }
+        .square-note { color: var(--ink-soft); font-size: 0.85rem; line-height: 1.5; }
+        .square-check { display: flex; gap: 0.6rem; align-items: flex-start; margin: 1rem 0; font-size: 0.92rem; font-weight: bold; cursor: pointer; }
+        .square-check input { margin-top: 0.2rem; width: 1.1rem; height: 1.1rem; flex: none; }
+        .square-primary-btn {
+            display: block; width: 100%; margin-top: 0.5rem;
+            background: var(--santa-green); color: #fff; border: none; border-radius: 999px;
+            padding: 0.8rem 1.2rem; font-size: 1rem; font-weight: bold; cursor: pointer;
+        }
+        .square-primary-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+        .square-summary { background: var(--surface-muted); border-radius: var(--radius-md); padding: 0.75rem 0.9rem; font-size: 0.9rem; line-height: 1.6; margin-bottom: 0.9rem; }
+        .square-status { border-radius: var(--radius-md); padding: 0.75rem 0.9rem; font-weight: bold; margin-bottom: 0.9rem; }
+        .square-status.pending { background: #FFF4D6; border: 1px solid #EBC96B; color: #7A4F00; }
+        .square-status.approved { background: #E3F3E9; border: 1px solid #8FC9A6; color: #1E5B45; }
+        .square-app-links { display: flex; gap: 0.5rem; margin: 0.6rem 0 0.9rem; }
+        .square-app-links a { flex: 1; text-align: center; border: 1px solid var(--border-subtle); border-radius: 999px; padding: 0.55rem 0.5rem; font-size: 0.88rem; font-weight: bold; color: var(--santa-green); text-decoration: none; }
+        .square-error { color: #A8382F; font-size: 0.88rem; margin-top: 0.6rem; }
+        .square-error:empty { display: none; }
         .utility-mini { display: flex; gap: 0.5rem; }
         .utility-mini .utility-btn {
             flex: 1;
@@ -944,7 +981,10 @@
                      on-demand utility buttons (matching the Replit reference
                      app) instead of an always-open banner + section. -->
                 <div class="utility-row">
-                    <button type="button" class="donate-primary-btn" id="donateUtilityBtn">💝 Scan to Donate</button>
+                    <div class="utility-pair">
+                        <button type="button" class="donate-primary-btn" id="donateUtilityBtn">💝 Scan to Donate</button>
+                        <button type="button" class="card-pay-btn" id="cardPayUtilityBtn">💳 Take Card Payments</button>
+                    </div>
                     <div class="utility-mini">
                         <a class="utility-btn" href="https://chat.whatsapp.com/BcxtgyZBZ4B42NltCxmyM4?mode=gi_t" target="_blank" rel="noopener noreferrer">📱 WhatsApp</a>
                         <button type="button" class="utility-btn" id="safetyBriefUtilityBtn">🦺 Safety</button>
@@ -1042,6 +1082,75 @@
             <p style="text-align:left; color:#666; font-size:0.9rem;">Show this to a resident who wants to donate on the spot — it goes straight to our donation page.</p>
             <a href="https://checkout.square.site/merchant/MLHCM2TZHZ9NA/checkout/E4KKJFETD5BQZJYHETXWV6S2" target="_blank" rel="noopener noreferrer">checkout.square.site/merchant/&hellip;</a>
             <button type="button" class="info-modal-close-btn" data-close-modal="donateModalOverlay">Close</button>
+        </div>
+    </div>
+
+    <!-- Take Card Payments: request Square team access (volunteer-square-access.js).
+         Steps: phone requirements -> confirm -> sent; or a status view once requested. -->
+    <div class="info-modal-overlay" id="squareModalOverlay">
+        <div class="info-modal">
+            <button type="button" class="info-modal-x-close" data-close-modal="squareModalOverlay" aria-label="Close">&times;</button>
+
+            <div class="square-step" data-square-step="locked">
+                <h2>💳 Take Card Payments</h2>
+                <p>Card payment access is for volunteers who are out with the Sleigh. Sign up for an upcoming night in <strong>Open Nights</strong> first, then come back here.</p>
+            </div>
+
+            <div class="square-step" data-square-step="requirements">
+                <h2>💳 Can your phone take payments?</h2>
+                <p class="square-note">Residents tap their card or phone on the back of your phone using Square's free app. First check your phone can do it:</p>
+                <div class="square-req">
+                    <strong>📱 iPhone</strong>
+                    <ul>
+                        <li>iPhone XS or newer (not iPad)</li>
+                        <li>Latest version of iOS (<em>Settings › General › Software Update</em>)</li>
+                        <li>A passcode set on the phone</li>
+                    </ul>
+                </div>
+                <div class="square-req">
+                    <strong>🤖 Android</strong>
+                    <ul>
+                        <li>Android 9 or later</li>
+                        <li>Has NFC, and it's turned on (search “NFC” in Settings)</li>
+                        <li>Most Androids that can use Google Pay can do this</li>
+                    </ul>
+                </div>
+                <div class="square-req">
+                    <strong>📶 On the night</strong>
+                    <ul>
+                        <li>Mobile data on (Tap to Pay doesn't work offline)</li>
+                        <li>Enough battery for the whole route</li>
+                    </ul>
+                </div>
+                <label class="square-check"><input type="checkbox" id="squareReqCheck"> My phone meets these requirements</label>
+                <button type="button" class="square-primary-btn" id="squareReqNext" disabled>Continue</button>
+            </div>
+
+            <div class="square-step" data-square-step="confirm">
+                <h2>💳 Confirm your request</h2>
+                <p>We'll add you to the Santa Sleigh Square account with access to take payments only. You won't see our reports or settings.</p>
+                <div class="square-summary">
+                    <div><strong>Name:</strong> <span id="squareConfirmName"></span></div>
+                    <div><strong>Email:</strong> <span id="squareConfirmEmail"></span></div>
+                </div>
+                <p class="square-note">Square will send its invitation to this email. To use a different one, change your preferred email in Settings first. We share only your name and email with Square.</p>
+                <button type="button" class="square-primary-btn" id="squareConfirmBtn">Request card payment access</button>
+                <div class="square-error" id="squareError" role="alert"></div>
+            </div>
+
+            <div class="square-step" data-square-step="status">
+                <h2>💳 Take Card Payments</h2>
+                <div class="square-status" id="squareStatusBanner"></div>
+                <p id="squareStatusText" style="margin-bottom:1rem;"></p>
+                <p style="margin-bottom:0;"><strong>Get the free Square Point of Sale app:</strong></p>
+                <div class="square-app-links">
+                    <a href="https://apps.apple.com/gb/app/square-point-of-sale-pos/id335393788" target="_blank" rel="noopener noreferrer">📱 App Store</a>
+                    <a href="https://play.google.com/store/apps/details?id=com.squareup" target="_blank" rel="noopener noreferrer">🤖 Google Play</a>
+                </div>
+                <p class="square-note" id="squareStatusNote"></p>
+            </div>
+
+            <button type="button" class="info-modal-close-btn" data-close-modal="squareModalOverlay">Close</button>
         </div>
     </div>
 
@@ -1247,6 +1356,95 @@
 
             document.getElementById('donateUtilityBtn').addEventListener('click', function() { openModal('donateModalOverlay'); });
             document.getElementById('faqUtilityBtn').addEventListener('click', function() { openModal('faqModalOverlay'); });
+
+            // ---- Take Card Payments (Square team access) ----
+
+            var cardPayBtn = document.getElementById('cardPayUtilityBtn');
+            var squareReqCheck = document.getElementById('squareReqCheck');
+            var squareReqNext = document.getElementById('squareReqNext');
+            var squareConfirmBtn = document.getElementById('squareConfirmBtn');
+            var squareErrorEl = document.getElementById('squareError');
+
+            function squareState() {
+                return (currentProfile && currentProfile.squareAccess) || { status: 'none', eligible: false };
+            }
+
+            function showSquareStep(step) {
+                document.querySelectorAll('#squareModalOverlay .square-step').forEach(function(el) {
+                    el.classList.toggle('active', el.dataset.squareStep === step);
+                });
+            }
+
+            function updateCardPayButton() {
+                var sq = squareState();
+                cardPayBtn.classList.toggle('is-locked', sq.status === 'none' && !sq.eligible);
+                cardPayBtn.innerHTML = sq.status === 'approved'
+                    ? '💳 Card Payments<small>✓ Approved</small>'
+                    : sq.status === 'requested'
+                        ? '💳 Card Payments<small>⏳ Pending review</small>'
+                        : '💳 Take Card Payments';
+            }
+
+            function renderSquareStatus() {
+                var sq = squareState();
+                var approved = sq.status === 'approved';
+                var banner = document.getElementById('squareStatusBanner');
+                banner.className = 'square-status ' + (approved ? 'approved' : 'pending');
+                banner.textContent = approved ? '✅ Status: Approved' : '⏳ Status: Pending review';
+                document.getElementById('squareStatusText').textContent = approved
+                    ? "You're set up. Accept the invitation Square emailed to " + (sq.email || 'you') + ', then sign in to the Square Point of Sale app with that login and turn on Tap to Pay under More › Settings.'
+                    : "We've got your request and one of the team will set you up in Square shortly. When they do, Square will email " + (sq.email || 'you') + ' an invitation to join our team.';
+                document.getElementById('squareStatusNote').textContent = approved
+                    ? 'Please only take donations while you\u2019re out with the Sleigh, and keep your phone locked when it\u2019s not in use.'
+                    : 'Download the app now, but don\u2019t create a new Square account: sign in with the login from Square\u2019s invitation once it arrives.';
+                showSquareStep('status');
+            }
+
+            cardPayBtn.addEventListener('click', function() {
+                var sq = squareState();
+                squareErrorEl.textContent = '';
+                if (sq.status !== 'none') {
+                    renderSquareStatus();
+                } else if (!sq.eligible) {
+                    showSquareStep('locked');
+                } else {
+                    squareReqCheck.checked = false;
+                    squareReqNext.disabled = true;
+                    showSquareStep('requirements');
+                }
+                openModal('squareModalOverlay');
+            });
+
+            squareReqCheck.addEventListener('change', function() { squareReqNext.disabled = !squareReqCheck.checked; });
+
+            squareReqNext.addEventListener('click', function() {
+                var user = netlifyIdentity.currentUser();
+                document.getElementById('squareConfirmName').textContent =
+                    (currentProfile && currentProfile.fullName) || (user && user.user_metadata && user.user_metadata.full_name) || '—';
+                document.getElementById('squareConfirmEmail').textContent =
+                    (currentProfile && (currentProfile.preferredEmail || currentProfile.email)) || '—';
+                showSquareStep('confirm');
+            });
+
+            squareConfirmBtn.addEventListener('click', async function() {
+                squareConfirmBtn.disabled = true;
+                squareConfirmBtn.textContent = 'Sending request...';
+                squareErrorEl.textContent = '';
+                try {
+                    var res = await authedFetch('/.netlify/functions/volunteer-square-access', { method: 'POST' });
+                    var data = await res.json();
+                    if (!res.ok) throw new Error(data.error || 'Request failed');
+                    currentProfile.squareAccess = data.squareAccess;
+                    updateCardPayButton();
+                    renderSquareStatus();
+                    showToast('Request sent. Check your email for next steps.', 'success');
+                } catch (err) {
+                    squareErrorEl.textContent = err.message;
+                } finally {
+                    squareConfirmBtn.disabled = false;
+                    squareConfirmBtn.textContent = 'Request card payment access';
+                }
+            });
             document.querySelectorAll('[data-close-modal]').forEach(function(btn) {
                 btn.addEventListener('click', function() { closeModal(btn.dataset.closeModal); });
             });
@@ -1425,6 +1623,7 @@
                 ["I can't make a night, can I cancel?", 'We understand things change. Please cancel your shift from My Schedule if it’s more than 24 hours away, or message Nathan (07961 200035) if it’s sooner.'],
                 ['Can I be Santa?', "Obviously, the big man himself comes out every night! But sometimes, in Hollywood fashion, we do have to use a lookalike. We've got a few regulars, but if we're short and you're up for it, let Nathan or Michael know!"],
                 ['Can people donate by card/online?', 'Yes! Use the "Scan to Donate" button above — load it on your phone and show the QR code for the donor to scan and donate online. They can also donate via santasleighsalford.co.uk.'],
+                ['Can I take card payments on my phone?', 'Yes, if your phone supports Tap to Pay (iPhone XS or newer, or Android 9+ with NFC). Once you\u2019re signed up for a night, tap "Take Card Payments" above to request access to our Square account. We\u2019ll email you once you\u2019re set up.'],
                 ['What do I wear?', 'First, dress for the weather — rain, snow, wind, cold, whatever it may be. Second, dress festive if you want! From Santa hats and elf ears to full-blown Christmas trees and lights, it’s all about spreading joy!'],
                 ['What do we do?', "Ensure you've got a high-vis jacket, a lanyard and a collection pot or tub first from the Safety Lead for the night. We aim to set off on time, so make sure you arrive in good time. Follow the route map under the guidance of the Safety Lead. We ask volunteers to split between each side of the street and 'bunny hop' knocking on doors, keeping about 5 houses ahead of the Sleigh."],
                 ['What do we say?', '"Merry Christmas! We’re just knocking to let you know Santa is passing by shortly if you want to see him, and we’re also collecting donations for the 100th Salford Scout Group."'],
@@ -1691,6 +1890,7 @@
                     reminderToggle.checked = !!profile.reminderEmailOptIn;
 
                     updateRiskUI(profile);
+                    updateCardPayButton();
                     if (!profile.adultConfirmedAt) showAdultModal();
                     else if (!profile.riskAckAt) showRiskModal();
 
