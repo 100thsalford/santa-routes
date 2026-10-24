@@ -904,6 +904,8 @@
             z-index: 5000 !important;
         }
     </style>
+    <!-- Analytics preferences: must load before any analytics -->
+    <script src="privacy-prefs.js?v=20261024a"></script>
 </head>
 <body>
     <div id="toastContainer" class="toast-container"></div>
@@ -996,6 +998,7 @@
 
     <footer class="footer">
         <p>🎄 Supporting <a href="https://www.facebook.com/100thsalford" target="_blank" rel="noopener noreferrer" class="footer-link">100th Salford Scout Group</a> 🎄</p>
+        <p class="footer-note"><a href="privacy.html" class="footer-link">Privacy Policy</a> · <a href="#" data-analytics-prefs class="footer-link">Analytics preferences</a></p>
     </footer>
 
     <div class="risk-modal-overlay" id="riskModalOverlay">
@@ -1010,6 +1013,22 @@
             <div class="risk-modal-actions">
                 <button type="button" class="risk-ack-btn" id="riskAckBtn" disabled>I acknowledge</button>
                 <button type="button" class="risk-later-btn" id="riskLaterBtn">Remind me later</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- One-time adults-only confirmation (privacy policy: portal is 18+). -->
+    <div class="risk-modal-overlay" id="adultModalOverlay">
+        <div class="risk-modal" role="dialog" aria-modal="true" aria-labelledby="adultModalTitle">
+            <h2 id="adultModalTitle">🎅 Before you carry on</h2>
+            <p>The volunteer portal is for adults aged 18 or over. We don't register children through it.</p>
+            <label class="risk-modal-checkbox">
+                <input type="checkbox" id="adultConfirmCheckbox">
+                <span>I confirm I am 18 or over.</span>
+            </label>
+            <p style="font-size:0.9rem; color:#5B6169;">See our <a href="privacy.html" target="_blank" rel="noopener">privacy policy</a> for how we use volunteer details. If you're under 18, please don't continue &mdash; email <a href="mailto:glv@100thsalford.co.uk">glv@100thsalford.co.uk</a> instead.</p>
+            <div class="risk-modal-actions">
+                <button type="button" class="risk-ack-btn" id="adultConfirmBtn" disabled>Confirm</button>
             </div>
         </div>
     </div>
@@ -1463,6 +1482,45 @@
                 }
             });
 
+            // ---- One-time 18+ confirmation (shown before the safety guidance) ----
+            var adultModalOverlay = document.getElementById('adultModalOverlay');
+            var adultConfirmCheckbox = document.getElementById('adultConfirmCheckbox');
+            var adultConfirmBtn = document.getElementById('adultConfirmBtn');
+
+            function showAdultModal() {
+                adultConfirmCheckbox.checked = false;
+                adultConfirmBtn.disabled = true;
+                adultModalOverlay.classList.add('visible');
+                adultConfirmCheckbox.focus();
+            }
+
+            adultConfirmCheckbox.addEventListener('change', function() {
+                adultConfirmBtn.disabled = !adultConfirmCheckbox.checked;
+            });
+
+            adultConfirmBtn.addEventListener('click', async function() {
+                adultConfirmBtn.disabled = true;
+                adultConfirmBtn.textContent = 'Saving...';
+                try {
+                    var res = await authedFetch('/.netlify/functions/confirm-adult', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ confirmed: true })
+                    });
+                    var data = await res.json();
+                    if (!res.ok) throw new Error(data.error || 'Could not save');
+                    if (currentProfile) currentProfile.adultConfirmedAt = data.adultConfirmedAt;
+                    adultModalOverlay.classList.remove('visible');
+                    if (currentProfile && !currentProfile.riskAckAt) showRiskModal();
+                } catch (err) {
+                    console.error('Error confirming age:', err);
+                    adultConfirmBtn.disabled = false;
+                    showToast("Couldn't save — please try again.", 'error');
+                } finally {
+                    adultConfirmBtn.textContent = 'Confirm';
+                }
+            });
+
             // Builds a .ics file for a shift using the site's sightings-window
             // setting as a stand-in start/end time (route_dates has no
             // per-shift time of its own -- same proxy the 24h cancel
@@ -1633,7 +1691,8 @@
                     reminderToggle.checked = !!profile.reminderEmailOptIn;
 
                     updateRiskUI(profile);
-                    if (!profile.riskAckAt) showRiskModal();
+                    if (!profile.adultConfirmedAt) showAdultModal();
+                    else if (!profile.riskAckAt) showRiskModal();
 
                     if (profile.shifts && profile.shifts.length > 0) {
                         shiftsContent.innerHTML = '';
@@ -2049,6 +2108,7 @@
                         body: JSON.stringify({ op: 'claim', routeDateId: routeDateId })
                     });
                     var result = await res.json();
+                    if (!res.ok && result.error === 'adult_confirmation_required') showAdultModal();
                     if (!res.ok) throw new Error(result.message || result.error || 'Could not claim shift');
                     openShiftsStatus.textContent = "You're signed up — see it under My Shifts.";
                     setTimeout(function() { openShiftsStatus.textContent = ''; }, 4000);
@@ -2184,6 +2244,5 @@
         })();
     </script>
 
-    <!-- Cloudflare Web Analytics --><script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "3b7106934eac4fcfa830d632dc201682"}'></script><!-- End Cloudflare Web Analytics -->
 </body>
 </html>

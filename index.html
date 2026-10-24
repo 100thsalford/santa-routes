@@ -120,6 +120,8 @@
             display: none !important;
         }
     </style>
+    <!-- Analytics preferences: must load before any analytics -->
+    <script src="privacy-prefs.js?v=20261024a"></script>
 </head>
 
 <body>
@@ -212,6 +214,7 @@
                         autocomplete="off"
                     >
                 </div>
+                <p class="search-privacy-note" style="font-size:0.8rem; color:#666; margin:0.5rem 0 0; text-align:center;">Just your street or postcode, please &mdash; no names. <a href="privacy.html#searches" style="color:inherit;">How we use searches</a></p>
             </div>
 
             <div id="date-search" style="display: none;">
@@ -380,6 +383,7 @@
                     <div id="formMessage" class="form-message"></div>
 
                     <button type="submit" class="submit-btn">Submit Sighting</button>
+                    <p style="font-size:0.8rem; color:#666; margin:0.75rem 0 0; text-align:center;">We store only the street and time, shown to other visitors and deleted after 30 days. <a href="privacy.html#sightings" style="color:inherit;">Privacy policy</a></p>
                 </form>
             </div>
         </div>
@@ -408,7 +412,7 @@
         <p>Donations help fund Scouting activities for young people in Salford</p>
         <p class="footer-note">Some graphics on this site were created using AI image-generation tools. <a href="privacy.html#ai-content" class="footer-link">Learn more</a></p>
         <p><a href="https://helpout.santasleighsalford.co.uk/" class="footer-link">Volunteer login / sign up</a></p>
-        <p><a href="terms.html" class="footer-link">Terms &amp; Conditions</a>&nbsp;· <a href="privacy.html" class="footer-link">Privacy Policy</a></p>
+        <p><a href="terms.html" class="footer-link">Terms &amp; Conditions</a>&nbsp;· <a href="privacy.html" class="footer-link">Privacy Policy</a> · <a href="#" data-analytics-prefs class="footer-link">Analytics preferences</a></p>
     </footer>
 
     <!-- Date-based Visibility Script -->
@@ -462,113 +466,5 @@
     <script src="analytics.js"></script>
     
 
-			<!-- Cookie Banner - Add this just before closing </body> tag -->
-			<div id="cookieBanner" class="cookie-banner">
-			    <div class="cookie-content">
-			        <div class="cookie-text">
-			            <strong>🍪 We use cookies</strong>
-			            <p>This site loads embedded map content from OpenStreetMap. By clicking "Accept", you consent to that. Our own anonymous usage statistics use no cookies and aren't affected by this choice.</p>
-			        </div>
-			        <div class="cookie-buttons">
-			            <button id="cookieAccept" class="cookie-btn cookie-accept">Accept</button>
-			            <button id="cookieDecline" class="cookie-btn cookie-decline">Decline</button>
-			            <a href="privacy.html" class="cookie-link">Learn more</a>
-			        </div>
-			    </div>
-			</div>
-
-			<script>
-			// Cookie Banner Functionality
-			(function() {
-			    'use strict';
-    
-			    const COOKIE_NAME = 'santa_sleigh_cookie_consent';
-			    const COOKIE_DURATION = 365; // days
-    
-			    // Check if user has already made a choice
-			    function getCookieConsent() {
-			        const cookies = document.cookie.split(';');
-			        for (let cookie of cookies) {
-			            const [name, value] = cookie.trim().split('=');
-			            if (name === COOKIE_NAME) {
-			                return value;
-			            }
-			        }
-			        return null;
-			    }
-    
-			    // Set cookie consent
-			    function setCookieConsent(value) {
-			        const date = new Date();
-			        date.setTime(date.getTime() + (COOKIE_DURATION * 24 * 60 * 60 * 1000));
-			        const expires = 'expires=' + date.toUTCString();
-			        document.cookie = COOKIE_NAME + '=' + value + ';' + expires + ';path=/;SameSite=Lax';
-			    }
-    
-			    // Show banner
-			    function showBanner() {
-			        const banner = document.getElementById('cookieBanner');
-			        if (banner) {
-			            banner.classList.add('show');
-			        }
-			    }
-    
-			    // Hide banner
-			    function hideBanner() {
-			        const banner = document.getElementById('cookieBanner');
-			        if (banner) {
-			            banner.classList.remove('show');
-			        }
-			    }
-    
-			    // Handle accept
-			    function acceptCookies() {
-			        setCookieConsent('accepted');
-			        hideBanner();
-			        // Reload to load third-party scripts
-			        if (typeof FB === 'undefined' || typeof google === 'undefined') {
-			            location.reload();
-			        }
-			    }
-    
-			    // Handle decline
-			    function declineCookies() {
-			        setCookieConsent('declined');
-			        hideBanner();
-			        // Remove Facebook SDK if loaded
-			        const fbRoot = document.getElementById('fb-root');
-			        if (fbRoot) fbRoot.innerHTML = '';
-			        // Show message about limited functionality
-			        alert('Some features (such as the interactive map) may not work fully without cookies.');
-			    }
-    
-			    // Initialize
-			    document.addEventListener('DOMContentLoaded', function() {
-			        const consent = getCookieConsent();
-        
-			        if (consent === null) {
-			            // No choice made yet, show banner
-			            showBanner();
-			        } else if (consent === 'declined') {
-			            // User declined, don't load third-party scripts
-			            const fbRoot = document.getElementById('fb-root');
-			            if (fbRoot) fbRoot.innerHTML = '';
-			        }
-        
-			        // Add event listeners
-			        const acceptBtn = document.getElementById('cookieAccept');
-			        const declineBtn = document.getElementById('cookieDecline');
-        
-			        if (acceptBtn) {
-			            acceptBtn.addEventListener('click', acceptCookies);
-			        }
-        
-			        if (declineBtn) {
-			            declineBtn.addEventListener('click', declineCookies);
-			        }
-			    });
-			})();
-			</script>
-			<!-- Cloudflare Web Analytics --><script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "3b7106934eac4fcfa830d632dc201682"}'></script><!-- End Cloudflare Web Analytics -->
 </body>
 </html>

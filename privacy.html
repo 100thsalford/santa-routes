@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Privacy Policy and Cookie Information for Santa Super Sleigh Salford">
+    <meta name="description" content="How Santa Super Sleigh Salford (100th Salford Scout Group) uses personal information, and your choices.">
     <title>Privacy Policy | Santa Super Sleigh Salford</title>
     <link rel="stylesheet" href="styles.css">
     <style>
@@ -97,6 +97,33 @@
             color: var(--santa-red);
         }
         
+        .privacy-prefs-box {
+            background: #E3F3E9;
+            border: 1px solid #8FC9A6;
+            border-radius: 10px;
+            padding: 1rem;
+            margin: 1rem 0 0.5rem;
+        }
+
+        .table-scroll { overflow-x: auto; }
+
+        .privacy-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 0.5rem 0 1rem;
+            font-size: 0.95rem;
+        }
+
+        .privacy-table th, .privacy-table td {
+            text-align: left;
+            vertical-align: top;
+            padding: 0.6rem;
+            border-bottom: 1px solid #E7E2D9;
+            line-height: 1.5;
+        }
+
+        .privacy-table th { background: var(--snow); }
+
         @media (max-width: 767px) {
             .privacy-section {
                 padding: 1.5rem;
@@ -111,6 +138,8 @@
             }
         }
     </style>
+    <!-- Analytics preferences: must load before any analytics -->
+    <script src="privacy-prefs.js?v=20261024a"></script>
 </head>
 <body>
     <div class="header">
@@ -122,176 +151,142 @@
         <a href="index.html" class="back-btn">← Back</a>
 
         <div class="privacy-section">
-            <h2>Cookie Policy & Privacy Information</h2>
-            
-            <h3>What Are Cookies?</h3>
-            <p>Cookies are small text files stored on your device when you visit websites. They help websites remember your preferences and provide functionality.</p>
+            <h2>Privacy Policy</h2>
+            <p><strong>Santa Sleigh Salford (Santa Super Sleigh Salford)</strong><br>
+            Organised by 100th Salford (St Luke's) Scout Group<br>
+            <strong>Last updated: 24 October 2026</strong></p>
 
-            <h3>Cookies We Use</h3>
-            
-            <h4>Essential Cookies</h4>
-            <p><strong>Cookie Consent:</strong> We store your cookie preference (accept/decline) to remember your choice.</p>
-            <ul>
-                <li>Cookie name: <code>santa_sleigh_cookie_consent</code></li>
-                <li>Duration: 365 days</li>
-                <li>Purpose: Remember your cookie preference</li>
-            </ul>
-
-            <h4>Third-Party Cookies</h4>
-            <p><strong>Facebook:</strong> We don't embed Facebook content on this site, and Facebook doesn't set cookies here. We only link to our Facebook page. Once you follow a link there, Facebook's own cookies and <a href="https://www.facebook.com/privacy/policy" target="_blank" rel="noopener noreferrer">privacy policy</a> apply.</p>
-
-            <p><strong>Maps (OpenStreetMap):</strong> Our route and live-tracking maps load map tiles from OpenStreetMap's servers. Your browser sends your IP address to those servers to fetch the map images; we don't use Google Maps.</p>
-            <ul>
-                <li>Provider: OpenStreetMap Foundation</li>
-                <li>Purpose: Map display</li>
-                <li>Privacy Policy: <a href="https://osmfoundation.org/wiki/Privacy_Policy" target="_blank" rel="noopener noreferrer">OpenStreetMap Privacy Policy</a></li>
-            </ul>
-
-            <h3>Analytics & Usage Data</h3>
-            <p>We use basic, privacy-friendly analytics to understand how visitors use our site. This helps us improve the experience for everyone.</p>
-            
-            <h4>What We Collect</h4>
-            <ul>
-                <li><strong>Page views:</strong> Which pages you visit</li>
-                <li><strong>Button clicks:</strong> Which features you use (e.g., "View Map", "Report Sighting")</li>
-                <li><strong>Time on page:</strong> How long you spend on our site</li>
-            </ul>
-            <p>These records are anonymous. We don't store your IP address, device details, location or any cookie or visitor ID with them, so we can't tell who a visit came from or link visits together. We keep them for 13 months and then delete them automatically.</p>
-
-            <div class="privacy-highlight">
-                <strong>Street Search Logging:</strong> To help us improve our street search feature and see which streets people are looking for, we keep a short, anonymous record of each search:
-                <ul style="margin-top: 0.5rem;">
-                    <li><strong>The street you searched for:</strong> What you typed, with house numbers, postcodes and anything that looks like an email address removed before it is saved</li>
-                    <li><strong>Whether we found a match,</strong> which street it matched and how many results there were</li>
-                    <li><strong>The date and time</strong> of the search</li>
-                </ul>
-                <p style="margin-top: 0.5rem;">We do <strong>not</strong> store your IP address, location, browser or device details with a search.</p>
+            <div class="privacy-prefs-box" id="analytics-preferences">
+                <p style="margin:0 0 0.5rem;"><strong>Analytics preferences:</strong> optional usage statistics are currently <strong data-analytics-status>on</strong> in this browser.</p>
+                <button type="button" class="back-btn" data-analytics-prefs style="margin:0;">Change analytics preferences</button>
             </div>
 
-            <h4>Why We Collect This Data</h4>
+            <h3 id="who-we-are">1. Who we are and how to contact us</h3>
+            <p>Santa Sleigh Salford is an annual community fundraising activity organised by <strong>100th Salford (St Luke's) Scout Group</strong>. The Scout Group is the <strong>data controller</strong> for the personal information described in this notice: this means the Group decides why and how that information is used.</p>
+            <p>For privacy questions, requests to access or delete information, objections or complaints, email <a href="mailto:glv@100thsalford.co.uk">glv@100thsalford.co.uk</a>.</p>
+            <p>This notice covers the Santa Sleigh website, street and route searches, live tracking, Santa sighting reports, volunteer arrangements, sign-hosting applications, donations and photographs associated with the activity.</p>
+
+            <h3 id="what-we-collect">2. What we collect and why</h3>
+            <p>We collect only the information needed to operate the Santa Sleigh, help residents find it, organise volunteers and fundraising, and improve future routes.</p>
+
+            <h4 id="analytics">Website visits and anonymous usage statistics</h4>
+            <p>We use our own website activity records and <strong>Cloudflare Web Analytics</strong> to understand which pages and features people use, including interest in the live tracker. Our own records cover page views, clicks on particular buttons and links (for example the donate button, menu sections and the live-tracking button), and roughly how long a page stays open, in one-minute steps. We use this to improve the website and understand demand during the Christmas campaign. These are counts of events, not counts of people.</p>
+            <p>Our <strong>own analytics records</strong> do not contain IP addresses, device identifiers, browser details, referrers or persistent visitor IDs, so we cannot use them to identify individual website visitors or reliably count unique people. Cloudflare receives your IP address and basic browser details when its statistics script loads, and our hosting provider (Netlify) necessarily receives them when delivering the website; these providers may keep their own operational and security logs.</p>
+            <p>Our legal basis for processing any personal data involved in improving and securing our website is <strong>legitimate interests</strong>: operating a useful, reliable community service, understanding demand and preventing misuse. We do not use website analytics for targeted advertising or cross-site profiling.</p>
+            <p>Optional analytics are on by default. You can turn them off at any time using <a href="#analytics-preferences" data-analytics-prefs>Analytics preferences</a> (in the website footer and at the top of this page). Turning them off stops the Cloudflare statistics script, our own usage events <em>and</em> our street-search records from being sent from your browser. It does not stop street searches, maps, live tracking or volunteer login from working. If your browser sends a <strong>Global Privacy Control</strong> signal, we treat that as turning analytics off unless you switch them back on here. Your choice is remembered in your browser's local storage (no cookie), for this website address only, until you change it or clear your browser data.</p>
+
+            <h4 id="searches">Street and route searches</h4>
+            <p>When you search for a street or postcode, we use the search to show you whether Santa is visiting, find a suitable route, and understand which streets residents are interested in. If optional analytics are on, we keep a record of the search after cleaning it: house numbers and other digits are removed, a postcode is replaced with "[postcode]", and anything containing an "@" is replaced with "[removed]". The record also holds whether it found a match, the matched street (if any), the page and the date/time. Our search records are <strong>not associated with IP addresses or visitor IDs</strong>.</p>
+            <p>A search box can still receive whatever someone chooses to type, so <strong>please enter only the street or postcode needed to find your route</strong>, not a person's name or other private details. We use overall search patterns to identify missing streets and plan future coverage.</p>
+            <p>When a search doesn't match one of our streets directly, our server looks up the location by sending the text you typed to <strong>postcodes.io</strong> (for postcodes) or <strong>OpenStreetMap's Nominatim</strong> service (for other places). That request comes from our server, so those providers receive the search text but not your IP address.</p>
+
+            <h4 id="volunteers">Volunteer accounts and shifts</h4>
+            <p>Volunteer portal accounts are for <strong>adults aged 18 or over</strong>, and we ask volunteers to confirm this. We may collect:</p>
             <ul>
-                <li>Identify missing streets in our database</li>
-                <li>Understand search patterns to improve the feature</li>
-                <li>Weigh demand for streets we don't yet cover against how efficiently a route can reach them, to help plan future routes</li>
+                <li>Name, email address, optional telephone number and preferred contact details.</li>
+                <li>Account/registration status, sign-up and approval details, your confirmation that you are 18 or over, the date you last used the portal, and login credentials managed by <strong>Netlify Identity</strong> (we never see your password).</li>
+                <li>The internet (IP) address used for registration attempts, kept for about 24 hours to stop automated or abusive sign-ups.</li>
+                <li>Shifts, routes, assignments and roles (such as driver, Santa or safety walker).</li>
+                <li>Confirmation and date/time of relevant safety-guidance acknowledgements.</li>
+                <li>Choices about operational reminders.</li>
             </ul>
+            <p>We use these details to organise collections, communicate arrangements and last-minute changes, manage safety, control access to the portal and prevent registration abuse. Our legal basis is <strong>legitimate interests</strong> in running the activity safely and efficiently and protecting those involved.</p>
+            <p><strong>Only authorised administrators</strong> can access full volunteer records. Other approved, signed-in volunteers can see the <strong>names</strong> of people booked on the same shifts and in the Santa, driver and safety-walker roles, but not their email addresses or telephone numbers. The public cannot access volunteer records.</p>
+            <p>The portal sends <strong>operational emails only</strong>, not marketing emails for future campaigns. Our email delivery service is <strong>Resend</strong>. A volunteer may separately choose to join the event WhatsApp group; joining is optional, and other group members may see their phone number or profile details according to WhatsApp's settings. The volunteer portal does <strong>not</strong> collect personal information about children accompanying adult volunteers.</p>
 
-            <h4>What We DON'T Collect</h4>
+            <h4 id="signs">Residents offering to host street signs</h4>
+            <p>If you offer to host a promotional street sign, we collect the details you enter in our <strong>Microsoft Form</strong>: typically name, email address, telephone number, house number/street, postcode and any practical installation notes. This information is held in <strong>Microsoft Forms/Excel</strong> and is accessed by the <strong>Group Lead Volunteer</strong>, who arranges and carries out installation and collection.</p>
+            <p>We use these details under our <strong>legitimate interests</strong> in organising sign placement and collection. <strong>Only if you tick the separate, optional consent checkbox</strong>, we may also email you in future Christmas campaigns to ask whether you would like to host a sign again. You can withdraw this consent at any time at <a href="mailto:glv@100thsalford.co.uk">glv@100thsalford.co.uk</a>. We do not use these contact details for unrelated marketing or pass them to other organisations for their own marketing.</p>
+            <p>People who submitted the form <strong>before the future-contact option was introduced</strong> are not automatically opted in to future emails.</p>
+
+            <h4 id="donations">Donations and card payments</h4>
+            <p>Donations can be made using a <strong>Square Payment Link</strong> or in person through <strong>Square Tap to Pay</strong>, operated by authorised volunteers with restricted Square team accounts. Square processes card details and may collect names, email addresses and other transaction information. The Scout Group can access individual transaction records and, where available, donor information within Square through authorised administrators, but <strong>does not receive or store full payment card numbers</strong>.</p>
+            <p>For the Group's accounts, we record daily or campaign fundraising totals rather than exporting donor-level personal details into a separate spreadsheet. We use payment information for processing, reconciliation, refunds, disputes, fraud prevention and legal/accounting obligations, <strong>not to add donors to a marketing list</strong>. Our legal bases are <strong>legitimate interests</strong> in administering donations and <strong>legal obligations</strong> where record-keeping or financial law applies. Square also has its own privacy notice for donors.</p>
+
+            <h4 id="tracker">Live Santa tracker</h4>
+            <p>The Sleigh has a dedicated <strong>TruTrak GPS tracking device</strong>. Our website shows its location to visitors <strong>only during the public tracking window on route nights</strong>; outside that window our server does not fetch or return any position, and our team can switch public tracking off for the rest of the night at any time. The tracker is on the Sleigh, not visitors' phones; our website does not ask visitors for their location to watch the Sleigh.</p>
+            <p>To show the route travelled so far, our server keeps a temporary copy of that night's trail, which is deleted automatically after the night. TruTrak also retains historical journey/location records, accessible through its platform only to authorised Scout Group administrators. Because these may indirectly reveal the movements of volunteers operating the Sleigh, we treat them as potentially personal information. We use tracking for public route information and the safe, effective operation of the event, on the basis of <strong>legitimate interests</strong>. Historical journey retention within TruTrak is governed by TruTrak's platform arrangements; you may contact us for more information about the period that applies to our account.</p>
+
+            <h4 id="sightings">Santa sighting reports</h4>
+            <p>If you report seeing the Sleigh, you select a <strong>street from the event's route list</strong> and the time you saw it. We store the street, that time, whether it was "just now" or "earlier today", and when the report was submitted, so other visitors can see recent reports. We do <strong>not ask</strong> for your name, email or telephone number, and we do not store your IP address with the report. Reports are held in our own database and <strong>deleted automatically 30 days after submission</strong>. We use them under our <strong>legitimate interests</strong> in helping residents follow the Sleigh. Our hosting provider may still process necessary technical request information when receiving a report.</p>
+            <p>Reports made before 24 October 2026 were collected through a Google Form and Google Sheet; we are deleting those records.</p>
+
+            <h4 id="photos">Photographs and video</h4>
+            <p>Volunteers may take photos and videos of the Sleigh, its volunteers and the general atmosphere in public streets. Residents and children may appear <strong>incidentally</strong>. Selected material may be shared on the Santa Sleigh website, the Scout Group's pages and Facebook or other event communications to explain and promote the fundraiser.</p>
+            <p>Our lawful basis for general public-event and incidental crowd photography is <strong>legitimate interests</strong>, balancing the Group's community fundraising purpose against individuals' privacy and safeguarding expectations. We do not routinely take posed portraits of individual children with Santa for publication. We seek appropriate permission before publishing an image that prominently features an identifiable child or family. If you would rather not be photographed, or want to raise a concern about an image we have published, contact <a href="mailto:glv@100thsalford.co.uk">glv@100thsalford.co.uk</a>. We will consider and act on reasonable requests, including removing images within our control when appropriate. Content already shared or copied by others may not be fully retrievable.</p>
+
+            <h4 id="enquiries">Emails and privacy enquiries</h4>
+            <p>When you email us, we use the information you provide to answer your enquiry, administer a request, or respond to a complaint. We keep correspondence only while needed for that purpose and any applicable record-keeping obligations. Our legal basis is normally <strong>legitimate interests</strong>, or <strong>legal obligations</strong> where we must handle a statutory request or complaint.</p>
+
+            <h3 id="retention">3. How long we keep information</h3>
+            <div class="table-scroll">
+            <table class="privacy-table">
+                <thead><tr><th>Information</th><th>Retention or deletion rule</th></tr></thead>
+                <tbody>
+                    <tr><td>Matched street search records</td><td>Up to <strong>13 months</strong>, then automatically deleted</td></tr>
+                    <tr><td>Unmatched street search records</td><td>Up to <strong>90 days</strong>, then automatically deleted</td></tr>
+                    <tr><td>Our website page-view and usage events</td><td>Up to <strong>13 months</strong>, then automatically deleted</td></tr>
+                    <tr><td>Volunteer account and personal details</td><td>While active. Records with <strong>3 years without login or volunteering activity</strong> are flagged automatically and then deleted by an administrator, unless a particular record is required longer for a legitimate legal or safety purpose</td></tr>
+                    <tr><td>Registration-abuse attempt records (IP address)</td><td>About <strong>24 hours</strong>, then automatically deleted</td></tr>
+                    <tr><td>Sign-hosting information where no future-contact consent was given</td><td>Deleted once no longer needed to install and collect signs for the current campaign</td></tr>
+                    <tr><td>Sign-hosting contact details where future-contact consent was given</td><td>Up to <strong>3 years</strong>, or sooner if consent is withdrawn or the information is no longer needed</td></tr>
+                    <tr><td>Sign installation notes</td><td>Removed once no longer needed for the installation/collection arrangements</td></tr>
+                    <tr><td>Santa sighting reports</td><td><strong>30 days</strong>, then automatically deleted</td></tr>
+                    <tr><td>Our temporary copy of a night's tracker trail</td><td>Automatically deleted after the route night</td></tr>
+                    <tr><td>Square payment and accounting information</td><td>As necessary for payment operations, disputes and applicable financial/accounting record-keeping requirements; Square also applies its own retention terms</td></tr>
+                    <tr><td>TruTrak location history</td><td>Retained within TruTrak according to the arrangements applicable to our account; contact us for available details</td></tr>
+                    <tr><td>Photographs/video</td><td>Kept while relevant to the Group's activities and publications, subject to review, safeguarding needs and appropriate removal requests</td></tr>
+                    <tr><td>Enquiries, privacy requests and complaints</td><td>For as long as needed to respond and maintain any necessary record of the matter</td></tr>
+                </tbody>
+            </table>
+            </div>
+            <p>The rules above relate to records controlled by the Scout Group. Third-party providers may retain technical, security, payment or account records under their own relevant retention arrangements.</p>
+
+            <h3 id="cookies">4. Cookies, map services and external websites</h3>
+            <p>Our website does <strong>not</strong> use advertising cookies or tracking pixels. The only things we store on your device are:</p>
             <ul>
-                <li>Personal information (names, emails, phone numbers)</li>
-                <li>IP addresses, device details or location in our search and usage records</li>
-                <li>House numbers or full addresses (they are removed from what you type before it is saved)</li>
-                <li>Tracking across other websites</li>
-                <li>Browsing history outside our site</li>
-                <li>Financial information</li>
+                <li><strong>Your analytics preference</strong> — a small local-storage value, only if you change the setting, so we can remember it.</li>
+                <li><strong>Volunteer login</strong> — when you sign in to the volunteer or admin pages, Netlify Identity stores an essential login cookie and login details in your browser so you stay signed in.</li>
             </ul>
+            <p>Map pages use <strong>OpenStreetMap</strong> map tiles. Loading tiles means the map provider receives your IP address and technical request details, as with other external website resources. Map pages also load the Leaflet map software from <strong>unpkg</strong>, and the volunteer portal loads a donation QR image from <strong>api.qrserver.com</strong> when that feature is opened. These requests are needed to provide the relevant map or QR feature, not to profile you, and they are not affected by your analytics preference. Using external services can involve processing under those providers' privacy notices.</p>
+            <p>Links from our website to <strong>Square</strong>, <strong>Facebook/Meta</strong>, WhatsApp and other external services take you to their own systems, which have their own privacy information and controls. We do not embed Facebook content on our pages.</p>
+            <p>You can revisit <a href="#analytics-preferences" data-analytics-prefs>Analytics preferences</a> whenever you wish. Your preference does not switch off strictly necessary login storage or routine network/security processing by service providers.</p>
 
-            <h4>Data Storage & Security</h4>
+            <h3 id="who-receives">5. Who receives information</h3>
+            <p>We do not sell or rent personal information. Depending on which feature you use, relevant information may be handled by:</p>
             <ul>
-                <li><strong>Our own records:</strong> Street searches and on-site events are stored in our own database, hosted by Netlify</li>
-                <li><strong>How long we keep them:</strong> Searches that found no match are deleted after 90 days, which is long enough to spot streets we are missing. All other search and usage records are deleted after 13 months so we can compare one season with the next. Deletion is automatic.</li>
-                <li><strong>Hosting logs:</strong> To deliver the site, our hosting and network providers (Netlify and Cloudflare) necessarily handle visitors' IP addresses and may keep standard server logs under their own policies. We don't copy those into our own records.</li>
-                <li><strong>Cloudflare Web Analytics:</strong> We also use Cloudflare Web Analytics for overall visitor numbers. It doesn't use cookies or build profiles of individual visitors</li>
-                <li><strong>No third-party tracking:</strong> We don't share data with advertisers or marketing companies</li>
-                <li><strong>Access:</strong> Only authorized volunteers can access analytics data</li>
+                <li><strong>Netlify</strong> — website hosting, functions, database and file storage, and volunteer authentication. <a href="https://www.netlify.com/privacy/" target="_blank" rel="noopener noreferrer">Privacy policy</a></li>
+                <li><strong>Cloudflare</strong> — website analytics. <a href="https://www.cloudflare.com/privacypolicy/" target="_blank" rel="noopener noreferrer">Privacy policy</a></li>
+                <li><strong>Resend</strong> — delivery of operational volunteer emails. <a href="https://resend.com/legal/privacy-policy" target="_blank" rel="noopener noreferrer">Privacy policy</a></li>
+                <li><strong>Microsoft</strong> — street-sign registration data in Forms and Excel.</li>
+                <li><strong>Square</strong> — online and in-person donations and payment administration. <a href="https://squareup.com/gb/en/legal/general/privacy" target="_blank" rel="noopener noreferrer">Privacy policy</a></li>
+                <li><strong>TruTrak</strong> — the Sleigh's GPS positions and journey history.</li>
+                <li><strong>OpenStreetMap (map tiles and Nominatim) and postcodes.io</strong> — maps and address/postcode lookups.</li>
+                <li><strong>unpkg and the QR-code image service</strong> — supporting browser resources for the maps and the donation QR feature.</li>
+                <li><strong>Google</strong> — older Santa sighting reports collected through a Google Form before 24 October 2026, while those records are being deleted.</li>
+                <li><strong>Facebook/Meta and WhatsApp</strong> — when you interact with our pages, posts or the voluntary WhatsApp group through those services.</li>
             </ul>
+            <p>These services have different legal roles: some process information on our instructions; others also process information for their own purposes. We may also disclose information where legally required or necessary to protect people and respond to legitimate safety concerns.</p>
+            <p>Some providers may process information outside the UK. Where a <strong>restricted international transfer</strong> applies, it must be supported by an applicable UK adequacy arrangement or legally recognised protection. You may contact us to ask which providers and safeguards apply to your information.</p>
 
-            <h3>Santa Sighting Reports</h3>
-            <p>When you submit a Santa sighting report, we collect:</p>
-            <ul>
-                <li>Street name (selected from our routes)</li>
-                <li>Time of sighting</li>
-                <li>Timestamp of report submission</li>
-            </ul>
-            <p>This information is stored in Google Forms and displayed publicly on our website to help others track Santa's progress. We do not collect any personal information (names, emails, addresses) with sighting reports.</p>
+            <h3 id="security">6. Security</h3>
+            <p>We limit access to information according to the task: authorised administrators manage volunteer and donation records, ordinary volunteers only see permitted shift names, and sign-hosting form responses are restricted to the Group Lead Volunteer. Payment credentials are handled by Square and account login credentials by Netlify Identity. We use reasonable technical and organisational measures to protect the information we handle; no online system can promise absolute security.</p>
 
-            <h3>Address and Postcode Searches</h3>
-            <p>If you search for an address or postcode, the text you type is sent to OpenStreetMap's Nominatim service and/or postcodes.io so we can work out which street you mean and find the nearest street Santa will visit. We don't send your name or any other details with it.</p>
+            <h3 id="rights">7. Your rights and choices</h3>
+            <p>Depending on the circumstances and lawful basis, UK data protection law gives you rights to ask us to <strong>access</strong>, <strong>correct</strong>, <strong>erase</strong>, <strong>restrict</strong> or, where applicable, <strong>receive a portable copy</strong> of personal information, and to <strong>object</strong> to certain uses of it. You can withdraw consent to future sign-hosting emails at any time without affecting how we used your information before withdrawal.</p>
+            <p><strong>Your right to object:</strong> In particular, you can object to processing carried out on the basis of <strong>legitimate interests</strong>. We will consider such requests in accordance with the law. You can also use <a href="#analytics-preferences" data-analytics-prefs>Analytics preferences</a> to opt out of optional website analytics without contacting us.</p>
+            <p>Contact <a href="mailto:glv@100thsalford.co.uk">glv@100thsalford.co.uk</a> to exercise a right or ask a privacy question. We normally respond to applicable rights requests within <strong>one calendar month</strong>, subject to any lawful extensions or exceptions. We may need enough information to verify that a request relates to you.</p>
+            <h4>Data protection complaints</h4>
+            <p>If you are unhappy with how we have handled your information, email <a href="mailto:glv@100thsalford.co.uk">glv@100thsalford.co.uk</a> with your concern. We will <strong>acknowledge a data protection complaint within 30 days</strong>, investigate appropriately, and communicate our outcome without undue delay. You can also complain to the <strong>Information Commissioner's Office (ICO)</strong>: <a href="https://ico.org.uk/" target="_blank" rel="noopener noreferrer">ico.org.uk</a>.</p>
 
-            <h3>Donations</h3>
-            <p>Donations are taken through Square's secure checkout, on Square's own pages. Square collects and processes your payment and contact details under its own privacy policy; we never see your card details. We receive only the fundraising totals.</p>
+            <h3 id="children">8. Children</h3>
+            <p>The Santa Sleigh website is intended for families, but the <strong>volunteer portal is for adults aged 18 or over</strong>. We do not register accompanying children through the volunteer portal or deliberately request children's details through street searches or sighting reports. Children may appear incidentally in public-event images as explained above. Families should avoid entering children's names or other private information into search fields.</p>
 
-            <h3>Volunteers: What We Collect and Why</h3>
-            <p>If you help with the Santa Super Sleigh as a volunteer (by invitation, by registering with a sign-up code, or because a leader has added you to a rota), we hold the following information about you:</p>
-            <ul>
-                <li><strong>Account details:</strong> your name, email address and password. Your password is handled by our login provider (Netlify Identity) and is never visible to us.</li>
-                <li><strong>Contact details (optional):</strong> a mobile number, and a preferred email address for reminders if you give one. If a leader adds you as a helper without a login, they may record your name and a phone number or email so they can contact you.</li>
-                <li><strong>Rota information:</strong> the nights and routes you've signed up for or been assigned to, and any role you're qualified or assigned for (Santa, safety walker, driver).</li>
-                <li><strong>Safety acknowledgment:</strong> the date and time you confirmed you'd read our safety guidance.</li>
-                <li><strong>Reminder preference:</strong> whether you want to receive reminder emails.</li>
-                <li><strong>Registration records:</strong> when you registered, whether your registration was approved, and a short-term record of the IP address used for sign-up attempts, which we use only to stop abuse of the sign-up form.</li>
-            </ul>
-            <p><strong>Why we use it:</strong></p>
-            <ul>
-                <li>To run the volunteer rota and tell you where and when to be on the night</li>
-                <li>To send shift reminders and occasional updates about the event you've volunteered for</li>
-                <li>To keep volunteers, residents and children safe, including making sure everyone has seen our safety guidance</li>
-                <li>To contact you if plans change on the night</li>
-                <li>To check that registrations come from people we've asked to help</li>
-            </ul>
-            <p><strong>Who can see it:</strong> Group leaders and site administrators can see volunteer records. Other logged-in volunteers can see the names (not email addresses or phone numbers) of the people signed up to the same nights. We don't use volunteer details for marketing, and we don't share them with anyone outside the services listed under Data Sharing below.</p>
-            <p><strong>How long we keep it:</strong> We keep volunteer details while you remain an active volunteer with the Group and remove them on request or when they're no longer needed for running the event. You can ask to see, correct or delete your details at any time using the contact details below.</p>
-
-            <h3 id="ai-content">AI-Generated Content</h3>
+            <h3 id="ai-content">9. AI-generated content</h3>
             <p>Some of the graphics on this site (such as the seasonal holding-page artwork) were created using AI image-generation tools rather than drawn or photographed by hand.</p>
 
-            <h3>Legal Basis for Data Processing</h3>
-            <p>Under UK GDPR, we process your data based on:</p>
-            <ul>
-                <li><strong>Legitimate interests:</strong> Improving our website and ensuring comprehensive route coverage for the community benefit</li>
-                <li><strong>Volunteers:</strong> We process volunteer information because it's necessary for the legitimate interests of running the event safely and effectively, and so that we can carry out the volunteering arrangement you've agreed to with the Group</li>
-                <li><strong>Consent:</strong> By using the search feature, you consent to this logging. You can choose not to use the search feature if you don't want this data collected</li>
-            </ul>
-
-            <h3>Your Rights</h3>
-            <p>Under UK GDPR, you have the right to:</p>
-            <ul>
-                <li><strong>Access:</strong> Know what data we collect about you</li>
-                <li><strong>Rectification:</strong> Request corrections to your data</li>
-                <li><strong>Erasure:</strong> Request deletion of your data</li>
-                <li><strong>Restriction:</strong> Limit how we process your data</li>
-                <li><strong>Objection:</strong> Object to data processing</li>
-                <li><strong>Data portability:</strong> Receive your data in a portable format</li>
-                <li><strong>Lodge a complaint:</strong> Contact the ICO (Information Commissioner's Office) if you have concerns</li>
-            </ul>
-
-            <h3>Managing Cookies & Privacy</h3>
-            <p>You can manage cookies and your privacy in several ways:</p>
-            <ul>
-                <li><strong>Cookie banner:</strong> Click "Decline" to reject third-party content such as embedded maps. Our own search and usage records are anonymous and use no cookies, so they aren't affected by this choice</li>
-                <li><strong>Browser settings:</strong> Most browsers allow you to block or delete cookies</li>
-                <li><strong>Don't use search:</strong> Browse street lists manually to avoid search logging</li>
-                <li><strong>VPN/Proxy:</strong> Use a VPN to mask your IP address</li>
-                <li><strong>Private browsing:</strong> Use incognito/private mode</li>
-            </ul>
-            <p><strong>Note:</strong> If you decline cookies, interactive maps may not display properly.</p>
-
-            <h3>Data Sharing</h3>
-            <p>We do not sell, rent, or trade your data. We use the following services to run the site, and they handle data on our behalf or under their own privacy policies:</p>
-            <ul>
-                <li><strong>Netlify:</strong> Hosts the website and runs our database (including search and analytics records and volunteer information), file storage (route maps) and volunteer login. <a href="https://www.netlify.com/privacy/" target="_blank" rel="noopener noreferrer">Netlify privacy policy</a></li>
-                <li><strong>Resend:</strong> Sends our emails to volunteers (such as registration notices, invites and shift reminders), so your name, email address and the email content pass through it. <a href="https://resend.com/legal/privacy-policy" target="_blank" rel="noopener noreferrer">Resend privacy policy</a></li>
-                <li><strong>Cloudflare:</strong> Provides cookie-free website visitor statistics. <a href="https://www.cloudflare.com/privacypolicy/" target="_blank" rel="noopener noreferrer">Cloudflare privacy policy</a></li>
-                <li><strong>Square:</strong> Takes online donations. <a href="https://squareup.com/gb/en/legal/general/privacy" target="_blank" rel="noopener noreferrer">Square privacy policy</a></li>
-                <li><strong>Google (Forms and Sheets):</strong> Stores the street name and time of Santa sighting reports. No personal details are collected.</li>
-                <li><strong>OpenStreetMap and postcodes.io:</strong> Receive the addresses and postcodes you type into the street search (see above), and OpenStreetMap supplies our map images.</li>
-                <li><strong>Facebook (Meta):</strong> Hosts our Facebook page. This site only links to it and sends nothing to Facebook.</li>
-                <li><strong>TruTrak:</strong> Supplies the sleigh's GPS location for the live tracker. This is the vehicle's position only, not personal data about visitors.</li>
-                <li><strong>Law enforcement:</strong> If legally required</li>
-            </ul>
-            <p>Search data may be reviewed by authorized Scout volunteers to identify missing streets and improve coverage.</p>
-
-            <h3>Children's Privacy</h3>
-            <p>Our website is family-friendly and suitable for all ages. We do not knowingly collect personal information from children. Parents should supervise their children's internet use.</p>
-
-            <h3>Contact Us</h3>
-            <p>If you have questions about our privacy practices, want to exercise your rights, or request data deletion, please contact us:</p>
-            <ul>
-                <li>Facebook: <a href="https://www.facebook.com/100thsalford" target="_blank" rel="noopener noreferrer">100th Salford Scout Group</a></li>
-                <li>Facebook: <a href="https://www.facebook.com/SuperSleighSalford" target="_blank" rel="noopener noreferrer">Santa Super Sleigh Salford</a></li>
-            </ul>
-
-            <h3>Changes to This Policy</h3>
-            <p>We may update this policy from time to time. Significant changes will be posted on this page. This policy was last updated in October 2026.</p>
+            <h3 id="changes">10. Changes to this policy</h3>
+            <p>We may update this notice as systems, suppliers or legal requirements change. The latest version will appear on this page, with the date of the update. For a significant change in how previously collected information will be used, we will provide appropriate additional notice where required.</p>
 
             <div style="text-align: center; margin-top: 2rem; padding-top: 2rem; border-top: 2px solid var(--snow);">
                 <a href="index.html" class="back-btn" style="display: inline-block;">Return to Home</a>
@@ -302,11 +297,9 @@
     <footer class="footer">
         <p>🎄 Supporting <a href="https://www.facebook.com/100thsalford" target="_blank" rel="noopener noreferrer" class="footer-link">100th Salford Scout Group</a> 🎄</p>
         <p>Donations help fund Scouting activities for young people in Salford</p>
-        <p><a href="terms.html" class="footer-link">Terms &amp; Conditions</a></p>
+        <p><a href="terms.html" class="footer-link">Terms &amp; Conditions</a> · <a href="#" data-analytics-prefs class="footer-link">Analytics preferences</a></p>
     </footer>
 
-    <script src="script.js"></script>
     <script src="analytics.js"></script>
-			<!-- Cloudflare Web Analytics --><script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "3b7106934eac4fcfa830d632dc201682"}'></script><!-- End Cloudflare Web Analytics -->
 		</body>
 </html>

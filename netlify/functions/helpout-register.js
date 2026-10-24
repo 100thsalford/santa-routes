@@ -104,6 +104,8 @@ export default async (req, context) => {
 
     if (!fullName) return reply(400, { error: 'Please enter your name.' });
     if (password.length < 8) return reply(400, { error: 'Please choose a password of at least 8 characters.' });
+    // The volunteer portal is for adults only (privacy policy).
+    if (body.adultConfirmed !== true) return reply(400, { error: 'Please confirm you are 18 or over.' });
 
     const db = getDatabase();
     const ip = context.ip || 'unknown';
@@ -176,8 +178,8 @@ export default async (req, context) => {
     let volunteerId;
     try {
       const rows = await db.sql`
-        INSERT INTO volunteers (identity_user_id, email, full_name, phone, approval_status, registration_source, registered_at)
-        VALUES (${identityUser.id}, ${email}, ${fullName}, ${phone}, ${approvalStatus}, ${source}, NOW())
+        INSERT INTO volunteers (identity_user_id, email, full_name, phone, approval_status, registration_source, registered_at, adult_confirmed_at)
+        VALUES (${identityUser.id}, ${email}, ${fullName}, ${phone}, ${approvalStatus}, ${source}, NOW(), NOW())
         RETURNING id
       `;
       volunteerId = rows[0].id;

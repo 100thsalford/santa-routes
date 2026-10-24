@@ -37,13 +37,17 @@ export default async (req, context) => {
     if (!fullName) {
       return new Response(JSON.stringify({ error: 'A name is required' }), { status: 400, headers });
     }
+    // Guests have no login, so the admin confirms they're 18+ for them.
+    if (body.adultConfirmed !== true) {
+      return new Response(JSON.stringify({ error: "Please confirm you've checked this volunteer is 18 or over" }), { status: 400, headers });
+    }
     const phone = body.phone != null && String(body.phone).trim() ? String(body.phone).trim() : null;
     const email = body.email != null && String(body.email).trim() ? String(body.email).trim() : null;
 
     const db = getDatabase();
     const rows = await db.sql`
-      INSERT INTO volunteers (identity_user_id, email, full_name, phone, is_guest)
-      VALUES (NULL, ${email}, ${fullName}, ${phone}, true)
+      INSERT INTO volunteers (identity_user_id, email, full_name, phone, is_guest, adult_confirmed_at)
+      VALUES (NULL, ${email}, ${fullName}, ${phone}, true, NOW())
       RETURNING id
     `;
 

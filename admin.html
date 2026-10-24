@@ -1121,8 +1121,10 @@
                     <input type="text" id="guestVolunteerName" placeholder="Name" required>
                     <input type="tel" id="guestVolunteerPhone" placeholder="Phone (optional)">
                     <input type="email" id="guestVolunteerEmail" placeholder="Email (optional)">
+                    <label style="display:flex; gap:0.4rem; align-items:center; font-size:0.9rem;"><input type="checkbox" id="guestVolunteerAdult" required> I've checked they're 18 or over</label>
                     <button type="submit" class="admin-btn small">+ Add Volunteer</button>
                 </form>
+                <div id="inactiveVolunteersContent"></div>
                 <p id="volunteersLoading" class="admin-loading">Loading volunteers...</p>
                 <div id="volunteersContent"></div>
                 <div class="admin-status" id="volunteersStatus"></div>
@@ -2690,7 +2692,8 @@
                 var body = {
                     fullName: nameInput.value.trim(),
                     phone: document.getElementById('guestVolunteerPhone').value.trim(),
-                    email: document.getElementById('guestVolunteerEmail').value.trim()
+                    email: document.getElementById('guestVolunteerEmail').value.trim(),
+                    adultConfirmed: document.getElementById('guestVolunteerAdult').checked
                 };
                 try {
                     await runOp('/.netlify/functions/admin-add-guest-volunteer', body, 'volunteersStatus', 'Volunteer added.');
@@ -2871,8 +2874,56 @@
                 return out;
             }
 
+            // Permanently deletes a volunteer (login, invites, shifts, role slots).
+            // Used for the 3-year inactivity review and for erasure requests.
+            async function deleteVolunteer(vol) {
+                var label = vol.fullName || vol.email || 'this volunteer';
+                if (!window.confirm('Permanently delete ' + label + "? This removes their login, contact details and shift history and can't be undone.")) return;
+                try {
+                    await runOp('/.netlify/functions/admin-delete-volunteer', { volunteerId: vol.id }, 'volunteersStatus', 'Volunteer deleted.');
+                } catch (err) {
+                    // runOp already surfaced the error via toast/status.
+                }
+            }
+
+            // Privacy policy: volunteers with no login or volunteering activity
+            // for 3 years are flagged here for review and manual deletion.
+            function renderInactiveVolunteers() {
+                var box = document.getElementById('inactiveVolunteersContent');
+                box.innerHTML = '';
+                var list = adminData.inactiveVolunteers || [];
+                if (!list.length) return;
+                var title = document.createElement('div');
+                title.className = 'dashboard-section-title';
+                title.textContent = '🗂️ Review for deletion (' + list.length + ')';
+                box.appendChild(title);
+                var intro = document.createElement('p');
+                intro.style.cssText = 'color:#666; font-size:0.9rem; margin-top:0;';
+                intro.textContent = 'No login or volunteering activity for 3 years. Our privacy policy says these records are deleted unless there is a documented legal or safety reason to keep them.';
+                box.appendChild(intro);
+                list.forEach(function(vol) {
+                    var row = document.createElement('div');
+                    row.className = 'volunteer-block';
+                    row.style.cssText = 'display:flex; align-items:center; gap:0.6rem; flex-wrap:wrap;';
+                    var name = document.createElement('span');
+                    name.style.fontWeight = 'bold';
+                    name.textContent = (vol.fullName || vol.email || 'Unnamed') + (vol.isGuest ? ' (guest)' : '');
+                    var last = document.createElement('span');
+                    last.style.cssText = 'color:#666; font-size:0.9rem;';
+                    last.textContent = 'Last activity ' + (vol.lastActivity || 'unknown');
+                    var btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.className = 'admin-btn small danger';
+                    btn.textContent = 'Delete';
+                    btn.addEventListener('click', function() { deleteVolunteer(vol); });
+                    row.appendChild(name); row.appendChild(last); row.appendChild(btn);
+                    box.appendChild(row);
+                });
+            }
+
             function renderVolunteers() {
                 document.getElementById('volunteersLoading').classList.add('admin-hidden');
+                renderInactiveVolunteers();
                 var container = document.getElementById('volunteersContent');
                 container.innerHTML = '';
                 var routeDates = flattenRouteDates();
@@ -2896,6 +2947,14 @@
                         (vol.fullName + (contactBits.length ? ' (' + contactBits.join(', ') + ')' : '')) :
                         (vol.email || 'Unnamed guest');
                     titleRow.appendChild(title);
+                    var delBtn = document.createElement('button');
+                    delBtn.type = 'button';
+                    delBtn.className = 'admin-btn small danger';
+                    delBtn.style.marginLeft = 'auto';
+                    delBtn.textContent = '🗑 Delete';
+                    delBtn.title = 'Permanently delete this volunteer (e.g. an erasure request)';
+                    delBtn.addEventListener('click', function() { deleteVolunteer(vol); });
+                    titleRow.appendChild(delBtn);
                     block.appendChild(titleRow);
 
                     // Guest volunteers (2026-10-21, no Netlify Identity

@@ -68,6 +68,12 @@
   force = true
 
 [[redirects]]
+  from = "https://helpout.santasleighsalford.co.uk/privacy-prefs.js"
+  to = "/privacy-prefs.js"
+  status = 200
+  force = true
+
+[[redirects]]
   from = "https://helpout.santasleighsalford.co.uk/*"
   to = "https://santasleighsalford.co.uk/:splat"
   status = 301
