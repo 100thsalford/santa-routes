@@ -548,6 +548,17 @@
             color: var(--ink-soft);
         }
 
+        .welcome-row { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; margin-bottom: 1rem; }
+        .welcome-row p { margin: 0; }
+        .edit-profile-btn {
+            flex-shrink: 0; background: none; border: 1px solid var(--border-subtle); color: var(--santa-green);
+            border-radius: 999px; padding: 0.35rem 0.8rem; font-size: 0.8rem; font-weight: bold; cursor: pointer; white-space: nowrap;
+        }
+        .edit-profile-btn:hover { border-color: var(--santa-green); }
+        .edit-profile-btn[hidden] { display: none; }
+        .profile-section-title { font-size: 1rem; font-weight: bold; color: var(--santa-green); margin: 1.25rem 0 0.25rem; }
+        .info-modal h2 + .profile-section-title { margin-top: 0; }
+
         /* Phase 9: Events / My Schedule tabs, replacing one long stacked
            page with a lighter two-view split (matches the Replit
            reference app's own top nav). */
@@ -996,7 +1007,10 @@
         <!-- Logged-in state -->
         <div class="volunteer-card volunteer-dashboard" id="dashboardCard">
             <div class="volunteer-welcome">
-                <p id="welcomeText" class="volunteer-loading">Loading your profile...</p>
+                <div class="welcome-row">
+                    <p id="welcomeText" class="volunteer-loading">Loading your profile...</p>
+                    <button type="button" class="edit-profile-btn" id="editProfileBtn" hidden>✏️ Edit profile</button>
+                </div>
 
                 <div class="approval-notice" id="approvalNotice" role="status">
                     <h2 id="approvalNoticeTitle">⏳ Waiting for approval</h2>
@@ -1060,47 +1074,6 @@
                         </label>
                     </div>
                     <div class="volunteer-save-status" id="saveStatus"></div>
-
-                    <div class="block-title">👤 Your Details</div>
-                    <div class="details-head">
-                        <div class="details-list">
-                            <div><span>Name</span> <strong id="detailsNameValue"></strong></div>
-                            <div><span>Mobile</span> <strong id="detailsPhoneValue"></strong></div>
-                        </div>
-                        <button type="button" class="contact-email-change-btn" id="detailsEditBtn">Edit</button>
-                    </div>
-                    <form class="contact-email-form" id="detailsForm" hidden novalidate>
-                        <label for="detailsName">Name</label>
-                        <input type="text" id="detailsName" autocomplete="name" maxlength="100" required>
-                        <label for="detailsPhone">Mobile <span style="font-weight:normal; color:var(--ink-soft);">(optional)</span></label>
-                        <input type="tel" id="detailsPhone" autocomplete="tel" inputmode="tel" maxlength="20" placeholder="07700 900123">
-                        <div class="contact-email-error" id="detailsError" role="alert"></div>
-                        <div class="contact-email-actions">
-                            <button type="submit" class="contact-email-save-btn" id="detailsSave">Save details</button>
-                            <button type="button" class="contact-email-cancel-btn" id="detailsCancel">Cancel</button>
-                        </div>
-                    </form>
-
-                    <div class="block-title">📧 Contact Email</div>
-                    <div class="contact-email-row">
-                        <span class="preference-label">
-                            <strong id="contactEmailValue"></strong>
-                            <span class="preference-hint" id="contactEmailHint"></span>
-                        </span>
-                        <button type="button" class="contact-email-change-btn" id="contactEmailChangeBtn">Change</button>
-                    </div>
-                    <form class="contact-email-form" id="contactEmailForm" hidden novalidate>
-                        <label for="contactEmailNew">New contact email</label>
-                        <input type="email" id="contactEmailNew" autocomplete="email" inputmode="email" required>
-                        <label for="contactEmailConfirm">Type it again</label>
-                        <input type="email" id="contactEmailConfirm" autocomplete="off" inputmode="email" required>
-                        <div class="contact-email-error" id="contactEmailError" role="alert"></div>
-                        <div class="contact-email-actions">
-                            <button type="submit" class="contact-email-save-btn" id="contactEmailSave">Save email</button>
-                            <button type="button" class="contact-email-cancel-btn" id="contactEmailCancel">Cancel</button>
-                        </div>
-                        <button type="button" class="contact-email-reset" id="contactEmailReset" hidden>Use my login email instead</button>
-                    </form>
                 </div>
             </div>
 
@@ -1154,6 +1127,56 @@
             <p style="text-align:left; color:#666; font-size:0.9rem;">Show this to a resident who wants to donate on the spot — it goes straight to our donation page.</p>
             <a href="https://checkout.square.site/merchant/MLHCM2TZHZ9NA/checkout/E4KKJFETD5BQZJYHETXWV6S2" target="_blank" rel="noopener noreferrer">checkout.square.site/merchant/&hellip;</a>
             <button type="button" class="info-modal-close-btn" data-close-modal="donateModalOverlay">Close</button>
+        </div>
+    </div>
+
+    <!-- Edit profile (opened from beside "Welcome back"): name, mobile and
+         contact email. Saved via update-volunteer-profile.js. -->
+    <div class="info-modal-overlay" id="profileModalOverlay">
+        <div class="info-modal">
+            <button type="button" class="info-modal-x-close" data-close-modal="profileModalOverlay" aria-label="Close">&times;</button>
+            <h2>✏️ Edit profile</h2>
+            <div class="profile-section-title">👤 Your Details</div>
+            <div class="details-head">
+                <div class="details-list">
+                    <div><span>Name</span> <strong id="detailsNameValue"></strong></div>
+                    <div><span>Mobile</span> <strong id="detailsPhoneValue"></strong></div>
+                </div>
+                <button type="button" class="contact-email-change-btn" id="detailsEditBtn">Edit</button>
+            </div>
+            <form class="contact-email-form" id="detailsForm" hidden novalidate>
+                <label for="detailsName">Name</label>
+                <input type="text" id="detailsName" autocomplete="name" maxlength="100" required>
+                <label for="detailsPhone">Mobile <span style="font-weight:normal; color:var(--ink-soft);">(optional)</span></label>
+                <input type="tel" id="detailsPhone" autocomplete="tel" inputmode="tel" maxlength="20" placeholder="07700 900123">
+                <div class="contact-email-error" id="detailsError" role="alert"></div>
+                <div class="contact-email-actions">
+                    <button type="submit" class="contact-email-save-btn" id="detailsSave">Save details</button>
+                    <button type="button" class="contact-email-cancel-btn" id="detailsCancel">Cancel</button>
+                </div>
+            </form>
+
+            <div class="profile-section-title">📧 Contact Email</div>
+            <div class="contact-email-row">
+                <span class="preference-label">
+                    <strong id="contactEmailValue"></strong>
+                    <span class="preference-hint" id="contactEmailHint"></span>
+                </span>
+                <button type="button" class="contact-email-change-btn" id="contactEmailChangeBtn">Change</button>
+            </div>
+            <form class="contact-email-form" id="contactEmailForm" hidden novalidate>
+                <label for="contactEmailNew">New contact email</label>
+                <input type="email" id="contactEmailNew" autocomplete="email" inputmode="email" required>
+                <label for="contactEmailConfirm">Type it again</label>
+                <input type="email" id="contactEmailConfirm" autocomplete="off" inputmode="email" required>
+                <div class="contact-email-error" id="contactEmailError" role="alert"></div>
+                <div class="contact-email-actions">
+                    <button type="submit" class="contact-email-save-btn" id="contactEmailSave">Save email</button>
+                    <button type="button" class="contact-email-cancel-btn" id="contactEmailCancel">Cancel</button>
+                </div>
+                <button type="button" class="contact-email-reset" id="contactEmailReset" hidden>Use my login email instead</button>
+            </form>
+            <button type="button" class="info-modal-close-btn" data-close-modal="profileModalOverlay">Done</button>
         </div>
     </div>
 
@@ -1958,6 +1981,7 @@
 
                     welcomeText.textContent = 'Welcome back, ' + name + '!';
                     welcomeText.classList.remove('volunteer-loading');
+                    document.getElementById('editProfileBtn').hidden = false;
 
                     reminderToggle.checked = !!profile.reminderEmailOptIn;
                     renderContactEmail();
@@ -2631,9 +2655,17 @@
             // From the card payments confirm step: jump to the setting.
             document.getElementById('squareChangeEmailBtn').addEventListener('click', function() {
                 closeModal('squareModalOverlay');
-                document.querySelector('.tab-btn[data-tab="myschedule"]').click();
+                closeDetailsForm();
+                openModal('profileModalOverlay');
                 openContactEmailForm();
-                contactEmailForm.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            });
+
+            document.getElementById('editProfileBtn').addEventListener('click', function() {
+                closeDetailsForm();
+                closeContactEmailForm();
+                renderDetails();
+                renderContactEmail();
+                openModal('profileModalOverlay');
             });
 
             document.getElementById('loginBtn').addEventListener('click', function() {
