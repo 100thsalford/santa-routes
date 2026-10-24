@@ -73,6 +73,11 @@ export default async (req, context) => {
     const capacity = dateRows[0].volunteer_capacity;
 
     if (body.op === 'claim') {
+      // Adults only: the 18+ confirmation must be on file before self-signup.
+      const adultRows = await db.sql`SELECT adult_confirmed_at FROM volunteers WHERE id = ${volunteerId}`;
+      if (!adultRows.length || !adultRows[0].adult_confirmed_at) {
+        return new Response(JSON.stringify({ error: 'adult_confirmation_required', message: 'Please confirm you are 18 or over before signing up.' }), { status: 403, headers });
+      }
       if (capacity != null) {
         const countRows = await db.sql`SELECT COUNT(*) AS n FROM shift_assignments WHERE route_date_id = ${routeDateId}`;
         if (Number(countRows[0].n) >= capacity) {

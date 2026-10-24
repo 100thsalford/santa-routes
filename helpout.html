@@ -145,6 +145,8 @@
         .notice { color: var(--ink-soft); }
         .hidden { display: none !important; }
     </style>
+    <!-- Analytics preferences: must load before any analytics -->
+    <script src="/privacy-prefs.js?v=20261024a"></script>
 </head>
 <body>
     <div class="header">
@@ -229,12 +231,20 @@
                     <div class="field-error" id="codeError">Please enter the sign-up code.</div>
                 </div>
 
+                <div class="field" id="f-adult">
+                    <label for="adultConfirm" style="display:flex; gap:0.6rem; align-items:flex-start; font-weight:600;">
+                        <input type="checkbox" id="adultConfirm" name="adultConfirm" required style="width:20px; height:20px; margin-top:0.15rem; flex:0 0 auto;">
+                        <span>I confirm I am 18 or over</span>
+                    </label>
+                    <div class="field-error">The volunteer portal is for adults aged 18 or over.</div>
+                </div>
+
                 <div class="hp-field" aria-hidden="true">
                     <label for="website">Leave this empty</label>
                     <input type="text" id="website" name="website" tabindex="-1" autocomplete="off">
                 </div>
 
-                <p class="privacy-note">We'll only use your details to organise volunteering for Santa Super Sleigh Salford. See our <a id="privacyLink" href="/privacy.html" target="_blank" rel="noopener">privacy notice</a>.</p>
+                <p class="privacy-note">We'll only use your details to organise volunteering for Santa Super Sleigh Salford. Other volunteers on your nights can see your name, but not your contact details. See our <a id="privacyLink" href="/privacy.html" target="_blank" rel="noopener">privacy notice</a>.</p>
 
                 <div><button type="submit" class="submit-btn" id="submitBtn">Create my account</button></div>
                 <p class="privacy-note">Already registered? <a id="formLoginLink" href="/volunteer.html?login=1">Log in to see shifts</a></p>
@@ -253,6 +263,7 @@
     <footer class="footer">
         <p>🎄 Supporting <a href="https://www.facebook.com/100thsalford" target="_blank" rel="noopener noreferrer" class="footer-link">100th Salford Scout Group</a> 🎄</p>
         <p class="footer-note"><a id="homeLink" href="/" class="footer-link" style="font-weight:normal;">santasleighsalford.co.uk</a></p>
+        <p class="footer-note"><a href="#" data-analytics-prefs class="footer-link">Analytics preferences</a></p>
     </footer>
 
     <script>
@@ -295,6 +306,7 @@
                 password: document.getElementById('password'),
                 password2: document.getElementById('password2'),
                 code: document.getElementById('code'),
+                adult: document.getElementById('adultConfirm'),
                 website: document.getElementById('website')
             };
 
@@ -307,7 +319,7 @@
                 if (message && wrap.querySelector('.field-error')) wrap.querySelector('.field-error').textContent = message;
             }
             function clearErrors() {
-                ['fullName', 'email', 'password', 'password2', 'code'].forEach(function(n) {
+                ['fullName', 'email', 'password', 'password2', 'code', 'adult'].forEach(function(n) {
                     document.getElementById('f-' + n).classList.remove('has-error');
                 });
                 formError.classList.remove('visible');
@@ -387,6 +399,7 @@
                 if (fields.password.value.length < 8) { setFieldError('password', 'At least 8 characters, please.'); ok = false; }
                 else if (fields.password.value !== fields.password2.value) { setFieldError('password2', "The passwords don't match."); ok = false; }
                 if (!state.inviteValid && !fields.code.value.trim()) { setFieldError('code', 'Please enter the sign-up code.'); ok = false; }
+                if (!fields.adult.checked) { setFieldError('adult', 'The volunteer portal is for adults aged 18 or over.'); ok = false; }
                 if (!ok) {
                     var firstBad = form.querySelector('.has-error input');
                     if (firstBad) firstBad.focus();
@@ -406,6 +419,7 @@
                             password: fields.password.value,
                             code: state.inviteValid ? '' : fields.code.value.trim(),
                             inviteToken: state.inviteValid ? inviteToken : '',
+                            adultConfirmed: fields.adult.checked,
                             website: fields.website.value
                         })
                     });
@@ -460,6 +474,5 @@
         })();
     </script>
 
-    <!-- Cloudflare Web Analytics --><script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "3b7106934eac4fcfa830d632dc201682"}'></script><!-- End Cloudflare Web Analytics -->
 </body>
 </html>

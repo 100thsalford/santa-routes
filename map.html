@@ -109,6 +109,8 @@
             #routesMap { height: 52vh; }
         }
     </style>
+    <!-- Analytics preferences: must load before any analytics -->
+    <script src="privacy-prefs.js?v=20261024a"></script>
 </head>
 <body>
     <div class="routes-container">
@@ -131,12 +133,11 @@
     <footer class="footer">
         <p>🎄 Supporting <a href="https://www.facebook.com/100thsalford" target="_blank" rel="noopener noreferrer" class="footer-link">100th Salford Scout Group</a> 🎄</p>
         <p>Donations help fund Scouting activities for young people in Salford</p>
-        <p class="footer-note"><a href="privacy.html" class="footer-link">Privacy Policy</a></p>
+        <p class="footer-note"><a href="privacy.html" class="footer-link">Privacy Policy</a> · <a href="#" data-analytics-prefs class="footer-link">Analytics preferences</a></p>
     </footer>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="analytics.js"></script>
-    <!-- Cloudflare Web Analytics --><script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "3b7106934eac4fcfa830d632dc201682"}'></script><!-- End Cloudflare Web Analytics -->
     <script>
         // Public "Interactive Map": every night of the current season drawn
         // from its uploaded GPX (get-public-routes.js -- line, route name

@@ -1,9 +1,16 @@
 // FILE: analytics.js (root folder - same level as index.html)
 (function() {
     'use strict';
+
+    // Optional analytics are controlled by privacy-prefs.js (loaded first).
+    // Fail closed: if that script didn't load, send nothing.
+    function analyticsAllowed() {
+        return !!(window.SSSPrivacy && window.SSSPrivacy.analyticsEnabled());
+    }
     
     // Analytics tracking function
     function trackEvent(eventType, eventData = {}) {
+        if (!analyticsAllowed()) return;
         // Don't track in development
         if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
             console.log('DEV - Would track:', eventType, eventData);
@@ -19,8 +26,7 @@
                 body: JSON.stringify({
                     eventType,
                     eventData,
-                    page: window.location.pathname,
-                    referrer: document.referrer
+                    page: window.location.pathname
                 })
             }).catch(err => {
                 // Silently fail - don't interrupt user experience
@@ -33,6 +39,7 @@
 
     // Enhanced search logging function
     function logSearch(searchTerm, matchFound, matchedStreet = null, resultsCount = 0) {
+        if (!analyticsAllowed()) return;
         // Don't track in development
         if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
             console.log('DEV - Would log search:', { searchTerm, matchFound, matchedStreet, resultsCount });
@@ -241,7 +248,7 @@
 
     // Track when user leaves (if they stay more than 10 seconds)
     window.addEventListener('beforeunload', function() {
-        if (timeOnPage >= 10) {
+        if (timeOnPage >= 10 && analyticsAllowed()) {
             navigator.sendBeacon(
                 '/.netlify/functions/log-analytics',
                 JSON.stringify({

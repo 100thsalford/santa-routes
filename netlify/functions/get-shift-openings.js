@@ -73,25 +73,27 @@ export default async (req, context) => {
     // decision, superseding the earlier aggregate-count-only privacy call),
     // but never to a fully anonymous request, since this endpoint doesn't
     // itself require a login. Uses the denormalized volunteers.full_name
-    // (falling back to the email's local part) rather than a raw email
+    // (or just "Volunteer" if no name is on file) rather than any part of an email
     // address, matching Replit's name-only display without handing every
     // volunteer's email to every other volunteer.
     let signupsByDate = {};
     if (user) {
       const signupRows = await db.sql`
-        SELECT sa.route_date_id, v.full_name, v.email
+        SELECT sa.route_date_id, v.full_name
         FROM shift_assignments sa
         JOIN volunteers v ON v.id = sa.volunteer_id
         WHERE sa.route_date_id IN (SELECT id FROM route_dates WHERE event_date >= ${todayDate})
       `;
       for (const s of signupRows) {
-        const name = s.full_name || String(s.email).split('@')[0];
+        // Never derive a name from an email address (privacy policy:
+        // volunteers see names only, not contact details).
+        const name = s.full_name || 'Volunteer';
         (signupsByDate[s.route_date_id] = signupsByDate[s.route_date_id] || []).push(name);
       }
     }
 
     const roleRows = await db.sql`
-      SELECT era.route_date_id, era.role, era.volunteer_id, v.full_name, v.email
+      SELECT era.route_date_id, era.role, era.volunteer_id, v.full_name
       FROM event_role_assignments era
       LEFT JOIN volunteers v ON v.id = era.volunteer_id
       WHERE era.route_date_id IN (SELECT id FROM route_dates WHERE event_date >= ${todayDate})
@@ -100,7 +102,7 @@ export default async (req, context) => {
     for (const r of roleRows) {
       if (!r.volunteer_id) continue;
       (rolesByDate[r.route_date_id] = rolesByDate[r.route_date_id] || {})[r.role] =
-        r.full_name || (r.email ? String(r.email).split('@')[0] : null);
+        r.full_name || 'Volunteer';
     }
 
     // Special-event flags (e.g. "⏳ Long", "⚽ 8pm — City Home 8pm") --
@@ -132,13 +134,16 @@ export default async (req, context) => {
         signupCount,
         status: shiftStatus(capacity, signupCount),
         viewerSignedUp: !!r.viewer_signed_up,
-        what3words: r.what3words,
-        notes: r.notes,
-        gatheringTime: r.gathering_time,
+        // Meeting point, notes (which can hold key contacts) and every name
+        // are for approved, logged-in volunteers only -- an anonymous or
+        // unapproved request gets dates and capacity, nothing personal.
+        what3words: user ? r.what3words : null,
+        notes: user ? r.notes : null,
+        gatheringTime: user ? r.gathering_time : null,
         hasRouteMap: !!r.route_map_filename,
         hasRouteTrack: !!r.has_route_track,
         signupNames: signupsByDate[r.id] || null,
-        roles: rolesByDate[r.id] || null,
+        roles: user ? (rolesByDate[r.id] || null) : null,
         flags: flagsByDate[r.id] || []
       };
     });

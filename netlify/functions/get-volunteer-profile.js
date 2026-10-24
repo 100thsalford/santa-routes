@@ -43,7 +43,7 @@ export default async (req, context) => {
     }
 
     let rows = await db.sql`
-      SELECT id, identity_user_id, email, full_name, reminder_email_opt_in, preferred_email, risk_ack_at,
+      SELECT id, identity_user_id, email, full_name, reminder_email_opt_in, preferred_email, risk_ack_at, adult_confirmed_at,
              can_be_santa, can_be_safety_walker, can_be_driver
       FROM volunteers WHERE identity_user_id = ${user.id}
     `;
@@ -53,19 +53,26 @@ export default async (req, context) => {
         INSERT INTO volunteers (identity_user_id, email, full_name)
         VALUES (${user.id}, ${user.email}, ${fullName})
         ON CONFLICT (identity_user_id) DO UPDATE SET email = EXCLUDED.email, full_name = COALESCE(EXCLUDED.full_name, volunteers.full_name)
-        RETURNING id, identity_user_id, email, full_name, reminder_email_opt_in, preferred_email, risk_ack_at,
+        RETURNING id, identity_user_id, email, full_name, reminder_email_opt_in, preferred_email, risk_ack_at, adult_confirmed_at,
                   can_be_santa, can_be_safety_walker, can_be_driver
       `;
     } else if (fullName && !rows[0].full_name) {
       // Keep the denormalized name fresh if Identity has one we didn't yet.
       rows = await db.sql`
         UPDATE volunteers SET full_name = ${fullName} WHERE id = ${rows[0].id}
-        RETURNING id, identity_user_id, email, full_name, reminder_email_opt_in, preferred_email, risk_ack_at,
+        RETURNING id, identity_user_id, email, full_name, reminder_email_opt_in, preferred_email, risk_ack_at, adult_confirmed_at,
                   can_be_santa, can_be_safety_walker, can_be_driver
       `;
     }
 
     const profile = rows[0];
+
+    // Activity for the 3-year inactivity rule (lib/volunteer-retention.js).
+    // Throttled to one write a day per volunteer.
+    await db.sql`
+      UPDATE volunteers SET last_active_at = NOW()
+      WHERE id = ${profile.id} AND (last_active_at IS NULL OR last_active_at < NOW() - INTERVAL '1 day')
+    `;
 
     const settingsRows = await db.sql`
       SELECT key, value FROM settings
@@ -120,6 +127,7 @@ export default async (req, context) => {
       reminderEmailOptIn: profile.reminder_email_opt_in,
       preferredEmail: profile.preferred_email,
       riskAckAt: profile.risk_ack_at,
+      adultConfirmedAt: profile.adult_confirmed_at,
       qualifiedRoles: {
         santa: !!profile.can_be_santa,
         safetyWalker: !!profile.can_be_safety_walker,
