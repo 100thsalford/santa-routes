@@ -14,6 +14,7 @@
 
 import { getUser } from '@netlify/identity';
 import { getDatabase } from '@netlify/database';
+import { checkContactDetails } from '../lib/validate.js';
 
 const headers = { 'Content-Type': 'application/json' };
 
@@ -33,7 +34,11 @@ export default async (req, context) => {
     }
 
     const body = await req.json();
-    const fullName = (body.fullName || '').toString().trim();
+    const checked = checkContactDetails(body);
+    if (checked.error) {
+      return new Response(JSON.stringify({ error: checked.error }), { status: 400, headers });
+    }
+    const fullName = checked.fullName;
     if (!fullName) {
       return new Response(JSON.stringify({ error: 'A name is required' }), { status: 400, headers });
     }
@@ -41,8 +46,8 @@ export default async (req, context) => {
     if (body.adultConfirmed !== true) {
       return new Response(JSON.stringify({ error: "Please confirm you've checked this volunteer is 18 or over" }), { status: 400, headers });
     }
-    const phone = body.phone != null && String(body.phone).trim() ? String(body.phone).trim() : null;
-    const email = body.email != null && String(body.email).trim() ? String(body.email).trim() : null;
+    const phone = checked.phone;
+    const email = checked.email || null;
 
     const db = getDatabase();
     const rows = await db.sql`

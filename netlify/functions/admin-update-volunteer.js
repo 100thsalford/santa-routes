@@ -16,6 +16,7 @@
 
 import { getUser } from '@netlify/identity';
 import { getDatabase } from '@netlify/database';
+import { checkContactDetails } from '../lib/validate.js';
 
 const headers = { 'Content-Type': 'application/json' };
 
@@ -40,6 +41,20 @@ export default async (req, context) => {
       return new Response(JSON.stringify({ error: 'volunteerId is required' }), { status: 400, headers });
     }
 
+    // Check any guest contact-detail edit before changing anything, so a
+    // bad phone number doesn't half-save (roles updated, details not).
+    const editingContact = body.fullName !== undefined || body.phone !== undefined || body.email !== undefined;
+    let contact = null;
+    if (editingContact) {
+      contact = checkContactDetails(body);
+      if (contact.error) {
+        return new Response(JSON.stringify({ error: contact.error }), { status: 400, headers });
+      }
+      if (!contact.fullName) {
+        return new Response(JSON.stringify({ error: 'A name is required' }), { status: 400, headers });
+      }
+    }
+
     const db = getDatabase();
     await db.sql`
       UPDATE volunteers
@@ -51,13 +66,10 @@ export default async (req, context) => {
 
     // Guest contact-detail edit (name/phone/email) -- only when at least
     // one of these was actually sent, and only ever against a guest row.
-    if (body.fullName !== undefined || body.phone !== undefined || body.email !== undefined) {
-      const fullName = (body.fullName || '').toString().trim();
-      if (!fullName) {
-        return new Response(JSON.stringify({ error: 'A name is required' }), { status: 400, headers });
-      }
-      const phone = body.phone != null && String(body.phone).trim() ? String(body.phone).trim() : null;
-      const email = body.email != null && String(body.email).trim() ? String(body.email).trim() : null;
+    if (contact) {
+      const fullName = contact.fullName;
+      const phone = contact.phone;
+      const email = contact.email || null;
       await db.sql`
         UPDATE volunteers
         SET full_name = ${fullName}, phone = ${phone}, email = ${email}
