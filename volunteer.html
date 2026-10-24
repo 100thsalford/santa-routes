@@ -436,6 +436,33 @@
             transform: translateX(20px);
         }
 
+        /* Contact email (preferred_email): where reminders, team emails and
+           the Square invite go. Login email is unchanged. */
+        .contact-email-row { display: flex; align-items: center; justify-content: space-between; gap: 1rem; text-align: left; padding: 0.75rem 0; }
+        .contact-email-row strong { word-break: break-all; }
+        .contact-email-change-btn, .contact-email-cancel-btn {
+            background: none; border: 1px solid var(--border-subtle); color: var(--text-dark);
+            border-radius: 999px; padding: 0.45rem 1rem; font-size: 0.85rem; font-weight: bold; cursor: pointer; flex-shrink: 0;
+        }
+        .contact-email-form { text-align: left; padding: 0.25rem 0 0.75rem; }
+        .contact-email-form[hidden] { display: none; }
+        .contact-email-form label { display: block; font-size: 0.85rem; font-weight: bold; margin: 0.6rem 0 0.25rem; color: var(--text-dark); }
+        .contact-email-form input {
+            width: 100%; box-sizing: border-box; padding: 0.65rem 0.8rem; font-size: 1rem;
+            border: 1px solid var(--border-subtle); border-radius: var(--radius-md); background: var(--surface);
+        }
+        .contact-email-actions { display: flex; gap: 0.5rem; margin-top: 0.8rem; }
+        .contact-email-save-btn {
+            background: var(--santa-green); color: #fff; border: none; border-radius: 999px;
+            padding: 0.55rem 1.2rem; font-size: 0.9rem; font-weight: bold; cursor: pointer;
+        }
+        .contact-email-save-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .contact-email-reset { background: none; border: none; padding: 0; margin-top: 0.8rem; color: var(--santa-green); font-size: 0.85rem; text-decoration: underline; cursor: pointer; }
+        .contact-email-reset[hidden] { display: none; }
+        .contact-email-error { color: #A8382F; font-size: 0.85rem; margin-top: 0.5rem; }
+        .contact-email-error:empty { display: none; }
+        .square-link-btn { background: none; border: none; padding: 0; color: var(--santa-green); font: inherit; font-weight: bold; text-decoration: underline; cursor: pointer; }
+
         .volunteer-save-status {
             font-size: 0.85rem;
             color: var(--santa-green);
@@ -1029,6 +1056,27 @@
                         </label>
                     </div>
                     <div class="volunteer-save-status" id="saveStatus"></div>
+
+                    <div class="block-title">📧 Contact Email</div>
+                    <div class="contact-email-row">
+                        <span class="preference-label">
+                            <strong id="contactEmailValue"></strong>
+                            <span class="preference-hint" id="contactEmailHint"></span>
+                        </span>
+                        <button type="button" class="contact-email-change-btn" id="contactEmailChangeBtn">Change</button>
+                    </div>
+                    <form class="contact-email-form" id="contactEmailForm" hidden novalidate>
+                        <label for="contactEmailNew">New contact email</label>
+                        <input type="email" id="contactEmailNew" autocomplete="email" inputmode="email" required>
+                        <label for="contactEmailConfirm">Type it again</label>
+                        <input type="email" id="contactEmailConfirm" autocomplete="off" inputmode="email" required>
+                        <div class="contact-email-error" id="contactEmailError" role="alert"></div>
+                        <div class="contact-email-actions">
+                            <button type="submit" class="contact-email-save-btn" id="contactEmailSave">Save email</button>
+                            <button type="button" class="contact-email-cancel-btn" id="contactEmailCancel">Cancel</button>
+                        </div>
+                        <button type="button" class="contact-email-reset" id="contactEmailReset" hidden>Use my login email instead</button>
+                    </form>
                 </div>
             </div>
 
@@ -1133,7 +1181,7 @@
                     <div><strong>Name:</strong> <span id="squareConfirmName"></span></div>
                     <div><strong>Email:</strong> <span id="squareConfirmEmail"></span></div>
                 </div>
-                <p class="square-note">Square will send its invitation to this email. To use a different one, change your preferred email in Settings first. We share only your name and email with Square.</p>
+                <p class="square-note">Square will send its invitation to this email. To use a different one, <button type="button" class="square-link-btn" id="squareChangeEmailBtn">change your contact email</button> first. We share only your name and email with Square.</p>
                 <button type="button" class="square-primary-btn" id="squareConfirmBtn">Request card payment access</button>
                 <div class="square-error" id="squareError" role="alert"></div>
             </div>
@@ -1888,6 +1936,7 @@
                     welcomeText.classList.remove('volunteer-loading');
 
                     reminderToggle.checked = !!profile.reminderEmailOptIn;
+                    renderContactEmail();
 
                     updateRiskUI(profile);
                     updateCardPayButton();
@@ -2368,14 +2417,13 @@
                     var res = await authedFetch('/.netlify/functions/update-volunteer-profile', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            reminderEmailOptIn: reminderToggle.checked,
-                            preferredEmail: currentProfile ? currentProfile.preferredEmail : null
-                        })
+                        body: JSON.stringify({ reminderEmailOptIn: reminderToggle.checked })
                     });
                     var updated = await res.json();
                     if (!res.ok) throw new Error(updated.error || 'Could not save');
-                    currentProfile = updated;
+                    // Merge: the response only has the settings fields, not
+                    // shifts/name/card-payment state.
+                    currentProfile.reminderEmailOptIn = updated.reminderEmailOptIn;
                     saveStatus.textContent = 'Saved.';
                     setTimeout(function() { saveStatus.textContent = ''; }, 2000);
                     showToast('Saved.', 'success');
@@ -2389,6 +2437,94 @@
             reminderToggle.addEventListener('change', function() {
                 clearTimeout(saveTimer);
                 saveTimer = setTimeout(saveReminderPreference, 300);
+            });
+
+            // ---- Contact email (preferred_email) ----
+            // Where reminders, team emails and the Square invite go. Their
+            // login email (Netlify Identity) doesn't change.
+
+            var contactEmailForm = document.getElementById('contactEmailForm');
+            var contactEmailNew = document.getElementById('contactEmailNew');
+            var contactEmailConfirm = document.getElementById('contactEmailConfirm');
+            var contactEmailError = document.getElementById('contactEmailError');
+            var contactEmailSave = document.getElementById('contactEmailSave');
+            var contactEmailChangeBtn = document.getElementById('contactEmailChangeBtn');
+            var contactEmailReset = document.getElementById('contactEmailReset');
+            var CONTACT_EMAIL_RE = /^[^\s@<>()[\]\\,;:"]+@[^\s@<>()[\]\\,;:"]+\.[^\s@<>()[\]\\,;:"]{2,}$/;
+
+            function renderContactEmail() {
+                if (!currentProfile) return;
+                var login = currentProfile.email || '';
+                var custom = currentProfile.preferredEmail;
+                document.getElementById('contactEmailValue').textContent = custom || login;
+                var hint = 'Shift reminders, team emails and your card payments invite go here. ' +
+                    (custom ? 'You still log in with ' + login + '.' : 'This is also your login email.');
+                var sq = currentProfile.squareAccess;
+                if (sq && sq.status !== 'none' && sq.email && sq.email.toLowerCase() !== String(custom || login).toLowerCase()) {
+                    hint += ' Your card payments invite went to ' + sq.email + '. Ask the team if that needs changing.';
+                }
+                document.getElementById('contactEmailHint').textContent = hint;
+                contactEmailReset.hidden = !custom;
+            }
+
+            function openContactEmailForm() {
+                contactEmailNew.value = '';
+                contactEmailConfirm.value = '';
+                contactEmailError.textContent = '';
+                contactEmailForm.hidden = false;
+                contactEmailChangeBtn.hidden = true;
+                contactEmailNew.focus();
+            }
+
+            function closeContactEmailForm() {
+                contactEmailForm.hidden = true;
+                contactEmailChangeBtn.hidden = false;
+            }
+
+            async function saveContactEmail(value) {
+                contactEmailSave.disabled = true;
+                contactEmailReset.disabled = true;
+                contactEmailError.textContent = '';
+                try {
+                    var res = await authedFetch('/.netlify/functions/update-volunteer-profile', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ preferredEmail: value })
+                    });
+                    var updated = await res.json();
+                    if (!res.ok) throw new Error(updated.error || 'Could not save');
+                    currentProfile.preferredEmail = updated.preferredEmail;
+                    renderContactEmail();
+                    closeContactEmailForm();
+                    showToast('Contact email updated to ' + (updated.preferredEmail || updated.email) + '.', 'success');
+                } catch (err) {
+                    contactEmailError.textContent = err.message === 'Could not save' ? "Couldn't save — please try again." : err.message;
+                } finally {
+                    contactEmailSave.disabled = false;
+                    contactEmailReset.disabled = false;
+                }
+            }
+
+            contactEmailChangeBtn.addEventListener('click', openContactEmailForm);
+            document.getElementById('contactEmailCancel').addEventListener('click', closeContactEmailForm);
+
+            contactEmailForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                var a = contactEmailNew.value.trim();
+                var b = contactEmailConfirm.value.trim();
+                if (!CONTACT_EMAIL_RE.test(a)) { contactEmailError.textContent = 'Please enter a valid email address.'; return; }
+                if (a.toLowerCase() !== b.toLowerCase()) { contactEmailError.textContent = "The two email addresses don't match."; return; }
+                saveContactEmail(a);
+            });
+
+            contactEmailReset.addEventListener('click', function() { saveContactEmail(null); });
+
+            // From the card payments confirm step: jump to the setting.
+            document.getElementById('squareChangeEmailBtn').addEventListener('click', function() {
+                closeModal('squareModalOverlay');
+                document.querySelector('.tab-btn[data-tab="myschedule"]').click();
+                openContactEmailForm();
+                contactEmailForm.scrollIntoView({ behavior: 'smooth', block: 'center' });
             });
 
             document.getElementById('loginBtn').addEventListener('click', function() {
