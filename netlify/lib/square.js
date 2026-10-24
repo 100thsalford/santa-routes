@@ -72,6 +72,19 @@ async function findTeamMemberByEmail(email) {
   return null;
 }
 
+function splitName(fullName) {
+  const parts = String(fullName || '').trim().split(/\s+/).filter(Boolean);
+  return { given: parts.length ? parts[0] : 'Volunteer', family: parts.slice(1).join(' ') };
+}
+
+export async function setTeamMemberName(id, fullName) {
+  const n = splitName(fullName);
+  const data = await squareFetch('/v2/team-members/' + encodeURIComponent(id), 'PUT', {
+    team_member: { given_name: n.given, family_name: n.family }
+  });
+  return data.team_member;
+}
+
 export async function setTeamMemberStatus(id, status) {
   const data = await squareFetch('/v2/team-members/' + encodeURIComponent(id), 'PUT', {
     team_member: { status }
@@ -90,14 +103,14 @@ export async function findOrCreateTeamMember({ volunteerId, fullName, email }) {
     return { member: existing, reused: true };
   }
 
-  const parts = String(fullName || '').trim().split(/\s+/).filter(Boolean);
+  const n = splitName(fullName);
   const teamMember = {
     reference_id: 'santa-volunteer-' + volunteerId,
     status: 'ACTIVE',
-    given_name: parts.length ? parts[0] : 'Volunteer',
+    given_name: n.given,
     email_address: email
   };
-  if (parts.length > 1) teamMember.family_name = parts.slice(1).join(' ');
+  if (n.family) teamMember.family_name = n.family;
   if (process.env.SQUARE_LOCATION_ID) {
     teamMember.assigned_locations = {
       assignment_type: 'EXPLICIT_LOCATIONS',
