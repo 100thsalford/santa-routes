@@ -556,6 +556,33 @@
         }
         .edit-profile-btn:hover { border-color: var(--santa-green); }
         .edit-profile-btn[hidden] { display: none; }
+        .welcome-actions { display: flex; flex-direction: column; align-items: stretch; gap: 0.35rem; flex-shrink: 0; }
+
+        /* Welcome tour (first login, or the "🧭 Tour" button). Step cards
+           in an info-modal; content lives in TOUR_STEPS in the script. */
+        .tour-modal { text-align: center; padding-top: 2rem; }
+        .tour-icon { font-size: 2.6rem; line-height: 1; margin-bottom: 0.5rem; }
+        .tour-modal h2 { margin: 0 0 0.75rem; font-size: 1.25rem; }
+        .tour-step-count { font-size: 0.75rem; color: var(--ink-soft); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.4rem; }
+        .tour-body { text-align: left; font-size: 0.95rem; line-height: 1.5; min-height: 8rem; }
+        .tour-body p { margin: 0 0 0.6rem; }
+        .tour-body ul { margin: 0 0 0.6rem; padding-left: 1.2rem; }
+        .tour-body li { margin-bottom: 0.35rem; }
+        .tour-body .tour-tip { background: var(--surface-muted); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 0.55rem 0.75rem; font-size: 0.88rem; }
+        .tour-dots { display: flex; justify-content: center; gap: 0.35rem; margin: 1rem 0 0.9rem; }
+        .tour-dots span { width: 7px; height: 7px; border-radius: 50%; background: var(--border-subtle); }
+        .tour-dots span.active { background: var(--santa-green); width: 18px; border-radius: 4px; }
+        .tour-actions { display: flex; gap: 0.5rem; }
+        .tour-actions.tour-intro { flex-direction: column; }
+        .tour-actions[hidden], .tour-dots[hidden], .tour-step-count[hidden] { display: none; }
+        .tour-primary-btn, .tour-secondary-btn {
+            flex: 1; border-radius: 999px; padding: 0.7rem 1rem; font-size: 0.95rem; font-weight: bold; cursor: pointer;
+        }
+        .tour-primary-btn { background: var(--santa-green); color: #fff; border: 1px solid var(--santa-green); }
+        .tour-secondary-btn { background: none; color: var(--ink-soft); border: 1px solid var(--border-subtle); }
+        .tour-secondary-btn:disabled { visibility: hidden; }
+        .tour-link-btn { background: none; border: none; color: var(--ink-soft); font-size: 0.85rem; text-decoration: underline; cursor: pointer; padding: 0.4rem; }
+        .faq-tour-btn { width: 100%; margin: 0 0 1rem; }
         .profile-section-title { font-size: 1rem; font-weight: bold; color: var(--santa-green); margin: 1.25rem 0 0.25rem; }
         .info-modal h2 + .profile-section-title { margin-top: 0; }
 
@@ -1009,7 +1036,10 @@
             <div class="volunteer-welcome">
                 <div class="welcome-row">
                     <p id="welcomeText" class="volunteer-loading">Loading your profile...</p>
-                    <button type="button" class="edit-profile-btn" id="editProfileBtn" hidden>✏️ Edit profile</button>
+                    <div class="welcome-actions">
+                        <button type="button" class="edit-profile-btn" id="editProfileBtn" hidden>✏️ Edit profile</button>
+                        <button type="button" class="edit-profile-btn" id="tourReplayBtn" hidden>🧭 Tour</button>
+                    </div>
                 </div>
 
                 <div class="approval-notice" id="approvalNotice" role="status">
@@ -1249,10 +1279,33 @@
         </div>
     </div>
 
+    <!-- Welcome tour: offered once on first login (remembered per account
+         via portal-tour-seen.js), reopenable any time from "🧭 Tour". -->
+    <div class="info-modal-overlay" id="tourModalOverlay">
+        <div class="info-modal tour-modal" role="dialog" aria-modal="true" aria-labelledby="tourTitle">
+            <button type="button" class="info-modal-x-close" id="tourXClose" aria-label="Close">&times;</button>
+            <div class="tour-step-count" id="tourStepCount"></div>
+            <div class="tour-icon" id="tourIcon" aria-hidden="true"></div>
+            <h2 id="tourTitle"></h2>
+            <div class="tour-body" id="tourBody"></div>
+            <div class="tour-dots" id="tourDots" aria-hidden="true"></div>
+            <div class="tour-actions tour-intro" id="tourIntroActions">
+                <button type="button" class="tour-primary-btn" id="tourStartBtn">Show me now</button>
+                <button type="button" class="tour-secondary-btn" id="tourLaterBtn">Show me later</button>
+                <button type="button" class="tour-link-btn" id="tourNeverBtn">Don't show this again</button>
+            </div>
+            <div class="tour-actions" id="tourNavActions" hidden>
+                <button type="button" class="tour-secondary-btn" id="tourBackBtn">Back</button>
+                <button type="button" class="tour-primary-btn" id="tourNextBtn">Next</button>
+            </div>
+        </div>
+    </div>
+
     <div class="info-modal-overlay" id="faqModalOverlay">
         <div class="info-modal">
             <button type="button" class="info-modal-x-close" data-close-modal="faqModalOverlay" aria-label="Close">&times;</button>
             <h2>❓ Volunteer FAQs</h2>
+            <button type="button" class="tour-secondary-btn faq-tour-btn" id="faqTourBtn">🧭 New here? Take the portal tour</button>
             <div id="faqContent"></div>
             <button type="button" class="info-modal-close-btn" data-close-modal="faqModalOverlay">Close</button>
         </div>
@@ -1431,6 +1484,7 @@
 
             function hideRiskModal() {
                 riskModalOverlay.classList.remove('visible');
+                maybeShowTour();
             }
 
             riskAckCheckbox.addEventListener('change', function() {
@@ -1746,15 +1800,223 @@
 
             // ---- Phase 9: Events / My Schedule tabs ----
 
-            document.querySelectorAll('.volunteer-tabs .tab-btn').forEach(function(btn) {
-                btn.addEventListener('click', function() {
-                    document.querySelectorAll('.volunteer-tabs .tab-btn').forEach(function(b) { b.classList.remove('active'); });
-                    btn.classList.add('active');
-                    ['events', 'myschedule'].forEach(function(tab) {
-                        document.getElementById('tab-' + tab).classList.toggle('tab-hidden', tab !== btn.dataset.tab);
-                    });
+            function switchTab(name) {
+                document.querySelectorAll('.volunteer-tabs .tab-btn').forEach(function(b) {
+                    b.classList.toggle('active', b.dataset.tab === name);
                 });
+                ['events', 'myschedule'].forEach(function(tab) {
+                    document.getElementById('tab-' + tab).classList.toggle('tab-hidden', tab !== name);
+                });
+            }
+
+            document.querySelectorAll('.volunteer-tabs .tab-btn').forEach(function(btn) {
+                btn.addEventListener('click', function() { switchTab(btn.dataset.tab); });
             });
+
+            // ---- Welcome tour ----
+            // Offered once after the 18+ and safety-guidance prompts on a
+            // volunteer's first visit. Starting it, finishing it or "Don't
+            // show this again" records TOUR_VERSION on their account
+            // (portal-tour-seen.js), so it follows them across devices;
+            // "Show me later" just closes it until their next visit. Bump
+            // TOUR_VERSION to re-show it to everyone after a big change.
+            var TOUR_VERSION = 1;
+            var TOUR_STEPS = [
+                {
+                    icon: '👋', title: 'Welcome to the Volunteer Portal',
+                    body: '<p>There\u2019s more in here than meets the eye. Want a quick tour (about a minute) of how to find nights, get your route, and the handy tools for the night itself?</p>'
+                },
+                {
+                    icon: '🎄', title: 'Find a night and sign up', tab: 'events',
+                    body: '<p><strong>Open Nights</strong> lists every Sleigh night we\u2019re out.</p>' +
+                        '<ul><li>The coloured badge shows how many more volunteers that night needs.</li>' +
+                        '<li>Use the <strong>Not signed up</strong> and <strong>Needs people</strong> filters to narrow the list.</li>' +
+                        '<li>Tap <strong>Sign up</strong> and the night moves into <strong>My Schedule</strong> straight away.</li></ul>'
+                },
+                {
+                    icon: '📍', title: 'Where and when to meet', tab: 'events',
+                    body: '<p>Tap a night (or <strong>Details \u25BE</strong>) to open it up:</p>' +
+                        '<ul><li><strong>\u23F0 Gather at</strong> \u2014 when to arrive. We set off on time!</li>' +
+                        '<li><strong>Meeting point</strong> \u2014 a what3words link that opens straight in your maps.</li>' +
+                        '<li><strong>Notes</strong> from the team, including who to contact on the night.</li>' +
+                        '<li>Who else is signed up, so you know who you\u2019re out with.</li></ul>'
+                },
+                {
+                    icon: '🏷️', title: 'Night badges and roles', tab: 'events',
+                    body: '<p>Some nights carry a small badge, like <strong>\u23F3 late finish</strong> or a <strong>\u26BD match night</strong>. Tap a badge to see what it means.</p>' +
+                        '<p>A night\u2019s details also show who\u2019s <strong>\uD83C\uDF85 Santa</strong>, the <strong>Driver</strong> and the <strong>Safety Walker</strong>. These roles are arranged by the team \u2014 fancy taking one on? Let Nathan know.</p>'
+                },
+                {
+                    icon: '🗺️', title: 'Route maps', tab: 'events',
+                    body: '<p>Once a route is ready, each night has two maps. You can look at them before you sign up, too.</p>' +
+                        '<ul><li><strong>\uD83D\uDDFA\uFE0F View interactive map</strong> \u2014 the route on a live map with turn-by-turn directions. Tap a turn to zoom in on it.</li>' +
+                        '<li><strong>Printable map</strong> \u2014 the route sheet to save, print or keep handy offline.</li></ul>' +
+                        '<p class="tour-tip">\u26A0\uFE0F Please don\u2019t share route maps outside the volunteer group.</p>'
+                },
+                {
+                    icon: '🔵', title: 'See where you are on the route', tab: 'events',
+                    body: '<p>In the interactive map, tap <strong>\uD83D\uDCCD Show my location</strong> and a blue dot follows you along the route \u2014 handy for keeping ahead of the Sleigh.</p>' +
+                        '<p>Your phone will ask permission the first time. Tap the button again (or close the map) to turn it off.</p>' +
+                        '<p class="tour-tip">\uD83D\uDD12 Your location stays on your phone. We don\u2019t see it or save it.</p>'
+                },
+                {
+                    icon: '🗓️', title: 'My Schedule', tab: 'myschedule',
+                    body: '<p>All the nights you\u2019re signed up to, with the same details and maps.</p>' +
+                        '<ul><li><strong>\uD83D\uDCC5 Add to calendar</strong> \u2014 pop the night into your phone\u2019s calendar, meeting point included.</li>' +
+                        '<li><strong>Cancel</strong> \u2014 you can cancel yourself up to 24 hours before. After that, please message Nathan (his number\u2019s in the FAQs).</li></ul>'
+                },
+                {
+                    icon: '✉️', title: 'Reminder emails', tab: 'myschedule',
+                    body: '<p>On the morning of each night you\u2019re signed up for, we\u2019ll email you a reminder with your route and street list.</p>' +
+                        '<ul><li>Switch it on or off under <strong>Reminder Emails</strong> in My Schedule.</li>' +
+                        '<li>Want it sent somewhere else? Change your contact email with <strong>\u270F\uFE0F Edit profile</strong> at the top.</li></ul>'
+                },
+                {
+                    icon: '🧰', title: 'Handy buttons for the night',
+                    body: '<ul><li><strong>\uD83D\uDC9D Scan to Donate</strong> \u2014 show the QR code to a resident who wants to give online.</li>' +
+                        '<li><strong>\uD83D\uDCB3 Take Card Payments</strong> \u2014 take contactless donations on your own phone with Square. Unlocks once you\u2019ve signed up for a night.</li>' +
+                        '<li><strong>\uD83D\uDCF1 WhatsApp</strong> \u2014 join the volunteer group chat for on-the-night updates.</li>' +
+                        '<li><strong>\uD83E\uDDBA Safety</strong> \u2014 re-read the safety guidance any time.</li>' +
+                        '<li><strong>\u2753 FAQs</strong> \u2014 what to wear, what to say on the doorstep, bringing kids, and more.</li></ul>'
+                },
+                {
+                    icon: '🎉', title: 'You\u2019re all set!',
+                    body: '<p>That\u2019s everything. Pick a night in <strong>Open Nights</strong> and we\u2019ll see you on the Sleigh.</p>' +
+                        '<p class="tour-tip">You can replay this tour any time from the <strong>\uD83E\uDDED Tour</strong> button at the top.</p>'
+                }
+            ];
+
+            var tourOverlay = document.getElementById('tourModalOverlay');
+            var tourStep = 0;
+            var tourCheckedThisLoad = false;
+
+            function renderTourStep() {
+                var step = TOUR_STEPS[tourStep];
+                var isIntro = tourStep === 0;
+                var last = TOUR_STEPS.length - 1;
+                document.getElementById('tourIcon').textContent = step.icon;
+                document.getElementById('tourTitle').textContent = step.title;
+                document.getElementById('tourBody').innerHTML = step.body;
+
+                var countEl = document.getElementById('tourStepCount');
+                countEl.hidden = isIntro;
+                countEl.textContent = 'Step ' + tourStep + ' of ' + last;
+
+                var dots = document.getElementById('tourDots');
+                dots.hidden = isIntro;
+                dots.innerHTML = '';
+                for (var i = 1; i <= last; i++) {
+                    var dot = document.createElement('span');
+                    if (i === tourStep) dot.className = 'active';
+                    dots.appendChild(dot);
+                }
+
+                document.getElementById('tourIntroActions').hidden = !isIntro;
+                document.getElementById('tourNavActions').hidden = isIntro;
+                document.getElementById('tourBackBtn').disabled = tourStep <= 1;
+                document.getElementById('tourNextBtn').textContent = tourStep === last ? 'Finish' : 'Next';
+
+                // Switch the page behind to the tab being described, so it's
+                // where they need it once the tour closes.
+                if (step.tab) switchTab(step.tab);
+                tourOverlay.querySelector('.tour-modal').scrollTop = 0;
+            }
+
+            function openTour(startStep) {
+                tourStep = startStep || 0;
+                renderTourStep();
+                tourOverlay.classList.add('visible');
+            }
+
+            function closeTour() {
+                tourOverlay.classList.remove('visible');
+            }
+
+            async function markTourSeen() {
+                if (currentProfile && (currentProfile.portalTourVersion || 0) >= TOUR_VERSION) return;
+                if (currentProfile) currentProfile.portalTourVersion = TOUR_VERSION;
+                try {
+                    var res = await authedFetch('/.netlify/functions/portal-tour-seen', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ version: TOUR_VERSION })
+                    });
+                    if (!res.ok) throw new Error('HTTP ' + res.status);
+                } catch (err) {
+                    // Not worth bothering the volunteer about -- worst case
+                    // they're offered the tour again next time.
+                    console.error('Error saving tour state:', err);
+                }
+            }
+
+            // Called once the profile has loaded and again whenever the
+            // 18+ / safety prompts close, so the tour never stacks on top
+            // of them. Offered at most once per page load.
+            function maybeShowTour() {
+                if (tourCheckedThisLoad || !currentProfile) return;
+                if (dashboardCard.classList.contains('not-approved')) return;
+                if ((currentProfile.portalTourVersion || 0) >= TOUR_VERSION) { tourCheckedThisLoad = true; return; }
+                if (adultModalOverlay.classList.contains('visible') || riskModalOverlay.classList.contains('visible')) return;
+                tourCheckedThisLoad = true;
+                openTour(0);
+            }
+
+            document.getElementById('tourStartBtn').addEventListener('click', function() {
+                markTourSeen();
+                tourStep = 1;
+                renderTourStep();
+            });
+            document.getElementById('tourLaterBtn').addEventListener('click', function() {
+                closeTour();
+                showToast("No problem \u2014 we'll show you next time you log in.", 'success');
+            });
+            document.getElementById('tourNeverBtn').addEventListener('click', function() {
+                markTourSeen();
+                closeTour();
+                showToast('Got it. You can replay the tour from \uD83E\uDDED Tour any time.', 'success');
+            });
+            document.getElementById('tourBackBtn').addEventListener('click', function() {
+                if (tourStep > 1) { tourStep--; renderTourStep(); }
+            });
+            document.getElementById('tourNextBtn').addEventListener('click', function() {
+                if (tourStep < TOUR_STEPS.length - 1) { tourStep++; renderTourStep(); }
+                else { closeTour(); switchTab('events'); }
+            });
+            document.getElementById('tourXClose').addEventListener('click', function() {
+                // Closing the "show me?" prompt with the x counts as "later".
+                closeTour();
+            });
+            document.getElementById('tourReplayBtn').addEventListener('click', function() { openTour(1); });
+            document.getElementById('faqTourBtn').addEventListener('click', function() {
+                closeModal('faqModalOverlay');
+                openTour(1);
+            });
+
+            document.addEventListener('keydown', function(e) {
+                if (!tourOverlay.classList.contains('visible')) return;
+                if (e.key === 'Escape') closeTour();
+                else if (tourStep > 0 && e.key === 'ArrowRight') document.getElementById('tourNextBtn').click();
+                else if (tourStep > 1 && e.key === 'ArrowLeft') document.getElementById('tourBackBtn').click();
+            });
+
+            // Swipe left/right between steps on phones.
+            (function() {
+                var startX = null, startY = null;
+                var card = tourOverlay.querySelector('.tour-modal');
+                card.addEventListener('touchstart', function(e) {
+                    startX = e.touches[0].clientX; startY = e.touches[0].clientY;
+                }, { passive: true });
+                card.addEventListener('touchend', function(e) {
+                    if (startX === null || tourStep === 0) return;
+                    var dx = e.changedTouches[0].clientX - startX;
+                    var dy = e.changedTouches[0].clientY - startY;
+                    startX = null;
+                    if (Math.abs(dx) < 50 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+                    if (dx < 0 && tourStep < TOUR_STEPS.length - 1) { tourStep++; renderTourStep(); }
+                    else if (dx > 0 && tourStep > 1) { tourStep--; renderTourStep(); }
+                }, { passive: true });
+            })();
+
 
             riskAckBtn.addEventListener('click', async function() {
                 riskAckBtn.disabled = true;
@@ -1806,6 +2068,7 @@
                     if (currentProfile) currentProfile.adultConfirmedAt = data.adultConfirmedAt;
                     adultModalOverlay.classList.remove('visible');
                     if (currentProfile && !currentProfile.riskAckAt) showRiskModal();
+                    else maybeShowTour();
                 } catch (err) {
                     console.error('Error confirming age:', err);
                     adultConfirmBtn.disabled = false;
@@ -1982,6 +2245,7 @@
                     welcomeText.textContent = 'Welcome back, ' + name + '!';
                     welcomeText.classList.remove('volunteer-loading');
                     document.getElementById('editProfileBtn').hidden = false;
+                    document.getElementById('tourReplayBtn').hidden = false;
 
                     reminderToggle.checked = !!profile.reminderEmailOptIn;
                     renderContactEmail();
@@ -1991,6 +2255,7 @@
                     updateCardPayButton();
                     if (!profile.adultConfirmedAt) showAdultModal();
                     else if (!profile.riskAckAt) showRiskModal();
+                    else maybeShowTour();
 
                     if (profile.shifts && profile.shifts.length > 0) {
                         shiftsContent.innerHTML = '';
@@ -2708,6 +2973,8 @@
 
             netlifyIdentity.on('logout', function() {
                 currentProfile = null;
+                tourCheckedThisLoad = false;
+                closeTour();
                 showLoggedOut();
             });
 
