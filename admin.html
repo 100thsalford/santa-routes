@@ -834,6 +834,67 @@
             .import-table td:nth-child(5) { display: none; }
             .import-badge { white-space: normal; }
         }
+        /* Phone section switcher (2026-10-26): on narrow screens the six
+           admin tabs are replaced by one full-width button showing the
+           current section, which opens a list of all sections. Built from
+           the .admin-tabs buttons, which stay the source of truth (they
+           are just hidden on phones). */
+        /* Desktop: six tabs fit on one line without each label wrapping. */
+        .admin-tabs.tab-buttons { flex-wrap: wrap; }
+        .admin-tabs .tab-btn { flex: 1 1 auto; white-space: nowrap; font-size: 0.9rem; padding: 0.65rem 0.75rem; }
+        .section-switch { display: none; position: relative; margin-bottom: 1.25rem; }
+        .section-switch-btn {
+            width: 100%; display: flex; align-items: center; gap: 0.5rem;
+            padding: 0.8rem 1rem; border: 1px solid var(--santa-red); border-radius: var(--radius-sm);
+            background: var(--santa-red); color: #fff; font: inherit; font-weight: bold; font-size: 1rem;
+            cursor: pointer; text-align: left;
+        }
+        .section-switch-btn .section-switch-label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .section-switch-btn .tab-badge { background: #fff; color: var(--santa-red); }
+        .section-switch-caret { transition: transform 0.15s; }
+        .section-switch-btn[aria-expanded="true"] .section-switch-caret { transform: rotate(180deg); }
+        .section-switch-list {
+            position: absolute; left: 0; right: 0; top: calc(100% + 0.35rem); z-index: 300;
+            background: var(--surface, #fff); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.18); padding: 0.3rem; margin: 0; list-style: none;
+        }
+        .section-switch-list[hidden] { display: none; }
+        .section-switch-item {
+            width: 100%; display: flex; align-items: center; gap: 0.5rem; padding: 0.8rem 0.75rem;
+            border: 0; background: none; font: inherit; font-size: 1rem; color: var(--text-dark, #24272E);
+            border-radius: var(--radius-sm); cursor: pointer; text-align: left;
+        }
+        .section-switch-item .section-switch-label { flex: 1; }
+        .section-switch-item[aria-current="true"] { background: var(--surface-muted); color: var(--santa-red); font-weight: bold; }
+        .section-switch-item:focus-visible, .section-switch-btn:focus-visible { outline: 3px solid #EBC96B; outline-offset: 2px; }
+        @media (max-width: 600px) {
+            .section-switch { display: block; }
+            .admin-tabs.tab-buttons { display: none; }
+
+            /* QR Signs table -> one card per sign */
+            table.admin-table.qr-cards { table-layout: auto; }
+            table.admin-table.qr-cards, table.admin-table.qr-cards tbody { display: block; width: 100%; }
+            table.admin-table.qr-cards thead { display: none; }
+            table.admin-table.qr-cards tr.qr-row {
+                display: grid; grid-template-columns: 3rem 1fr auto auto; gap: 0.3rem 0.5rem;
+                align-items: center; padding: 0.65rem 0; border-bottom: 1px solid var(--border-subtle);
+            }
+            table.admin-table.qr-cards tr.qr-row td { display: block; padding: 0 !important; border: 0; width: auto !important; min-width: 0; }
+            .qr-cards td.qr-c-sign { grid-row: 1; grid-column: 1; }
+            .qr-cards td.qr-c-status { grid-row: 1; grid-column: 2; }
+            .qr-cards td.qr-c-visits { grid-row: 1; grid-column: 3 / 5; text-align: right; }
+            .qr-cards td.qr-c-visits::after { content: " visits"; font-size: 0.8rem; color: var(--ink-soft); }
+            .qr-cards td.qr-c-loc { grid-row: 2; grid-column: 2 / 5; }
+            .qr-cards td.qr-c-last { grid-row: 3; grid-column: 2; font-size: 0.8rem; color: var(--ink-soft); }
+            .qr-cards td.qr-c-last::before { content: "Last: "; }
+            .qr-cards td.qr-c-rate { grid-row: 3; grid-column: 3; font-size: 0.8rem; color: var(--ink-soft); white-space: nowrap; }
+            .qr-cards td.qr-c-rate::after { content: "/day"; }
+            .qr-cards td.qr-c-rate.empty { visibility: hidden; }
+            .qr-cards td.qr-c-edit { grid-row: 3; grid-column: 4; }
+            table.admin-table.qr-cards tr.qr-edit-row { display: block; border-bottom: 1px solid var(--border-subtle); }
+            table.admin-table.qr-cards tr.qr-edit-row td { display: block; padding: 0 0 0.75rem !important; border: 0; }
+        }
+
         /* Netlify Identity widget (login/signup modal): our own sticky
            .header has z-index:100, one higher than the widget's own
            inline z-index:99, so the header permanently covered the top
@@ -954,6 +1015,14 @@
         </div>
 
         <div id="adminArea" class="admin-hidden">
+            <nav class="section-switch" id="sectionSwitch" aria-label="Admin sections">
+                <button type="button" class="section-switch-btn" id="sectionSwitchBtn" aria-haspopup="true" aria-expanded="false" aria-controls="sectionSwitchList">
+                    <span class="section-switch-label" id="sectionSwitchLabel">📊 Dashboard</span>
+                    <span class="tab-badge admin-hidden" id="sectionSwitchBadge"></span>
+                    <span class="section-switch-caret" aria-hidden="true">▾</span>
+                </button>
+                <ul class="section-switch-list" id="sectionSwitchList" hidden></ul>
+            </nav>
             <div class="admin-tabs tab-buttons">
                 <button class="tab-btn active" data-tab="dashboard">📊 Dashboard</button>
                 <button class="tab-btn" data-tab="routes">🗺️ Routes &amp; Streets</button>
@@ -2843,6 +2912,7 @@
                 var badge = document.getElementById('pendingTabBadge');
                 badge.textContent = pending.length;
                 badge.classList.toggle('admin-hidden', pending.length === 0);
+                syncSectionSwitch();
 
                 var alertEl = document.getElementById('pendingDashboardAlert');
                 alertEl.classList.toggle('admin-hidden', pending.length === 0);
@@ -4114,7 +4184,7 @@
                 });
 
                 var table = document.createElement('table');
-                table.className = 'admin-table';
+                table.className = 'admin-table qr-cards';
                 table.innerHTML = '<thead><tr>' +
                     '<th class="qr-col-sign">Sign</th><th>Location</th><th class="qr-col-status">Status</th>' +
                     '<th class="qr-col-num">Visits</th><th class="qr-col-last">Last visit</th>' +
@@ -4122,14 +4192,15 @@
                 var tbody = document.createElement('tbody');
                 sorted.forEach(function(s) {
                     var tr = document.createElement('tr');
+                    tr.className = 'qr-row';
                     tr.innerHTML =
-                        '<td><button type="button" class="qr-sign-link" data-qr-sign="' + escapeHtml(s.signId) + '">' + escapeHtml(s.signId) + '</button></td>' +
-                        '<td>' + (s.locationLabel ? escapeHtml(s.locationLabel) : '<span class="qr-muted">Not set</span>') + '</td>' +
-                        '<td><span class="qr-status ' + escapeHtml(s.status) + '">' + escapeHtml(QR_STATUS_LABELS[s.status] || s.status) + '</span></td>' +
-                        '<td><strong>' + s.visits + '</strong></td>' +
-                        '<td>' + escapeHtml(qrFormatVisitTime(s.lastVisit)) + '</td>' +
-                        '<td>' + (s.visitsPerDayInstalled == null ? '\u2014' : escapeHtml(s.visitsPerDayInstalled)) + '</td>' +
-                        '<td><button type="button" class="admin-btn small" data-qr-edit="' + escapeHtml(s.signId) + '">Edit</button></td>';
+                        '<td class="qr-c-sign"><button type="button" class="qr-sign-link" data-qr-sign="' + escapeHtml(s.signId) + '">' + escapeHtml(s.signId) + '</button></td>' +
+                        '<td class="qr-c-loc">' + (s.locationLabel ? escapeHtml(s.locationLabel) : '<span class="qr-muted">Location not set</span>') + '</td>' +
+                        '<td class="qr-c-status"><span class="qr-status ' + escapeHtml(s.status) + '">' + escapeHtml(QR_STATUS_LABELS[s.status] || s.status) + '</span></td>' +
+                        '<td class="qr-c-visits"><strong>' + s.visits + '</strong></td>' +
+                        '<td class="qr-c-last">' + escapeHtml(qrFormatVisitTime(s.lastVisit)) + '</td>' +
+                        '<td class="qr-c-rate' + (s.visitsPerDayInstalled == null ? ' empty' : '') + '">' + (s.visitsPerDayInstalled == null ? '\u2014' : escapeHtml(s.visitsPerDayInstalled)) + '</td>' +
+                        '<td class="qr-c-edit"><button type="button" class="admin-btn small" data-qr-edit="' + escapeHtml(s.signId) + '">Edit</button></td>';
                     tbody.appendChild(tr);
                     if (qrState.editing === s.signId) tbody.appendChild(qrEditRow(s));
                 });
@@ -4414,8 +4485,101 @@
                         document.getElementById('tab-' + tab).classList.toggle('admin-hidden', tab !== btn.dataset.tab);
                     });
                     if (btn.dataset.tab === 'qr-signs') loadQrSigns();
+                    syncSectionSwitch();
                 });
             });
+
+            // ---- Phone section switcher ----
+            // Mirrors the .admin-tabs buttons (hidden on phones by CSS):
+            // choosing a section just clicks the matching tab button, so
+            // every existing tab behaviour, and code that switches tabs by
+            // clicking them, keeps working unchanged.
+
+            var sectionSwitchBtn = document.getElementById('sectionSwitchBtn');
+            var sectionSwitchList = document.getElementById('sectionSwitchList');
+
+            function tabLabel(btn) {
+                var clone = btn.cloneNode(true);
+                clone.querySelectorAll('.tab-badge').forEach(function(b) { b.remove(); });
+                return clone.textContent.replace(/\s+/g, ' ').trim();
+            }
+
+            function tabBadgeText(btn) {
+                var badge = btn.querySelector('.tab-badge');
+                return badge && !badge.classList.contains('admin-hidden') ? badge.textContent : '';
+            }
+
+            function syncSectionSwitch() {
+                var tabs = document.querySelectorAll('.admin-tabs .tab-btn');
+                var active = document.querySelector('.admin-tabs .tab-btn.active') || tabs[0];
+                document.getElementById('sectionSwitchLabel').textContent = tabLabel(active);
+
+                // Collapsed button shows a count for any section other than
+                // the current one that needs attention (e.g. pending volunteers).
+                var otherBadge = 0;
+                sectionSwitchList.innerHTML = '';
+                tabs.forEach(function(btn) {
+                    var badge = tabBadgeText(btn);
+                    if (btn !== active && badge) otherBadge += Number(badge) || 0;
+                    var li = document.createElement('li');
+                    var item = document.createElement('button');
+                    item.type = 'button';
+                    item.className = 'section-switch-item';
+                    item.setAttribute('data-tab', btn.dataset.tab);
+                    if (btn === active) item.setAttribute('aria-current', 'true');
+                    item.innerHTML = '<span class="section-switch-label">' + escapeHtml(tabLabel(btn)) + '</span>' +
+                        (badge ? '<span class="tab-badge">' + escapeHtml(badge) + '</span>' : '') +
+                        (btn === active ? '<span aria-hidden="true">\u2713</span>' : '');
+                    item.addEventListener('click', function() {
+                        closeSectionSwitch(false);
+                        btn.click();
+                        var card = document.getElementById('tab-' + btn.dataset.tab);
+                        if (card && card.getBoundingClientRect().top < 0) {
+                            document.getElementById('sectionSwitch').scrollIntoView({ block: 'start' });
+                        }
+                        sectionSwitchBtn.focus();
+                    });
+                    li.appendChild(item);
+                    sectionSwitchList.appendChild(li);
+                });
+                var switchBadge = document.getElementById('sectionSwitchBadge');
+                switchBadge.textContent = otherBadge ? String(otherBadge) : '';
+                switchBadge.classList.toggle('admin-hidden', !otherBadge);
+            }
+
+            function openSectionSwitch() {
+                syncSectionSwitch();
+                sectionSwitchList.hidden = false;
+                sectionSwitchBtn.setAttribute('aria-expanded', 'true');
+                var current = sectionSwitchList.querySelector('[aria-current="true"]') || sectionSwitchList.querySelector('button');
+                if (current) current.focus();
+            }
+
+            function closeSectionSwitch(returnFocus) {
+                if (sectionSwitchList.hidden) return;
+                sectionSwitchList.hidden = true;
+                sectionSwitchBtn.setAttribute('aria-expanded', 'false');
+                if (returnFocus) sectionSwitchBtn.focus();
+            }
+
+            sectionSwitchBtn.addEventListener('click', function() {
+                if (sectionSwitchList.hidden) openSectionSwitch(); else closeSectionSwitch(false);
+            });
+            document.addEventListener('click', function(e) {
+                if (!e.target.closest('#sectionSwitch')) closeSectionSwitch(false);
+            });
+            document.addEventListener('keydown', function(e) {
+                if (sectionSwitchList.hidden) return;
+                if (e.key === 'Escape') { e.preventDefault(); closeSectionSwitch(true); return; }
+                if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    var items = Array.prototype.slice.call(sectionSwitchList.querySelectorAll('button'));
+                    var i = items.indexOf(document.activeElement);
+                    var next = e.key === 'ArrowDown' ? (i + 1) % items.length : (i - 1 + items.length) % items.length;
+                    items[next].focus();
+                }
+            });
+            syncSectionSwitch();
 
             // ---- Auth wiring ----
 
