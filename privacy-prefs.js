@@ -54,7 +54,9 @@
         (document.head || document.documentElement).appendChild(s);
     }
 
-    if (analyticsEnabled()) loadBeacon();
+    // qr.html (the QR sign hop) sets SSS_SKIP_BEACON: it redirects at once,
+    // and the homepage it lands on loads the beacon itself.
+    if (analyticsEnabled() && !window.SSS_SKIP_BEACON) loadBeacon();
 
     // ---- Preferences dialog ------------------------------------------------
     var styleAdded = false;

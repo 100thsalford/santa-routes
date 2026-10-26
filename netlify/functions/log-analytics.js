@@ -10,6 +10,10 @@
 // only so older deploys keep working; they are always written as NULL.
 // Fire-and-forget from the client, so failures here should never surface
 // to the visitor.
+//
+// QR street-sign visits (event 'qr_sign_visit', sent by qr.html) are held to
+// a fixed shape: the sign number must exist in the qr_signs register, and
+// only {sign_id} (plus a test flag for admin devices) is ever stored.
 
 import { getDatabase } from '@netlify/database';
 
@@ -44,6 +48,19 @@ function cleanEventData(raw) {
   return out;
 }
 
+const QR_EVENT = 'qr_sign_visit';
+
+// Returns the stored eventData for a QR visit, or null if it isn't valid.
+async function cleanQrVisit(db, raw) {
+  const signId = raw && typeof raw.sign_id === 'string' ? raw.sign_id : '';
+  if (!/^\d{3}$/.test(signId)) return null;
+  const rows = await db.sql`SELECT 1 FROM qr_signs WHERE sign_id = ${signId}`;
+  if (!rows.length) return null;
+  const out = { sign_id: signId };
+  if (raw.test === true) out.test = true;
+  return out;
+}
+
 export default async (req) => {
   if (req.method !== 'POST') {
     return new Response(JSON.stringify({ error: 'Method not allowed' }), { status: 405, headers });
@@ -53,13 +70,23 @@ export default async (req) => {
     const data = await req.json();
     const db = getDatabase();
 
+    const eventType = String(data.eventType || 'unknown').slice(0, 60);
+    let eventData;
+    let page;
+    if (eventType === QR_EVENT) {
+      eventData = await cleanQrVisit(db, data.eventData);
+      if (!eventData) {
+        return new Response(JSON.stringify({ error: 'Unknown sign' }), { status: 400, headers });
+      }
+      page = '/s/' + eventData.sign_id;
+    } else {
+      eventData = cleanEventData(data.eventData);
+      page = pathOnly(data.page || 'Unknown');
+    }
+
     await db.sql`
       INSERT INTO analytics_events (event_type, event_data, page)
-      VALUES (
-        ${String(data.eventType || 'unknown').slice(0, 60)},
-        ${JSON.stringify(cleanEventData(data.eventData))}::jsonb,
-        ${pathOnly(data.page || 'Unknown')}
-      )
+      VALUES (${eventType}, ${JSON.stringify(eventData)}::jsonb, ${page})
     `;
 
     return new Response(JSON.stringify({ success: true }), { status: 200, headers });

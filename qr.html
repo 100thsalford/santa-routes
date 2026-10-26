@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>Santa Sleigh Salford</title>
+    <!-- QR street-sign hop. Every printed sign's QR encodes /s/<number>
+         (001-045); netlify.toml rewrites /s/* to this page. It records one
+         anonymous qr_sign_visit event (sign number only) IF the visitor's
+         analytics preference allows it -- the same privacy-prefs.js check
+         as the rest of the site, including Global Privacy Control -- then
+         replaces itself with the homepage, so Back never lands here again.
+         With JavaScript off, the meta refresh below takes them home
+         uncounted (intentional). -->
+    <noscript><meta http-equiv="refresh" content="0; url=/"></noscript>
+    <script>window.SSS_SKIP_BEACON = true; // no Cloudflare beacon on this hop; the homepage loads its own</script>
+    <script src="/privacy-prefs.js?v=20261026a"></script>
+    <script>
+    (function () {
+        'use strict';
+
+        var HOME = '/';
+        var ENDPOINT = '/.netlify/functions/log-analytics';
+
+        function goHome() {
+            try { window.location.replace(HOME); } catch (e) { window.location.href = HOME; }
+        }
+
+        // If automatic navigation somehow hasn't happened, show a plain link.
+        setTimeout(function () {
+            var el = document.getElementById('qrFallback');
+            if (el) el.hidden = false;
+        }, 2500);
+
+        // Sign numbers are exactly three digits (001...). The server checks
+        // the number against the sign register before storing anything.
+        var m = /^\/s\/(\d{3})\/?$/.exec(window.location.pathname);
+        if (!m || m[1] === '000') { goHome(); return; }
+        var signId = m[1];
+
+        function analyticsAllowed() {
+            try { return !!(window.SSSPrivacy && window.SSSPrivacy.analyticsEnabled()); } catch (e) { return false; }
+        }
+        function isLocalHost() {
+            return /^(localhost|127\.0\.0\.1|\[::1\])$/.test(window.location.hostname);
+        }
+        // Set by admin.html when an admin signs in on this browser, so
+        // proof-sticker / test scans can be excluded from reports.
+        function isAdminTestDevice() {
+            try { return window.localStorage.getItem('sss_admin_device') === '1'; } catch (e) { return false; }
+        }
+
+        function sendVisit() {
+            if (!analyticsAllowed() || navigator.webdriver || isLocalHost()) return;
+            var eventData = { sign_id: signId };
+            if (isAdminTestDevice()) eventData.test = true;
+            var body = JSON.stringify({ eventType: 'qr_sign_visit', eventData: eventData, page: '/s/' + signId });
+            try {
+                // sendBeacon is queued by the browser and survives the
+                // navigation below; fetch keepalive is the fallback.
+                var queued = !!(navigator.sendBeacon && navigator.sendBeacon(ENDPOINT, body));
+                if (!queued && window.fetch) {
+                    fetch(ENDPOINT, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: body,
+                        keepalive: true
+                    }).catch(function () { /* never block the visitor */ });
+                }
+            } catch (e) { /* never block the visitor */ }
+        }
+
+        function run() {
+            sendVisit();
+            goHome();
+        }
+
+        // Don't count a browser speculatively prerendering the link; count
+        // it only if the visitor actually opens it.
+        if (document.prerendering) {
+            document.addEventListener('prerenderingchange', run, { once: true });
+        } else {
+            run();
+        }
+    })();
+    </script>
+</head>
+<body>
+    <p id="qrFallback" hidden><a href="/">Continue to Santa Sleigh</a></p>
+    <noscript><p><a href="/">Continue to Santa Sleigh</a></p></noscript>
+</body>
+</html>

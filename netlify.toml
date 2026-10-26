@@ -34,6 +34,12 @@
   [headers.values]
     Cache-Control = "public, max-age=300, s-maxage=300"
 
+# Admin QR sign reports carry private sign locations: never cache them.
+[[headers]]
+  for = "/.netlify/functions/admin-qr-signs"
+  [headers.values]
+    Cache-Control = "no-store"
+
 # Registration status (is sign-up open / is this invite valid) must never
 # be served stale either.
 [[headers]]
@@ -78,6 +84,33 @@
   to = "https://santasleighsalford.co.uk/:splat"
   status = 301
   force = true
+
+# QR street signs: each printed sign's QR encodes /s/<number> (001-045).
+# Rewrite (200, URL unchanged) to qr.html, which records one anonymous
+# visit only if the visitor's analytics preference allows it, then sends
+# them to the homepage. Never cached, so every scan runs that check.
+# Kept after the helpout.* rules so that subdomain still forwards here.
+[[headers]]
+  for = "/s/*"
+  [headers.values]
+    Cache-Control = "no-store"
+    X-Robots-Tag = "noindex"
+
+[[headers]]
+  for = "/qr.html"
+  [headers.values]
+    Cache-Control = "no-store"
+    X-Robots-Tag = "noindex"
+
+[[redirects]]
+  from = "/s"
+  to = "/"
+  status = 302
+
+[[redirects]]
+  from = "/s/*"
+  to = "/qr.html"
+  status = 200
 
 # Redirects (if needed)
 # [[redirects]]

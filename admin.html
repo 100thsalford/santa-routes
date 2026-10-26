@@ -420,6 +420,26 @@
             line-height: 1;
         }
 
+        /* QR Signs tab */
+        .qr-controls label { display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.9rem; color: var(--ink-soft); }
+        .qr-chart { width: 100%; height: auto; display: block; margin: 0 0 0.25rem; }
+        .qr-chart-legend { font-size: 0.8rem; color: var(--ink-soft); margin: 0 0 1.25rem; }
+        .qr-chart-legend .swatch { display: inline-block; width: 0.8rem; height: 0.8rem; border-radius: 2px; vertical-align: middle; margin-right: 0.25rem; }
+        .qr-col-sign { width: 4.5rem; }
+        .qr-col-num { width: 5.5rem; }
+        .qr-col-status { width: 7.5rem; }
+        .qr-col-last { width: 10rem; }
+        .qr-col-edit { width: 4.5rem; }
+        .qr-sign-link { background: none; border: none; padding: 0; font: inherit; font-weight: bold; color: var(--santa-red); cursor: pointer; text-decoration: underline; }
+        .qr-muted { color: var(--ink-soft); }
+        .qr-status { display: inline-block; font-size: 0.75rem; font-weight: bold; padding: 0.15rem 0.5rem; border-radius: 999px; white-space: nowrap; background: var(--surface-muted); color: var(--ink-soft); }
+        .qr-status.installed { background: #E3F1EA; color: var(--santa-green); }
+        .qr-status.removed { background: #F3E6E4; color: var(--santa-red); }
+        .qr-edit-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0.6rem; padding: 0.5rem 0; }
+        .qr-edit-grid label { display: flex; flex-direction: column; gap: 0.2rem; font-size: 0.85rem; color: var(--ink-soft); text-transform: none; }
+        .qr-tools { margin-top: 1.5rem; border-top: 1px solid var(--border-subtle); padding-top: 1rem; }
+        .qr-tools .add-row-form { margin-bottom: 0.75rem; }
+
         .admin-loading { color: var(--ink-soft); }
 
         .search-stats-row {
@@ -940,6 +960,7 @@
                 <button class="tab-btn" data-tab="volunteers">👥 Volunteers<span class="tab-badge admin-hidden" id="pendingTabBadge"></span></button>
                 <button class="tab-btn" data-tab="search-activity">🔍 Search Activity</button>
                 <button class="tab-btn" data-tab="site-activity">📈 Site Activity</button>
+                <button class="tab-btn" data-tab="qr-signs">🪧 QR Signs</button>
             </div>
 
             <!-- Dashboard: at-a-glance stats + season-wide settings (the
@@ -1161,6 +1182,41 @@
                 <div id="siteActivityContent"></div>
             </div>
 
+            <!-- QR Signs: tracked QR link visits per numbered street-sign
+                 sticker (/s/001-/s/045) plus the private per-season sign
+                 register. Visits come from analytics_events and are only
+                 sent when the visitor's analytics preference allows. -->
+            <div class="admin-card admin-hidden" id="tab-qr-signs">
+                <p class="no-match-empty">Tracked QR link visits from the numbered street-sign stickers (<code>/s/001</code>&ndash;<code>/s/045</code>). A visit is only recorded when the visitor's analytics are switched on, so these are link visits &mdash; not unique people, every physical scan, or donations. Visit records are deleted after 13 months.</p>
+                <div class="add-row-form qr-controls">
+                    <label>Season <select id="qrSeason"></select></label>
+                    <label>From <input type="date" id="qrFrom" class="field-date"></label>
+                    <label>To <input type="date" id="qrTo" class="field-date"></label>
+                    <label>Chart <select id="qrSignFilter"><option value="">All signs</option></select></label>
+                    <label class="add-partial-label"><input type="checkbox" id="qrIncludeTest"> Include test visits</label>
+                    <button type="button" class="admin-btn small" id="qrApplyBtn">Apply</button>
+                    <button type="button" class="admin-btn small" id="qrResetBtn">Whole season</button>
+                </div>
+                <p id="qrSignsLoading" class="admin-loading">Loading QR signs...</p>
+                <div id="qrSignsResults"></div>
+                <div class="qr-tools">
+                    <div class="search-activity-subtitle">Export &amp; sign register</div>
+                    <div class="add-row-form">
+                        <button type="button" class="admin-btn small" id="qrExportBtn">&#11015; Export signs CSV</button>
+                        <button type="button" class="admin-btn small" id="qrExportDailyBtn">&#11015; Export daily CSV</button>
+                    </div>
+                    <div class="add-row-form">
+                        <input type="file" id="qrImportFile" accept=".csv,text/csv">
+                        <button type="button" class="admin-btn small" id="qrImportBtn">Import register CSV into this season</button>
+                    </div>
+                    <p class="no-match-empty">Import accepts the sign register's columns (<code>sign_id</code>, <code>location</code>, <code>installed_date</code>, <code>removed_date</code>, <code>notes</code>, optional <code>status</code>). Blank rows are skipped and existing entries for this season are overwritten. Record a street or landmark as the location &mdash; not the host's name, phone number or house number.</p>
+                    <div class="add-row-form">
+                        <button type="button" class="admin-btn small danger" id="qrClearNotesBtn">Clear all notes for this season</button>
+                    </div>
+                    <p class="no-match-empty">Signing in here marks this browser as an admin device, so QR scans from it are flagged as test visits and left out of the figures unless "Include test visits" is ticked &mdash; handy for checking proof stickers.</p>
+                </div>
+            </div>
+
             <div style="text-align: right;">
                 <button class="admin-btn danger" id="logoutBtn">Log Out</button>
             </div>
@@ -1204,6 +1260,9 @@
                     notAdminCard.classList.remove('admin-hidden');
                 } else {
                     adminArea.classList.remove('admin-hidden');
+                    // Mark this browser as an admin device so its own QR
+                    // sign scans are flagged as test visits (see qr.html).
+                    try { window.localStorage.setItem('sss_admin_device', '1'); } catch (e) { /* ignore */ }
                     loadAll();
                 }
             }
@@ -3908,15 +3967,453 @@
                 return div.innerHTML;
             }
 
+            // ---- QR Signs ----
+            // Per-sign tracked QR link visits (analytics_events rows sent by
+            // qr.html only when the visitor's analytics preference allows)
+            // plus the private, per-season sign register. Loaded when the
+            // tab is opened. See netlify/functions/admin-qr-signs.js.
+
+            var qrState = { season: null, from: '', to: '', sign: '', includeTest: false, data: null, editing: null };
+            var QR_STATUS_LABELS = { not_installed: 'Not installed', installed: 'Installed', removed: 'Removed' };
+            var QR_ENDPOINT = '/.netlify/functions/admin-qr-signs';
+
+            function qrLondonToday() {
+                return new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/London' }).format(new Date());
+            }
+
+            function qrCurrentSeason() {
+                var p = qrLondonToday().split('-');
+                var y = Number(p[0]), m = Number(p[1]);
+                return m >= 8 ? y : y - 1;
+            }
+
+            function qrFormatVisitTime(iso) {
+                if (!iso) return '\u2014';
+                return new Date(iso).toLocaleString('en-GB', {
+                    timeZone: 'Europe/London', day: 'numeric', month: 'short', year: 'numeric',
+                    hour: '2-digit', minute: '2-digit'
+                });
+            }
+
+            function qrFormatDay(day) {
+                return new Date(day + 'T12:00:00Z').toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+            }
+
+            function qrSetupControls() {
+                var seasonSel = document.getElementById('qrSeason');
+                if (seasonSel.options.length) return;
+                var current = qrCurrentSeason();
+                for (var y = Math.max(current, 2026); y >= 2026; y--) {
+                    var opt = document.createElement('option');
+                    opt.value = String(y);
+                    opt.textContent = y + ' (Aug ' + y + ' \u2013 Jul ' + (y + 1) + ')';
+                    seasonSel.appendChild(opt);
+                }
+                seasonSel.value = String(Math.max(current, 2026));
+                qrState.season = Math.max(current, 2026);
+
+                var signSel = document.getElementById('qrSignFilter');
+                for (var i = 1; i <= 45; i++) {
+                    var id = String(i).padStart(3, '0');
+                    var o = document.createElement('option');
+                    o.value = id;
+                    o.textContent = 'Sign ' + id;
+                    signSel.appendChild(o);
+                }
+
+                seasonSel.addEventListener('change', function() {
+                    qrState.season = Number(seasonSel.value);
+                    qrState.from = '';
+                    qrState.to = '';
+                    qrState.editing = null;
+                    loadQrSigns();
+                });
+                document.getElementById('qrApplyBtn').addEventListener('click', function() {
+                    qrState.from = document.getElementById('qrFrom').value;
+                    qrState.to = document.getElementById('qrTo').value;
+                    qrState.sign = signSel.value;
+                    qrState.includeTest = document.getElementById('qrIncludeTest').checked;
+                    loadQrSigns();
+                });
+                document.getElementById('qrResetBtn').addEventListener('click', function() {
+                    qrState.from = '';
+                    qrState.to = '';
+                    qrState.sign = '';
+                    signSel.value = '';
+                    loadQrSigns();
+                });
+                document.getElementById('qrExportBtn').addEventListener('click', qrExportSigns);
+                document.getElementById('qrExportDailyBtn').addEventListener('click', qrExportDaily);
+                document.getElementById('qrImportBtn').addEventListener('click', qrImportCsv);
+                document.getElementById('qrClearNotesBtn').addEventListener('click', qrClearNotes);
+            }
+
+            async function loadQrSigns() {
+                qrSetupControls();
+                var loading = document.getElementById('qrSignsLoading');
+                loading.textContent = 'Loading QR signs...';
+                loading.classList.remove('admin-hidden');
+                var params = new URLSearchParams({ season: String(qrState.season) });
+                if (qrState.from) params.set('from', qrState.from);
+                if (qrState.to) params.set('to', qrState.to);
+                if (qrState.sign) params.set('sign', qrState.sign);
+                if (qrState.includeTest) params.set('includeTest', '1');
+                try {
+                    var res = await authedFetch(QR_ENDPOINT + '?' + params.toString());
+                    var data = await res.json();
+                    if (!res.ok) throw new Error(data.error || 'Could not load QR signs');
+                    qrState.data = data;
+                    loading.classList.add('admin-hidden');
+                    renderQrSigns();
+                } catch (err) {
+                    console.error('Error loading QR signs:', err);
+                    loading.textContent = "Couldn't load QR sign data \u2014 please try refreshing.";
+                }
+            }
+
+            function renderQrSigns() {
+                var data = qrState.data;
+                document.getElementById('qrFrom').value = data.from;
+                document.getElementById('qrTo').value = data.to;
+                var container = document.getElementById('qrSignsResults');
+                container.innerHTML = '';
+
+                var stats = document.createElement('div');
+                stats.className = 'search-stats-row';
+                [
+                    ['Tracked QR visits', data.totals.trackedVisits],
+                    ['Signs with \u22651 visit', data.totals.signsWithVisits + ' / ' + data.totals.totalSigns],
+                    ['Installed signs with \u22651 visit', data.totals.installedWithVisits + ' / ' + data.totals.installedSigns],
+                    [data.includeTest ? 'Test visits (included)' : 'Test visits (excluded)', data.totals.testVisits]
+                ].forEach(function(row) {
+                    var stat = document.createElement('div');
+                    stat.className = 'search-stat';
+                    stat.innerHTML = '<div class="search-stat-value">' + escapeHtml(row[1]) + '</div><div class="search-stat-label">' + escapeHtml(row[0]) + '</div>';
+                    stats.appendChild(stat);
+                });
+                container.appendChild(stats);
+
+                var chartTitle = document.createElement('div');
+                chartTitle.className = 'search-activity-subtitle';
+                chartTitle.textContent = 'Daily tracked visits' + (data.sign ? ' \u2014 sign ' + data.sign + ' only' : ' \u2014 all signs');
+                container.appendChild(chartTitle);
+                renderQrChart(container, data.daily, data.from, data.to);
+
+                var tableTitle = document.createElement('div');
+                tableTitle.className = 'search-activity-subtitle';
+                tableTitle.textContent = 'Signs by tracked visits (' + qrFormatDay(data.from) + ' \u2013 ' + qrFormatDay(data.to) + ')';
+                container.appendChild(tableTitle);
+
+                var hint = document.createElement('p');
+                hint.className = 'no-match-empty';
+                hint.textContent = 'Tap a sign number to chart just that sign. "Per day up" divides visits by the days the sign was installed within this range, for fairer comparison.';
+                container.appendChild(hint);
+
+                var sorted = data.signs.slice().sort(function(a, b) {
+                    return b.visits - a.visits || (a.signId < b.signId ? -1 : 1);
+                });
+
+                var table = document.createElement('table');
+                table.className = 'admin-table';
+                table.innerHTML = '<thead><tr>' +
+                    '<th class="qr-col-sign">Sign</th><th>Location</th><th class="qr-col-status">Status</th>' +
+                    '<th class="qr-col-num">Visits</th><th class="qr-col-last">Last visit</th>' +
+                    '<th class="qr-col-num">Per day up</th><th class="qr-col-edit"></th></tr></thead>';
+                var tbody = document.createElement('tbody');
+                sorted.forEach(function(s) {
+                    var tr = document.createElement('tr');
+                    tr.innerHTML =
+                        '<td><button type="button" class="qr-sign-link" data-qr-sign="' + escapeHtml(s.signId) + '">' + escapeHtml(s.signId) + '</button></td>' +
+                        '<td>' + (s.locationLabel ? escapeHtml(s.locationLabel) : '<span class="qr-muted">Not set</span>') + '</td>' +
+                        '<td><span class="qr-status ' + escapeHtml(s.status) + '">' + escapeHtml(QR_STATUS_LABELS[s.status] || s.status) + '</span></td>' +
+                        '<td><strong>' + s.visits + '</strong></td>' +
+                        '<td>' + escapeHtml(qrFormatVisitTime(s.lastVisit)) + '</td>' +
+                        '<td>' + (s.visitsPerDayInstalled == null ? '\u2014' : escapeHtml(s.visitsPerDayInstalled)) + '</td>' +
+                        '<td><button type="button" class="admin-btn small" data-qr-edit="' + escapeHtml(s.signId) + '">Edit</button></td>';
+                    tbody.appendChild(tr);
+                    if (qrState.editing === s.signId) tbody.appendChild(qrEditRow(s));
+                });
+                table.appendChild(tbody);
+                var scroll = document.createElement('div');
+                scroll.className = 'table-scroll';
+                scroll.appendChild(table);
+                container.appendChild(scroll);
+
+                tbody.querySelectorAll('[data-qr-sign]').forEach(function(btn) {
+                    btn.addEventListener('click', function() {
+                        qrState.sign = btn.getAttribute('data-qr-sign');
+                        document.getElementById('qrSignFilter').value = qrState.sign;
+                        loadQrSigns();
+                    });
+                });
+                tbody.querySelectorAll('[data-qr-edit]').forEach(function(btn) {
+                    btn.addEventListener('click', function() {
+                        var id = btn.getAttribute('data-qr-edit');
+                        qrState.editing = qrState.editing === id ? null : id;
+                        renderQrSigns();
+                    });
+                });
+
+                var zero = sorted.filter(function(s) { return s.visits === 0; });
+                var zeroTitle = document.createElement('div');
+                zeroTitle.className = 'search-activity-subtitle';
+                zeroTitle.style.marginTop = '1.25rem';
+                zeroTitle.textContent = 'No tracked visits in this range (' + zero.length + ')';
+                container.appendChild(zeroTitle);
+                if (!zero.length) {
+                    var none = document.createElement('p');
+                    none.className = 'no-match-empty';
+                    none.textContent = 'Every sign has at least one tracked visit.';
+                    container.appendChild(none);
+                } else {
+                    var ul = document.createElement('ul');
+                    ul.className = 'no-match-list';
+                    zero.slice().sort(function(a, b) { return a.signId < b.signId ? -1 : 1; }).forEach(function(s) {
+                        var li = document.createElement('li');
+                        li.textContent = s.signId + ' \u2014 ' + (QR_STATUS_LABELS[s.status] || s.status) + (s.locationLabel ? ' \u2014 ' + s.locationLabel : '');
+                        ul.appendChild(li);
+                    });
+                    container.appendChild(ul);
+                }
+            }
+
+            function qrEditRow(s) {
+                var tr = document.createElement('tr');
+                tr.className = 'qr-edit-row';
+                var td = document.createElement('td');
+                td.colSpan = 7;
+                td.innerHTML =
+                    '<div class="qr-edit-grid">' +
+                      '<label>Location (street or landmark)<input type="text" maxlength="120" data-f="locationLabel" placeholder="e.g. Liverpool St / corner shop"></label>' +
+                      '<label>Status<select data-f="status">' +
+                        '<option value="not_installed">Not installed</option><option value="installed">Installed</option><option value="removed">Removed</option>' +
+                      '</select></label>' +
+                      '<label>Installed date<input type="date" data-f="installedDate"></label>' +
+                      '<label>Removed date<input type="date" data-f="removedDate"></label>' +
+                      '<label>Notes (optional, non-sensitive)<input type="text" maxlength="500" data-f="notes"></label>' +
+                    '</div>' +
+                    '<p class="qr-muted" style="margin:0 0 .5rem;font-size:.85rem;">No host names, phone numbers or house numbers \u2014 those stay in the Microsoft Form. QR link: ' + escapeHtml(s.qrUrl) + '</p>' +
+                    '<button type="button" class="admin-btn small" data-qr-save>Save sign ' + escapeHtml(s.signId) + '</button> ' +
+                    '<button type="button" class="admin-btn small danger" data-qr-cancel>Cancel</button>';
+                tr.appendChild(td);
+                function field(name) { return td.querySelector('[data-f="' + name + '"]'); }
+                field('locationLabel').value = s.locationLabel || '';
+                field('status').value = s.status;
+                field('installedDate').value = s.installedDate || '';
+                field('removedDate').value = s.removedDate || '';
+                field('notes').value = s.notes || '';
+                td.querySelector('[data-qr-cancel]').addEventListener('click', function() {
+                    qrState.editing = null;
+                    renderQrSigns();
+                });
+                td.querySelector('[data-qr-save]').addEventListener('click', async function(e) {
+                    var btn = e.currentTarget;
+                    var label = field('locationLabel').value.trim();
+                    if (/^\d/.test(label) && !confirm('That location starts with a number \u2014 if it\u2019s a house number, please use just the street or a landmark instead. Save anyway?')) return;
+                    btn.disabled = true;
+                    try {
+                        await postOp(QR_ENDPOINT, {
+                            op: 'save-placement',
+                            season: qrState.season,
+                            signId: s.signId,
+                            locationLabel: label,
+                            status: field('status').value,
+                            installedDate: field('installedDate').value,
+                            removedDate: field('removedDate').value,
+                            notes: field('notes').value
+                        });
+                        qrState.editing = null;
+                        showToast('Sign ' + s.signId + ' saved.');
+                        await loadQrSigns();
+                    } catch (err) {
+                        btn.disabled = false;
+                        showToast(err.message, 'error');
+                    }
+                });
+                return tr;
+            }
+
+            function renderQrChart(container, daily, from, to) {
+                if (!daily.length) {
+                    var empty = document.createElement('p');
+                    empty.className = 'no-match-empty';
+                    empty.textContent = 'No tracked visits in this range yet.';
+                    container.appendChild(empty);
+                    return;
+                }
+                // Chart from the first visit (or range start, if later) to
+                // today (or range end, if earlier).
+                var today = qrLondonToday();
+                var start = daily[0].day > from ? daily[0].day : from;
+                var end = to < today ? to : today;
+                if (end < daily[daily.length - 1].day) end = daily[daily.length - 1].day;
+                var days = [];
+                var d = new Date(start + 'T00:00:00Z');
+                var last = new Date(end + 'T00:00:00Z');
+                while (d <= last && days.length < 400) {
+                    days.push(d.toISOString().slice(0, 10));
+                    d.setUTCDate(d.getUTCDate() + 1);
+                }
+                var byDay = {};
+                daily.forEach(function(x) { byDay[x.day] = x.visits; });
+                var vals = days.map(function(day) { return byDay[day] || 0; });
+                var max = Math.max.apply(null, vals.concat([1]));
+                var running = 0;
+                var cum = vals.map(function(v) { running += v; return running; });
+                var cmax = Math.max(1, running);
+
+                var W = 720, H = 220, padL = 34, padR = 44, padT = 12, padB = 26;
+                var plotW = W - padL - padR, plotH = H - padT - padB;
+                var bw = plotW / days.length;
+                var parts = ['<svg class="qr-chart" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Daily tracked QR visits, with cumulative total">'];
+                parts.push('<line x1="' + padL + '" y1="' + (padT + plotH) + '" x2="' + (W - padR) + '" y2="' + (padT + plotH) + '" style="stroke:var(--border-subtle)"/>');
+                vals.forEach(function(v, i) {
+                    var h = (v / max) * plotH;
+                    parts.push('<rect x="' + (padL + i * bw).toFixed(2) + '" y="' + (padT + plotH - h).toFixed(2) + '" width="' + Math.max(1, bw - 1).toFixed(2) + '" height="' + h.toFixed(2) + '" style="fill:var(--santa-green)"><title>' + escapeHtml(qrFormatDay(days[i]) + ': ' + v + ' visit' + (v === 1 ? '' : 's')) + '</title></rect>');
+                });
+                var pts = cum.map(function(c, i) {
+                    return (padL + i * bw + bw / 2).toFixed(2) + ',' + (padT + plotH - (c / cmax) * plotH).toFixed(2);
+                }).join(' ');
+                parts.push('<polyline points="' + pts + '" fill="none" style="stroke:var(--santa-red)" stroke-width="2"/>');
+                var t = 'font-size="11" style="fill:var(--ink-soft)"';
+                parts.push('<text x="' + (padL - 4) + '" y="' + (padT + 9) + '" text-anchor="end" ' + t + '>' + max + '</text>');
+                parts.push('<text x="' + (padL - 4) + '" y="' + (padT + plotH) + '" text-anchor="end" ' + t + '>0</text>');
+                parts.push('<text x="' + (W - padR + 4) + '" y="' + (padT + 9) + '" font-size="11" style="fill:var(--santa-red)">' + cmax + '</text>');
+                parts.push('<text x="' + padL + '" y="' + (H - 6) + '" ' + t + '>' + escapeHtml(qrFormatDay(days[0])) + '</text>');
+                parts.push('<text x="' + (W - padR) + '" y="' + (H - 6) + '" text-anchor="end" ' + t + '>' + escapeHtml(qrFormatDay(days[days.length - 1])) + '</text>');
+                parts.push('</svg>');
+                var wrap = document.createElement('div');
+                wrap.innerHTML = parts.join('');
+                container.appendChild(wrap);
+                var legend = document.createElement('p');
+                legend.className = 'qr-chart-legend';
+                legend.innerHTML = '<span class="swatch" style="background:var(--santa-green)"></span>Visits per day (left scale) &nbsp; ' +
+                    '<span class="swatch" style="background:var(--santa-red)"></span>Running total for this range (right scale)';
+                container.appendChild(legend);
+            }
+
+            // ---- QR CSV export / import ----
+
+            function qrCsvCell(v) {
+                var s = v == null ? '' : String(v);
+                if (/^[=+\-@\t\r]/.test(s)) s = "'" + s; // stop spreadsheets running it as a formula
+                return /[",\r\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+            }
+
+            function qrDownloadCsv(filename, rows) {
+                var csv = '\uFEFF' + rows.map(function(r) { return r.map(qrCsvCell).join(','); }).join('\r\n') + '\r\n';
+                var blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+                var url = URL.createObjectURL(blob);
+                var a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                setTimeout(function() { URL.revokeObjectURL(url); }, 1000);
+            }
+
+            function qrExportSigns() {
+                var data = qrState.data;
+                if (!data) return;
+                var rows = [['sign_id', 'qr_url', 'season', 'location_label', 'status', 'installed_date', 'removed_date',
+                    'tracked_visits', 'last_visit_london', 'days_installed_in_range', 'visits_per_day_installed',
+                    'range_from', 'range_to', 'includes_test_visits']];
+                data.signs.slice().sort(function(a, b) { return b.visits - a.visits || (a.signId < b.signId ? -1 : 1); }).forEach(function(s) {
+                    rows.push([s.signId, s.qrUrl, data.season, s.locationLabel, QR_STATUS_LABELS[s.status] || s.status,
+                        s.installedDate || '', s.removedDate || '', s.visits, s.lastVisit ? qrFormatVisitTime(s.lastVisit) : '',
+                        s.daysInstalled == null ? '' : s.daysInstalled, s.visitsPerDayInstalled == null ? '' : s.visitsPerDayInstalled,
+                        data.from, data.to, data.includeTest ? 'yes' : 'no']);
+                });
+                qrDownloadCsv('qr-sign-visits-' + data.from + '-to-' + data.to + '.csv', rows);
+            }
+
+            function qrExportDaily() {
+                var data = qrState.data;
+                if (!data) return;
+                var rows = [['date_london', 'tracked_visits', 'sign_filter', 'includes_test_visits']];
+                data.daily.forEach(function(d) { rows.push([d.day, d.visits, data.sign || 'all', data.includeTest ? 'yes' : 'no']); });
+                qrDownloadCsv('qr-sign-daily-' + (data.sign ? 'sign-' + data.sign + '-' : '') + data.from + '-to-' + data.to + '.csv', rows);
+            }
+
+            // Minimal RFC 4180 parser (quoted fields, "" escapes, CRLF).
+            function qrParseCsv(text) {
+                var rows = [], row = [], field = '', i = 0, q = false;
+                text = text.replace(/^\uFEFF/, '');
+                while (i < text.length) {
+                    var c = text[i];
+                    if (q) {
+                        if (c === '"' && text[i + 1] === '"') { field += '"'; i += 2; continue; }
+                        if (c === '"') { q = false; i++; continue; }
+                        field += c; i++; continue;
+                    }
+                    if (c === '"') { q = true; i++; continue; }
+                    if (c === ',') { row.push(field); field = ''; i++; continue; }
+                    if (c === '\r') { i++; continue; }
+                    if (c === '\n') { row.push(field); rows.push(row); row = []; field = ''; i++; continue; }
+                    field += c; i++;
+                }
+                if (field !== '' || row.length) { row.push(field); rows.push(row); }
+                return rows.filter(function(r) { return r.some(function(x) { return x.trim() !== ''; }); });
+            }
+
+            async function qrImportCsv() {
+                var input = document.getElementById('qrImportFile');
+                var file = input.files && input.files[0];
+                if (!file) { showToast('Choose a CSV file first.', 'error'); return; }
+                try {
+                    var rows = qrParseCsv(await file.text());
+                    if (rows.length < 2) throw new Error('That file has no data rows.');
+                    var head = rows[0].map(function(h) { return h.trim().toLowerCase(); });
+                    function col(names) {
+                        for (var k = 0; k < names.length; k++) { var at = head.indexOf(names[k]); if (at !== -1) return at; }
+                        return -1;
+                    }
+                    var ix = {
+                        sign_id: col(['sign_id']),
+                        location: col(['location', 'location_label']),
+                        status: col(['status']),
+                        installed_date: col(['installed_date']),
+                        removed_date: col(['removed_date']),
+                        notes: col(['notes'])
+                    };
+                    if (ix.sign_id === -1) throw new Error('The CSV needs a sign_id column.');
+                    var payload = rows.slice(1).map(function(r) {
+                        var o = {};
+                        Object.keys(ix).forEach(function(k) { o[k] = ix[k] === -1 ? '' : (r[ix[k]] || '').trim(); });
+                        return o;
+                    });
+                    if (!confirm('Import ' + payload.length + ' row(s) into the ' + qrState.season + ' season? Existing entries for those signs this season will be overwritten. Rows with no location, status, dates or notes are skipped.')) return;
+                    var result = await postOp(QR_ENDPOINT, { op: 'import', season: qrState.season, rows: payload });
+                    showToast('Imported ' + result.imported + ' sign(s); skipped ' + result.skipped + ' blank row(s).');
+                    input.value = '';
+                    await loadQrSigns();
+                } catch (err) {
+                    showToast(err.message, 'error');
+                }
+            }
+
+            async function qrClearNotes() {
+                if (!confirm('Clear the notes on every sign for the ' + qrState.season + ' season? Locations, status and dates are kept.')) return;
+                try {
+                    var result = await postOp(QR_ENDPOINT, { op: 'clear-notes', season: qrState.season });
+                    showToast('Cleared notes on ' + result.cleared + ' sign(s).');
+                    await loadQrSigns();
+                } catch (err) {
+                    showToast(err.message, 'error');
+                }
+            }
+
             // ---- Tabs ----
 
             document.querySelectorAll('.admin-tabs .tab-btn').forEach(function(btn) {
                 btn.addEventListener('click', function() {
                     document.querySelectorAll('.admin-tabs .tab-btn').forEach(function(b) { b.classList.remove('active'); });
                     btn.classList.add('active');
-                    ['dashboard', 'routes', 'volunteers', 'search-activity', 'site-activity'].forEach(function(tab) {
+                    ['dashboard', 'routes', 'volunteers', 'search-activity', 'site-activity', 'qr-signs'].forEach(function(tab) {
                         document.getElementById('tab-' + tab).classList.toggle('admin-hidden', tab !== btn.dataset.tab);
                     });
+                    if (btn.dataset.tab === 'qr-signs') loadQrSigns();
                 });
             });
 
