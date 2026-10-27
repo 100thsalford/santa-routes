@@ -34,8 +34,10 @@ const STATUS_STYLES = {
 
 // bodyHtml: optional pre-built HTML (e.g. a shift table) placed after the
 // paragraphs and before the button.
+// afterButtonHtml: optional pre-built HTML placed after the button (e.g.
+// the portal guide in the approval email).
 // status: optional { tone: 'pending' | 'approved', label } banner.
-export function brandedEmailHtml({ heading, paragraphs, bodyHtml, button, footnote, status }) {
+export function brandedEmailHtml({ heading, paragraphs, bodyHtml, button, afterButtonHtml, footnote, status }) {
   const st = status && STATUS_STYLES[status.tone];
   const statusHtml = st
     ? '<div style="margin:0 0 20px; padding:14px 16px; background:' + st.bg + '; border:2px solid ' + st.border + '; border-radius:10px; color:' + st.color + '; font-size:17px; font-weight:bold; letter-spacing:0.02em;">' +
@@ -60,7 +62,7 @@ export function brandedEmailHtml({ heading, paragraphs, bodyHtml, button, footno
         '<div style="padding:28px 24px 12px;">' +
           statusHtml +
           '<h1 style="margin:0 0 20px; font-size:22px; color:' + headingColor + ';">' + escapeHtml(heading) + '</h1>' +
-          body + (bodyHtml || '') + buttonHtml +
+          body + (bodyHtml || '') + buttonHtml + (afterButtonHtml || '') +
         '</div>' +
         (footnote ? '<div style="padding:16px 24px 24px; font-size:13px; line-height:1.5; color:#5B6169; border-top:1px solid #E7E2D9;">' + footnote + '</div>' : '') +
       '</div>' +

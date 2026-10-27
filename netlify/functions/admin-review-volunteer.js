@@ -10,6 +10,7 @@
 import { getUser } from '@netlify/identity';
 import { getDatabase } from '@netlify/database';
 import { brandedEmailHtml, escapeHtml, sendEmail, siteUrls } from '../lib/email.js';
+import { portalGuideHtml } from '../lib/portal-guide-email.js';
 
 const headers = { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' };
 
@@ -69,6 +70,7 @@ export default async (req, context) => {
               'Log in to the volunteer portal to see the nights we\'re out and pick the ones you can help with.'
             ],
             button: { label: 'Choose my shifts', url: urls.volunteerLogin },
+            afterButtonHtml: portalGuideHtml(urls.main),
             footnote: 'Forgotten your password? Use "Forgot password?" on the login screen.'
           })
         }
