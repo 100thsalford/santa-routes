@@ -11,10 +11,15 @@
 // small for mobile.
 
 import { getDatabase } from '@netlify/database';
+import { cdnCacheHeaders, CACHE_TAGS } from '../lib/cdn-cache.js';
 
+// Browsers keep a copy for 5 minutes (as before); the CDN keeps one
+// durable copy for 10, purged whenever an admin changes a route or its
+// GPX track (admin-routes.js / admin-route-track.js).
 const headers = {
   'Content-Type': 'application/json',
-  'Cache-Control': 'public, max-age=300, s-maxage=300'
+  ...cdnCacheHeaders({ maxAge: 600, tags: [CACHE_TAGS.routes] }),
+  'Cache-Control': 'public, max-age=300'
 };
 
 const SIMPLIFY_METRES = 4;

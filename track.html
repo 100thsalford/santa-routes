@@ -404,7 +404,11 @@
                 }
             }
 
+            var lastPollAt = 0;
+            var pollTimer = null;
+
             async function poll() {
+                lastPollAt = Date.now();
                 try {
                     var res = await fetch('/.netlify/functions/get-tracking-data');
                     var data = await res.json();
@@ -415,8 +419,28 @@
                 }
             }
 
+            // Only poll while the tab is visible: a backgrounded tab or a
+            // locked phone makes no calls. Coming back polls straight away
+            // if the last update is older than one poll interval, so the
+            // sleigh jumps to its current position at once.
+            function startPolling() {
+                if (!pollTimer) pollTimer = setInterval(poll, POLL_MS);
+            }
+            function stopPolling() {
+                clearInterval(pollTimer);
+                pollTimer = null;
+            }
+            document.addEventListener('visibilitychange', function() {
+                if (document.hidden) {
+                    stopPolling();
+                    return;
+                }
+                if (Date.now() - lastPollAt >= POLL_MS) poll();
+                startPolling();
+            });
+
             poll();
-            setInterval(poll, POLL_MS);
+            if (!document.hidden) startPolling();
         })();
     </script>
 </body>

@@ -6,6 +6,7 @@
 
 import { getUser } from '@netlify/identity';
 import { getDatabase } from '@netlify/database';
+import { purgePublicCache, CACHE_TAGS } from '../lib/cdn-cache.js';
 
 const headers = { 'Content-Type': 'application/json' };
 
@@ -36,7 +37,18 @@ function requireAdmin(user) {
   return !!(user && user.roles && user.roles.includes('admin'));
 }
 
+// Any saved setting (windows, season days, "stop tracking now") changes what
+// the public site-status and tracking endpoints return, so clear their CDN
+// copies before replying -- the change is live as soon as the admin sees it.
 export default async (req, context) => {
+  const res = await handle(req, context);
+  if (res.status === 200) {
+    await purgePublicCache([CACHE_TAGS.siteStatus, CACHE_TAGS.tracking], { retry: true });
+  }
+  return res;
+};
+
+async function handle(req, context) {
   if (req.method !== 'POST') {
     return new Response(JSON.stringify({ error: 'Method not allowed' }), { status: 405, headers });
   }
@@ -87,4 +99,4 @@ export default async (req, context) => {
     console.error('Error updating settings:', error);
     return new Response(JSON.stringify({ error: error.message }), { status: 500, headers });
   }
-};
+}

@@ -10,8 +10,11 @@ let selectedStreet = '';
 // button) still updates correctly for a page left open across a window
 // boundary (e.g. 10pm cutoff).
 let siteStatus = null;
+let siteStatusFetchedAt = 0;
+let siteStatusTimer = null;
 
 async function refreshSiteStatus() {
+    siteStatusFetchedAt = Date.now();
     try {
         const params = new URLSearchParams(window.location.search);
         const asOf = params.get('asOf');
@@ -27,11 +30,35 @@ async function refreshSiteStatus() {
     updateTrackSantaButton();
 }
 
+// The 60s refresh only runs while the tab is visible -- a page left open in
+// a background tab (or a locked phone) makes no calls. Coming back to it
+// refreshes straight away if the last check is over a minute old, so the
+// button and sightings window are just as up to date as before.
+function startSiteStatusPolling() {
+    function start() {
+        if (!siteStatusTimer) siteStatusTimer = setInterval(refreshSiteStatus, 60000);
+    }
+    function stop() {
+        clearInterval(siteStatusTimer);
+        siteStatusTimer = null;
+    }
+    document.addEventListener('visibilitychange', function() {
+        if (document.hidden) {
+            stop();
+            return;
+        }
+        if (Date.now() - siteStatusFetchedAt >= 60000) refreshSiteStatus();
+        start();
+    });
+    if (!document.hidden) start();
+}
+
 // Shows the floating "Track Santa Live" button (linking to track.html)
 // only while siteStatus.tracking.active is true -- the live-tracking
 // window (own admin times, per-night end, admin "stop now" switch). Falls
 // back to the sightings window for an older get-site-status response. Re-run on every
-// refreshSiteStatus() call (initial load + the 60s interval) so the
+// refreshSiteStatus() call (initial load, the 60s interval and returning
+// to the tab) so the
 // button still appears/disappears correctly for a page left open across
 // a window boundary, same reasoning as the sightings feature above.
 function updateTrackSantaButton() {
@@ -47,9 +74,10 @@ document.addEventListener('DOMContentLoaded', async function() {
     console.log('DOM loaded, initializing...');
 
     // Fetch site status first so everything date/time-gated below has it
-    // available on first render, then keep it refreshed every minute.
+    // available on first render, then keep it refreshed every minute
+    // while the tab is visible.
     await refreshSiteStatus();
-    setInterval(refreshSiteStatus, 60000);
+    startSiteStatusPolling();
 
     // Initialize main search features
     initializeTabs();

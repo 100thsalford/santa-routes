@@ -9,6 +9,7 @@
 // ignored in production so real visitors can never see a faked date.
 
 import { getDatabase } from '@netlify/database';
+import { cdnCacheHeaders, CACHE_TAGS } from '../lib/cdn-cache.js';
 
 const headers = {
   'Access-Control-Allow-Origin': '*',
@@ -16,6 +17,18 @@ const headers = {
   'Access-Control-Allow-Methods': 'GET, OPTIONS',
   'Content-Type': 'application/json'
 };
+
+// Polled every 60s by every open page that loads script.js, plus once per
+// index.html load -- so the CDN answers repeats. Window boundaries (e.g.
+// the 10pm cutoff) can show up to ~90s late; admin changes to settings or
+// route dates purge this straight away (see lib/cdn-cache.js). asOf stays
+// in the cache key so staging's date-override testing still works.
+const cacheHeaders = cdnCacheHeaders({
+  maxAge: 60,
+  staleWhileRevalidate: 30,
+  tags: [CACHE_TAGS.siteStatus],
+  vary: 'query=asOf'
+});
 
 const TIME_ZONE = 'Europe/London';
 
@@ -174,7 +187,7 @@ export default async (req, context) => {
         totalRaised,
         totalRaisedYear
       }),
-      { status: 200, headers }
+      { status: 200, headers: { ...headers, ...cacheHeaders } }
     );
   } catch (error) {
     console.error('Error computing site status:', error);
@@ -193,7 +206,8 @@ export default async (req, context) => {
         },
         tracking: { active: false, state: 'error', windowStart: null, windowEnd: null }
       }),
-      { status: 200, headers }
+      // Never cache the fail-safe answer -- the next call should retry.
+      { status: 200, headers: { ...headers, 'Cache-Control': 'no-store' } }
     );
   }
 };

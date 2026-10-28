@@ -35,6 +35,7 @@
 import { getDatabase } from '@netlify/database';
 import { getStore } from '@netlify/blobs';
 import { parseStringPromise } from 'xml2js';
+import { cdnCacheHeaders, CACHE_TAGS } from '../lib/cdn-cache.js';
 
 const headers = {
   'Access-Control-Allow-Origin': '*',
@@ -59,8 +60,18 @@ function londonTimeString(date) {
   }).format(date);
 }
 
+// Every open track.html polls this every 30s, and on a route night that
+// can be hundreds of tabs. The CDN shares one answer between them for 15s
+// (well inside the 60s the TruTrak position itself is cached for, so the
+// map is no less live). No stale-while-revalidate, so once the window
+// closes no position is served for more than 15s; admin "Stop live
+// tracking now" purges it straight away (admin-settings.js). Errors are
+// never cached.
+const cacheHeaders = cdnCacheHeaders({ maxAge: 15, tags: [CACHE_TAGS.tracking] });
+
 function json(body, status = 200) {
-  return new Response(JSON.stringify(body), { status, headers });
+  const h = status === 200 ? { ...headers, ...cacheHeaders } : headers;
+  return new Response(JSON.stringify(body), { status, headers: h });
 }
 
 function field(row, name, fallback = null) {

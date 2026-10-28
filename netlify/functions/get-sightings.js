@@ -6,8 +6,14 @@
 // local time) because script.js's formatSightingTime parses that format.
 
 import { getDatabase } from '@netlify/database';
+import { cdnCacheHeaders, CACHE_TAGS } from '../lib/cdn-cache.js';
 
 const headers = { 'Content-Type': 'application/json' };
+
+// Loaded on every home page view during the sightings window. Cached for
+// 30s at the CDN; submit-sighting.js purges it before replying, so the
+// person who just reported a sighting still sees it in the list at once.
+const cacheHeaders = cdnCacheHeaders({ maxAge: 30, tags: [CACHE_TAGS.sightings] });
 
 export default async () => {
   try {
@@ -26,9 +32,9 @@ export default async () => {
       when: r.seen_when,
       timestamp: r.ts
     }));
-    return new Response(JSON.stringify({ success: true, sightings }), { status: 200, headers });
+    return new Response(JSON.stringify({ success: true, sightings }), { status: 200, headers: { ...headers, ...cacheHeaders } });
   } catch (error) {
     console.error('Error fetching sightings:', error.message);
-    return new Response(JSON.stringify({ success: true, sightings: [] }), { status: 200, headers });
+    return new Response(JSON.stringify({ success: true, sightings: [] }), { status: 200, headers: { ...headers, 'Cache-Control': 'no-store' } });
   }
 };

@@ -9,6 +9,7 @@
 // See https://ntl.fyi/database-environment
 
 import { getDatabase } from '@netlify/database';
+import { cdnCacheHeaders, CACHE_TAGS } from '../lib/cdn-cache.js';
 
 const headers = {
   'Access-Control-Allow-Origin': '*',
@@ -16,6 +17,11 @@ const headers = {
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
   'Content-Type': 'application/json'
 };
+
+// Fetched on every home page load. Street lists only change when an admin
+// edits them, and admin-routes.js purges this tag on every write, so a
+// 10-minute CDN cache is safe.
+const cacheHeaders = cdnCacheHeaders({ maxAge: 600, tags: [CACHE_TAGS.routes] });
 
 export default async (req, context) => {
   if (req.method === 'OPTIONS') {
@@ -38,8 +44,6 @@ export default async (req, context) => {
       ORDER BY rd.event_date, r.display_order NULLS LAST, r.name, s.sequence
     `;
 
-    console.log('Rows fetched from DB:', rows.length);
-
     return new Response(
       JSON.stringify({
         success: true,
@@ -51,7 +55,7 @@ export default async (req, context) => {
           source: 'netlify-db'
         }
       }),
-      { status: 200, headers }
+      { status: 200, headers: { ...headers, ...cacheHeaders } }
     );
 
   } catch (error) {
@@ -68,7 +72,7 @@ export default async (req, context) => {
           source: 'netlify-db'
         }
       }),
-      { status: 200, headers }
+      { status: 200, headers: { ...headers, 'Cache-Control': 'no-store' } }
     );
   }
 };

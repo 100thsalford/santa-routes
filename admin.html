@@ -768,6 +768,56 @@
             }
         }
 
+        /* Volunteers tab: compact table + action menu (2026-10-28) */
+        .vol-toolbar { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; margin: 0.75rem 0 0.5rem; }
+        .vol-toolbar input[type="search"] { flex: 1 1 14rem; min-width: 0; padding: 0.5rem 0.7rem; border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); font: inherit; font-size: 0.9rem; }
+        .vol-toolbar select { padding: 0.5rem; border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); font: inherit; font-size: 0.9rem; background: var(--surface); }
+        .vol-count { color: var(--ink-soft); font-size: 0.85rem; margin: 0 0 0.4rem; }
+        .vol-table { width: 100%; border-collapse: collapse; font-size: 0.92rem; }
+        .vol-table th { text-align: left; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink-soft); font-weight: 600; padding: 0.4rem 0.5rem; border-bottom: 1px solid var(--border-subtle); }
+        .vol-table td { padding: 0.55rem 0.5rem; border-bottom: 1px solid var(--border-subtle); vertical-align: middle; }
+        .vol-table tr:last-child td { border-bottom: none; }
+        .vol-table .col-shifts, .vol-table .col-roles { text-align: center; white-space: nowrap; }
+        .vol-table .col-actions { width: 2.5rem; text-align: right; }
+        .vol-name { font-weight: 600; background: none; border: none; padding: 0; font: inherit; font-weight: 600; color: var(--text-dark); cursor: pointer; text-align: left; }
+        .vol-name:hover { color: var(--santa-green); text-decoration: underline; }
+        .vol-table td.col-name { width: 100%; max-width: 0; }
+        .vol-sub { display: block; color: var(--ink-soft); font-size: 0.8rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .vol-guest { font-size: 0.7rem; font-weight: bold; color: #fff; background: var(--santa-green); border-radius: 999px; padding: 0.1rem 0.5rem; margin-left: 0.35rem; vertical-align: 1px; }
+        .vol-role-icons { font-size: 1.05rem; letter-spacing: 0.1rem; }
+        .vol-role-none { color: var(--ink-soft); }
+        .vol-shift-count { display: inline-block; min-width: 1.8rem; padding: 0.1rem 0.45rem; border-radius: 999px; background: var(--surface-muted); font-weight: 600; }
+        .vol-shift-count.zero { color: var(--ink-soft); font-weight: normal; }
+        .vol-menu-btn { background: none; border: 1px solid transparent; border-radius: var(--radius-sm); width: 2.2rem; height: 2.2rem; font-size: 1.25rem; line-height: 1; cursor: pointer; color: var(--ink-soft); }
+        .vol-menu-btn:hover, .vol-menu-btn[aria-expanded="true"] { background: var(--surface-muted); border-color: var(--border-subtle); color: var(--text-dark); }
+        .vol-menu { position: fixed; z-index: 1400; min-width: 12rem; background: var(--surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); box-shadow: var(--shadow-lg); padding: 0.3rem; }
+        .vol-menu button { display: block; width: 100%; text-align: left; background: none; border: none; border-radius: var(--radius-sm); padding: 0.55rem 0.7rem; font: inherit; font-size: 0.9rem; cursor: pointer; color: var(--text-dark); }
+        .vol-menu button:hover:not(:disabled), .vol-menu button:focus-visible { background: var(--surface-muted); outline: none; }
+        .vol-menu button:disabled { color: #aaa; cursor: default; }
+        .vol-menu button.danger { color: var(--santa-red); }
+        .vol-menu hr { border: none; border-top: 1px solid var(--border-subtle); margin: 0.25rem 0; }
+        .import-modal-card.vol-modal-card { width: min(32rem, 100%); }
+        .vol-modal-body { overflow-y: auto; padding: 0 1.25rem 0.5rem; flex: 1; }
+        .vol-modal-body .vol-field { display: block; margin-bottom: 0.75rem; font-size: 0.85rem; color: var(--ink-soft); }
+        .vol-modal-body .vol-field input, .vol-modal-body .vol-field select { display: block; width: 100%; box-sizing: border-box; margin-top: 0.25rem; padding: 0.55rem 0.6rem; border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); font: inherit; font-size: 0.95rem; color: var(--text-dark); background: var(--surface); }
+        .vol-role-option { display: flex; align-items: center; gap: 0.6rem; padding: 0.6rem 0.2rem; font-size: 0.95rem; border-bottom: 1px solid var(--border-subtle); cursor: pointer; }
+        .vol-role-option:last-child { border-bottom: none; }
+        .vol-role-option input { width: 1.1rem; height: 1.1rem; }
+        .vol-detail-list { margin: 0 0 0.75rem; display: grid; grid-template-columns: auto 1fr; gap: 0.35rem 0.9rem; font-size: 0.92rem; }
+        .vol-detail-list dt { color: var(--ink-soft); }
+        .vol-detail-list dd { margin: 0; overflow-wrap: anywhere; }
+        .vol-detail-shifts { list-style: none; padding: 0; margin: 0 0 0.5rem; }
+        .vol-detail-shifts li { display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0; border-bottom: 1px solid var(--border-subtle); font-size: 0.9rem; }
+        .vol-detail-shifts li span { flex: 1; }
+        .vol-detail-shifts li em { color: var(--ink-soft); font-size: 0.8rem; }
+        .vol-detail-shifts li button { background: none; border: none; color: var(--santa-red); cursor: pointer; font-size: 1rem; padding: 0.2rem 0.4rem; }
+        .vol-modal-heading { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink-soft); margin: 0.75rem 0 0.25rem; }
+        @media (max-width: 480px) {
+            .vol-table th.col-roles-h { font-size: 0; }
+            .vol-table td, .vol-table th { padding-left: 0.3rem; padding-right: 0.3rem; }
+        }
+        .visually-hidden { position: absolute !important; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+
         /* Import-streets-from-route review panel */
         body.import-modal-open { overflow: hidden; }
         .import-modal {
@@ -829,6 +879,8 @@
         @media (max-width: 600px) {
             .import-modal { padding: 0; align-items: stretch; }
             .import-modal-card { max-height: 100vh; border-radius: 0; }
+            .import-modal:has(.vol-modal-card) { padding: 0.75rem; align-items: center; }
+            .import-modal-card.vol-modal-card { border-radius: var(--radius-lg); max-height: calc(100vh - 1.5rem); }
             .import-table .col-source { width: 5.5rem; }
             .import-table .col-km { display: none; }
             .import-table td:nth-child(5) { display: none; }
@@ -909,7 +961,6 @@
         }
 
         /* ---- Collapsible Routes & Streets (mobile-friendly admin) ---- */
-        .back-btn { display: inline-block; text-decoration: none; }
         details.route-block, details.date-block { padding: 0; overflow: hidden; }
         details.route-block > summary, details.date-block > summary {
             list-style: none; cursor: pointer; padding: 0.85rem 2.2rem 0.85rem 1rem;
@@ -996,14 +1047,23 @@
         </div>
     </div>
 
+    <div id="volunteerModal" class="import-modal admin-hidden" role="dialog" aria-modal="true" aria-labelledby="volunteerModalTitle">
+        <div class="import-modal-card vol-modal-card">
+            <div class="import-modal-header">
+                <h3 id="volunteerModalTitle">Volunteer</h3>
+                <button type="button" class="toast-close" id="volunteerModalClose" aria-label="Close">&times;</button>
+            </div>
+            <div id="volunteerModalBody" class="vol-modal-body"></div>
+            <div id="volunteerModalFooter" class="import-modal-footer"></div>
+        </div>
+    </div>
+
     <div class="header">
         <h1>🛠️ Admin</h1>
         <p>100th Salford Scout Group | Santa Super Sleigh Salford</p>
     </div>
 
     <div class="container">
-        <a href="index.html" class="back-btn">← Back to Home</a>
-
         <div class="admin-card" id="loggedOutCard">
             <p>Log in with an admin account to manage routes, streets, dates, season settings and volunteer shifts.</p>
             <button class="admin-login-btn" id="loginBtn">Log In</button>
@@ -1221,7 +1281,7 @@
                 <div class="admin-status" id="invitesStatus"></div>
 
                 <div class="dashboard-section-title">👥 Volunteers</div>
-                <p style="color:#666; font-size:0.9rem; margin-top:0;">Most volunteers get an account via an invite email. For a helper who doesn't want or need one -- a one-off doorstep helper, a second adult just tagging along -- add them here instead; they can still be assigned to shifts and to the Santa/Safety Walker/Driver roles below, same as anyone else.</p>
+                <p style="color:#666; font-size:0.9rem; margin-top:0;">Most volunteers get an account via an invite email. For a helper who doesn't want or need one -- a one-off doorstep helper, a second adult just tagging along -- add them here instead; they can still be assigned to shifts and to the Santa/Safety Walker/Driver roles (via the ⋮ menu), same as anyone else.</p>
                 <form class="add-row-form" id="addGuestVolunteerForm">
                     <input type="text" id="guestVolunteerName" placeholder="Name" required>
                     <input type="tel" id="guestVolunteerPhone" placeholder="Phone (optional)">
@@ -3162,173 +3222,455 @@
                 });
             }
 
+            // Volunteers tab (2026-10-28): a compact table -- name, role
+            // icons, shift count and a ⋮ menu -- instead of every control
+            // being visible for every volunteer, which got unwieldy past
+            // a few dozen people. Each menu action opens in a pop-up dialog.
+            var VOLUNTEER_ROLES = [
+                ['santa', 'canBeSanta', '🎅', 'Santa'],
+                ['safetyWalker', 'canBeSafetyWalker', '🦺', 'Safety Walker'],
+                ['driver', 'canBeDriver', '🚗', 'Driver']
+            ];
+            var volunteerSearch = '';
+            var volunteerSort = 'name';
+            var volunteerModalState = null; // { id, mode }
+            var openVolunteerMenu = null;
+
+            function volunteerDisplayName(vol) {
+                return vol.fullName || vol.email || 'Unnamed guest';
+            }
+
+            function volunteerRolesBody(vol, overrides) {
+                var q = vol.qualifiedRoles || {};
+                var body = { volunteerId: vol.id };
+                VOLUNTEER_ROLES.forEach(function(r) {
+                    body[r[1]] = overrides && overrides[r[0]] !== undefined ? !!overrides[r[0]] : !!q[r[0]];
+                });
+                return body;
+            }
+
             function renderVolunteers() {
                 document.getElementById('volunteersLoading').classList.add('admin-hidden');
                 renderInactiveVolunteers();
+                closeVolunteerMenu();
                 var container = document.getElementById('volunteersContent');
                 container.innerHTML = '';
-                var routeDates = flattenRouteDates();
 
                 if (adminData.volunteers.length === 0) {
                     container.textContent = 'No volunteers yet.';
+                    refreshVolunteerModal();
                     return;
                 }
 
-                adminData.volunteers.forEach(function(vol) {
-                    var block = document.createElement('div');
-                    block.className = 'volunteer-block';
+                var toolbar = document.createElement('div');
+                toolbar.className = 'vol-toolbar';
+                var search = document.createElement('input');
+                search.type = 'search';
+                search.placeholder = 'Search by name, email or phone';
+                search.setAttribute('aria-label', 'Search volunteers');
+                search.value = volunteerSearch;
+                var sort = document.createElement('select');
+                sort.setAttribute('aria-label', 'Sort volunteers');
+                [['name', 'Name A–Z'], ['most', 'Most shifts'], ['fewest', 'Fewest shifts']].forEach(function(o) {
+                    var opt = document.createElement('option');
+                    opt.value = o[0];
+                    opt.textContent = o[1];
+                    if (o[0] === volunteerSort) opt.selected = true;
+                    sort.appendChild(opt);
+                });
+                toolbar.appendChild(search);
+                toolbar.appendChild(sort);
+                container.appendChild(toolbar);
 
-                    var titleRow = document.createElement('div');
-                    titleRow.style.cssText = 'display:flex; align-items:center; gap:0.6rem; flex-wrap:wrap; margin-bottom:0.5rem;';
+                var countLine = document.createElement('p');
+                countLine.className = 'vol-count';
+                container.appendChild(countLine);
 
-                    var title = document.createElement('span');
-                    title.style.fontWeight = 'bold';
-                    var contactBits = [vol.email, vol.phone].filter(Boolean);
-                    title.textContent = vol.fullName ?
-                        (vol.fullName + (contactBits.length ? ' (' + contactBits.join(', ') + ')' : '')) :
-                        (vol.email || 'Unnamed guest');
-                    titleRow.appendChild(title);
-                    var delBtn = document.createElement('button');
-                    delBtn.type = 'button';
-                    delBtn.className = 'admin-btn small danger';
-                    delBtn.style.marginLeft = 'auto';
-                    delBtn.textContent = '🗑 Delete';
-                    delBtn.title = 'Permanently delete this volunteer (e.g. an erasure request)';
-                    delBtn.addEventListener('click', function() { deleteVolunteer(vol); });
-                    titleRow.appendChild(delBtn);
-                    block.appendChild(titleRow);
+                var table = document.createElement('table');
+                table.className = 'vol-table';
+                table.innerHTML = '<thead><tr><th>Name</th><th class="col-roles col-roles-h">Roles</th><th class="col-shifts">Shifts</th><th class="col-actions"><span class="visually-hidden">Actions</span></th></tr></thead>';
+                var tbody = document.createElement('tbody');
+                table.appendChild(tbody);
+                container.appendChild(table);
 
-                    // Guest volunteers (2026-10-21, no Netlify Identity
-                    // account) get a badge plus an inline edit form, since
-                    // there's no account/profile page of their own where
-                    // they could fix a typo'd name or add their own phone.
-                    if (vol.isGuest) {
-                        var badge = document.createElement('span');
-                        badge.textContent = 'Guest';
-                        badge.style.cssText = 'font-size:0.75rem; font-weight:bold; color:#fff; background:var(--santa-green); border-radius:999px; padding:0.15rem 0.6rem;';
-                        titleRow.appendChild(badge);
+                function drawRows() {
+                    var term = volunteerSearch.trim().toLowerCase();
+                    var list = adminData.volunteers.filter(function(v) {
+                        if (!term) return true;
+                        return [v.fullName, v.email, v.phone].some(function(s) {
+                            return s && String(s).toLowerCase().indexOf(term) !== -1;
+                        });
+                    });
+                    list.sort(function(a, b) {
+                        var byName = volunteerDisplayName(a).localeCompare(volunteerDisplayName(b), 'en', { sensitivity: 'base' });
+                        if (volunteerSort === 'most') return (b.shifts.length - a.shifts.length) || byName;
+                        if (volunteerSort === 'fewest') return (a.shifts.length - b.shifts.length) || byName;
+                        return byName;
+                    });
+                    countLine.textContent = term ?
+                        'Showing ' + list.length + ' of ' + adminData.volunteers.length + ' volunteers' :
+                        adminData.volunteers.length + ' volunteer' + (adminData.volunteers.length === 1 ? '' : 's');
 
-                        var editForm = document.createElement('div');
-                        editForm.className = 'add-row-form admin-hidden';
-                        editForm.style.marginBottom = '0.5rem';
-                        var editName = document.createElement('input');
-                        editName.type = 'text'; editName.value = vol.fullName || ''; editName.placeholder = 'Name';
-                        var editPhone = document.createElement('input');
-                        editPhone.type = 'tel'; editPhone.value = vol.phone || ''; editPhone.placeholder = 'Phone (optional)';
-                        var editEmail = document.createElement('input');
-                        editEmail.type = 'email'; editEmail.value = vol.email || ''; editEmail.placeholder = 'Email (optional)';
-                        var editSaveBtn = document.createElement('button');
-                        editSaveBtn.type = 'button';
-                        editSaveBtn.className = 'admin-btn small';
-                        editSaveBtn.textContent = 'Save';
-                        editSaveBtn.onclick = function() {
-                            runOp('/.netlify/functions/admin-update-volunteer', {
-                                volunteerId: vol.id,
-                                canBeSanta: !!(vol.qualifiedRoles && vol.qualifiedRoles.santa),
-                                canBeSafetyWalker: !!(vol.qualifiedRoles && vol.qualifiedRoles.safetyWalker),
-                                canBeDriver: !!(vol.qualifiedRoles && vol.qualifiedRoles.driver),
-                                fullName: editName.value.trim(),
-                                phone: editPhone.value.trim(),
-                                email: editEmail.value.trim()
-                            }, 'volunteersStatus', 'Volunteer details saved.');
-                        };
-                        editForm.appendChild(editName);
-                        editForm.appendChild(editPhone);
-                        editForm.appendChild(editEmail);
-                        editForm.appendChild(editSaveBtn);
-
-                        var editToggleBtn = document.createElement('button');
-                        editToggleBtn.type = 'button';
-                        editToggleBtn.textContent = '✎ Edit details';
-                        editToggleBtn.style.cssText = 'background:none; border:none; color:var(--santa-green); cursor:pointer; font-size:0.85rem; text-decoration:underline; padding:0;';
-                        editToggleBtn.onclick = function() {
-                            editForm.classList.toggle('admin-hidden');
-                        };
-                        titleRow.appendChild(editToggleBtn);
-                        block.appendChild(editForm);
+                    tbody.innerHTML = '';
+                    if (!list.length) {
+                        var emptyRow = document.createElement('tr');
+                        var emptyCell = document.createElement('td');
+                        emptyCell.colSpan = 4;
+                        emptyCell.style.color = 'var(--ink-soft)';
+                        emptyCell.textContent = 'No volunteers match "' + volunteerSearch.trim() + '".';
+                        emptyRow.appendChild(emptyCell);
+                        tbody.appendChild(emptyRow);
+                        return;
                     }
+                    list.forEach(function(vol) { tbody.appendChild(buildVolunteerRow(vol)); });
+                }
 
-                    // Phase 9: which special roles this volunteer is
-                    // qualified for -- populates the Santa/Safety
-                    // Walker/Driver dropdowns on each route date above.
-                    var rolesChecklist = document.createElement('div');
-                    rolesChecklist.className = 'volunteer-roles-checklist';
+                search.addEventListener('input', function() { volunteerSearch = search.value; drawRows(); });
+                sort.addEventListener('change', function() { volunteerSort = sort.value; drawRows(); });
+                drawRows();
+                refreshVolunteerModal();
+            }
+
+            function buildVolunteerRow(vol) {
+                var tr = document.createElement('tr');
+
+                var nameTd = document.createElement('td');
+                nameTd.className = 'col-name';
+                var nameBtn = document.createElement('button');
+                nameBtn.type = 'button';
+                nameBtn.className = 'vol-name';
+                nameBtn.textContent = volunteerDisplayName(vol);
+                nameBtn.title = 'View details';
+                nameBtn.addEventListener('click', function() { openVolunteerModal(vol.id, 'details'); });
+                nameTd.appendChild(nameBtn);
+                if (vol.isGuest) {
+                    var badge = document.createElement('span');
+                    badge.className = 'vol-guest';
+                    badge.textContent = 'Guest';
+                    nameTd.appendChild(badge);
+                }
+                if (vol.fullName && vol.email) {
+                    var sub = document.createElement('span');
+                    sub.className = 'vol-sub';
+                    sub.textContent = vol.email;
+                    nameTd.appendChild(sub);
+                }
+                tr.appendChild(nameTd);
+
+                var rolesTd = document.createElement('td');
+                rolesTd.className = 'col-roles';
+                var q = vol.qualifiedRoles || {};
+                var held = VOLUNTEER_ROLES.filter(function(r) { return q[r[0]]; });
+                if (held.length) {
+                    var icons = document.createElement('span');
+                    icons.className = 'vol-role-icons';
+                    icons.textContent = held.map(function(r) { return r[2]; }).join('');
+                    var names = held.map(function(r) { return r[3]; }).join(', ');
+                    icons.title = 'Can be: ' + names;
+                    icons.setAttribute('aria-label', 'Can be: ' + names);
+                    rolesTd.appendChild(icons);
+                } else {
+                    var none = document.createElement('span');
+                    none.className = 'vol-role-none';
+                    none.textContent = '–';
+                    none.setAttribute('aria-label', 'No roles');
+                    rolesTd.appendChild(none);
+                }
+                tr.appendChild(rolesTd);
+
+                var shiftsTd = document.createElement('td');
+                shiftsTd.className = 'col-shifts';
+                var count = document.createElement('span');
+                count.className = 'vol-shift-count' + (vol.shifts.length ? '' : ' zero');
+                count.textContent = vol.shifts.length;
+                count.title = vol.shifts.length + ' shift' + (vol.shifts.length === 1 ? '' : 's') + ' signed up';
+                shiftsTd.appendChild(count);
+                tr.appendChild(shiftsTd);
+
+                var actionsTd = document.createElement('td');
+                actionsTd.className = 'col-actions';
+                var menuBtn = document.createElement('button');
+                menuBtn.type = 'button';
+                menuBtn.className = 'vol-menu-btn';
+                menuBtn.textContent = '⋮';
+                menuBtn.setAttribute('aria-haspopup', 'menu');
+                menuBtn.setAttribute('aria-expanded', 'false');
+                menuBtn.setAttribute('aria-label', 'Actions for ' + volunteerDisplayName(vol));
+                menuBtn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    if (openVolunteerMenu && openVolunteerMenu.button === menuBtn) { closeVolunteerMenu(); return; }
+                    showVolunteerMenu(vol, menuBtn);
+                });
+                actionsTd.appendChild(menuBtn);
+                tr.appendChild(actionsTd);
+                return tr;
+            }
+
+            function showVolunteerMenu(vol, button) {
+                closeVolunteerMenu();
+                var menu = document.createElement('div');
+                menu.className = 'vol-menu';
+                menu.setAttribute('role', 'menu');
+                function item(label, onClick, opts) {
+                    var b = document.createElement('button');
+                    b.type = 'button';
+                    b.setAttribute('role', 'menuitem');
+                    b.textContent = label;
+                    if (opts && opts.danger) b.className = 'danger';
+                    if (opts && opts.disabled) { b.disabled = true; b.title = opts.disabled; }
+                    b.addEventListener('click', function() { closeVolunteerMenu(); onClick(); });
+                    menu.appendChild(b);
+                }
+                item('👤 View details', function() { openVolunteerModal(vol.id, 'details'); });
+                // Account-holders' name/email sync from their own login, so
+                // only guest records can be edited here (see admin-update-volunteer.js).
+                item('✎ Edit details', function() { openVolunteerModal(vol.id, 'edit'); },
+                    vol.isGuest ? null : { disabled: 'Name and email come from their own login' });
+                item('🎅 Assign roles', function() { openVolunteerModal(vol.id, 'roles'); });
+                item('📅 Assign shift', function() { openVolunteerModal(vol.id, 'shift'); });
+                menu.appendChild(document.createElement('hr'));
+                item('🗑 Delete', function() { deleteVolunteer(vol); }, { danger: true });
+
+                document.body.appendChild(menu);
+                button.setAttribute('aria-expanded', 'true');
+                openVolunteerMenu = { menu: menu, button: button };
+                positionVolunteerMenu();
+                var first = menu.querySelector('button:not(:disabled)');
+                if (first) first.focus();
+            }
+
+            // Fixed-position, re-placed against its ⋮ button whenever the
+            // page scrolls or resizes (phones scroll the row into view on tap).
+            function positionVolunteerMenu() {
+                if (!openVolunteerMenu) return;
+                var menu = openVolunteerMenu.menu;
+                var rect = openVolunteerMenu.button.getBoundingClientRect();
+                var menuW = menu.offsetWidth, menuH = menu.offsetHeight;
+                var left = Math.max(8, Math.min(rect.right - menuW, window.innerWidth - menuW - 8));
+                var top = rect.bottom + 4;
+                if (top + menuH > window.innerHeight - 8 && rect.top - menuH - 4 > 8) top = rect.top - menuH - 4;
+                menu.style.left = left + 'px';
+                menu.style.top = top + 'px';
+            }
+
+            function closeVolunteerMenu() {
+                if (!openVolunteerMenu) return;
+                openVolunteerMenu.button.setAttribute('aria-expanded', 'false');
+                if (openVolunteerMenu.menu.parentNode) openVolunteerMenu.menu.parentNode.removeChild(openVolunteerMenu.menu);
+                openVolunteerMenu = null;
+            }
+
+            document.addEventListener('click', function(e) {
+                if (openVolunteerMenu && !openVolunteerMenu.menu.contains(e.target)) closeVolunteerMenu();
+            });
+            window.addEventListener('resize', positionVolunteerMenu);
+            window.addEventListener('scroll', positionVolunteerMenu, true);
+
+            function openVolunteerModal(volId, mode) {
+                volunteerModalState = { id: volId, mode: mode };
+                document.getElementById('volunteerModal').classList.remove('admin-hidden');
+                document.body.classList.add('import-modal-open');
+                refreshVolunteerModal(true);
+            }
+
+            function closeVolunteerModal() {
+                volunteerModalState = null;
+                document.getElementById('volunteerModal').classList.add('admin-hidden');
+                document.body.classList.remove('import-modal-open');
+            }
+
+            // Re-draws the open dialog from fresh adminData -- called after
+            // every renderVolunteers(), since runOp() reloads everything.
+            function refreshVolunteerModal(focusFirst) {
+                if (!volunteerModalState) return;
+                var vol = (adminData.volunteers || []).filter(function(v) { return v.id === volunteerModalState.id; })[0];
+                if (!vol) { closeVolunteerModal(); return; }
+                var titleEl = document.getElementById('volunteerModalTitle');
+                var body = document.getElementById('volunteerModalBody');
+                var footer = document.getElementById('volunteerModalFooter');
+                body.innerHTML = '';
+                footer.innerHTML = '';
+                var name = volunteerDisplayName(vol);
+
+                function footerBtn(label, cls, onClick) {
+                    var b = document.createElement('button');
+                    b.type = 'button';
+                    b.className = 'admin-btn small' + (cls ? ' ' + cls : '');
+                    b.textContent = label;
+                    b.addEventListener('click', onClick);
+                    footer.appendChild(b);
+                    return b;
+                }
+                function field(labelText, input) {
+                    var lbl = document.createElement('label');
+                    lbl.className = 'vol-field';
+                    lbl.appendChild(document.createTextNode(labelText));
+                    lbl.appendChild(input);
+                    body.appendChild(lbl);
+                    return input;
+                }
+                function textInput(type, value, placeholder) {
+                    var i = document.createElement('input');
+                    i.type = type; i.value = value || ''; i.placeholder = placeholder || '';
+                    return i;
+                }
+                async function save(btn, url, payload, msg, after) {
+                    btn.disabled = true;
+                    try {
+                        await runOp(url, payload, 'volunteersStatus', msg);
+                        if (after) after();
+                    } catch (err) {
+                        btn.disabled = false;
+                    }
+                }
+
+                var mode = volunteerModalState.mode;
+                if (mode === 'details') {
+                    titleEl.textContent = name;
+                    var dl = document.createElement('dl');
+                    dl.className = 'vol-detail-list';
+                    var q = vol.qualifiedRoles || {};
+                    var roleNames = VOLUNTEER_ROLES.filter(function(r) { return q[r[0]]; })
+                        .map(function(r) { return r[2] + ' ' + r[3]; }).join(', ');
                     [
-                        ['santa', 'canBeSanta', 'Can be Santa'],
-                        ['safetyWalker', 'canBeSafetyWalker', 'Can be Safety Walker'],
-                        ['driver', 'canBeDriver', 'Can be Driver']
-                    ].forEach(function(roleDef) {
-                        var qualKey = roleDef[0], bodyKey = roleDef[1], label = roleDef[2];
+                        ['Type', vol.isGuest ? 'Guest (no login)' : 'Account holder'],
+                        ['Email', vol.email || '—'],
+                        ['Phone', vol.phone || '—'],
+                        ['Can be', roleNames || 'No roles yet']
+                    ].forEach(function(pair) {
+                        var dt = document.createElement('dt'); dt.textContent = pair[0];
+                        var dd = document.createElement('dd'); dd.textContent = pair[1];
+                        dl.appendChild(dt); dl.appendChild(dd);
+                    });
+                    body.appendChild(dl);
+
+                    var h = document.createElement('div');
+                    h.className = 'vol-modal-heading';
+                    h.textContent = 'Shifts (' + vol.shifts.length + ')';
+                    body.appendChild(h);
+                    if (!vol.shifts.length) {
+                        var p = document.createElement('p');
+                        p.style.cssText = 'color:var(--ink-soft); font-size:0.9rem; margin:0.25rem 0 0.5rem;';
+                        p.textContent = 'Not signed up for any shifts yet.';
+                        body.appendChild(p);
+                    } else {
+                        var ul = document.createElement('ul');
+                        ul.className = 'vol-detail-shifts';
+                        vol.shifts.slice().sort(function(a, b) {
+                            return String(a.eventDate).localeCompare(String(b.eventDate));
+                        }).forEach(function(shift) {
+                            var li = document.createElement('li');
+                            var text = document.createElement('span');
+                            text.textContent = shift.routeName + ' — ' + formatDateLabel(shift.eventDate) + (shift.role ? ' (' + shift.role + ')' : '');
+                            if (shift.source === 'self') {
+                                var em = document.createElement('em');
+                                em.textContent = ' · self-signed up';
+                                text.appendChild(em);
+                            }
+                            li.appendChild(text);
+                            var rm = document.createElement('button');
+                            rm.type = 'button';
+                            rm.textContent = '✕';
+                            rm.title = 'Remove this shift';
+                            rm.setAttribute('aria-label', 'Remove ' + shift.routeName + ' ' + formatDateLabel(shift.eventDate));
+                            rm.addEventListener('click', function() {
+                                rm.disabled = true;
+                                runOp('/.netlify/functions/admin-assign-shift', {
+                                    op: 'unassign', routeDateId: shift.routeDateId, volunteerId: vol.id
+                                }, 'volunteersStatus', 'Shift assignment removed.').catch(function() { rm.disabled = false; });
+                            });
+                            li.appendChild(rm);
+                            ul.appendChild(li);
+                        });
+                        body.appendChild(ul);
+                    }
+                    footerBtn('📅 Assign shift', 'secondary', function() { openVolunteerModal(vol.id, 'shift'); });
+                    footerBtn('Close', '', closeVolunteerModal);
+                } else if (mode === 'edit') {
+                    titleEl.textContent = 'Edit ' + name;
+                    var nameIn = field('Name', textInput('text', vol.fullName, 'Name'));
+                    var phoneIn = field('Phone (optional)', textInput('tel', vol.phone, 'Phone'));
+                    var emailIn = field('Email (optional)', textInput('email', vol.email, 'Email'));
+                    footerBtn('Cancel', 'secondary', closeVolunteerModal);
+                    var saveBtn = footerBtn('Save', '', function() {
+                        var payload = volunteerRolesBody(vol);
+                        payload.fullName = nameIn.value.trim();
+                        payload.phone = phoneIn.value.trim();
+                        payload.email = emailIn.value.trim();
+                        save(saveBtn, '/.netlify/functions/admin-update-volunteer', payload, 'Volunteer details saved.', closeVolunteerModal);
+                    });
+                } else if (mode === 'roles') {
+                    titleEl.textContent = 'Roles for ' + name;
+                    var intro = document.createElement('p');
+                    intro.style.cssText = 'color:var(--ink-soft); font-size:0.88rem; margin-top:0;';
+                    intro.textContent = "Tick the roles they can do. They'll then appear in that role's dropdown on each night in the Routes tab.";
+                    body.appendChild(intro);
+                    var q2 = vol.qualifiedRoles || {};
+                    var boxes = {};
+                    VOLUNTEER_ROLES.forEach(function(r) {
                         var lbl = document.createElement('label');
+                        lbl.className = 'vol-role-option';
                         var cb = document.createElement('input');
                         cb.type = 'checkbox';
-                        cb.checked = !!(vol.qualifiedRoles && vol.qualifiedRoles[qualKey]);
-                        cb.onchange = function() {
-                            var body = {
-                                volunteerId: vol.id,
-                                canBeSanta: qualKey === 'santa' ? cb.checked : !!(vol.qualifiedRoles && vol.qualifiedRoles.santa),
-                                canBeSafetyWalker: qualKey === 'safetyWalker' ? cb.checked : !!(vol.qualifiedRoles && vol.qualifiedRoles.safetyWalker),
-                                canBeDriver: qualKey === 'driver' ? cb.checked : !!(vol.qualifiedRoles && vol.qualifiedRoles.driver)
-                            };
-                            runOp('/.netlify/functions/admin-update-volunteer', body, 'volunteersStatus', 'Volunteer roles updated.');
-                        };
+                        cb.checked = !!q2[r[0]];
+                        boxes[r[0]] = cb;
                         lbl.appendChild(cb);
-                        lbl.appendChild(document.createTextNode(label));
-                        rolesChecklist.appendChild(lbl);
+                        lbl.appendChild(document.createTextNode(r[2] + ' Can be ' + r[3]));
+                        body.appendChild(lbl);
                     });
-                    block.appendChild(rolesChecklist);
-
-                    var chips = document.createElement('div');
-                    vol.shifts.forEach(function(shift) {
-                        var chip = document.createElement('span');
-                        chip.className = 'shift-chip';
-                        chip.innerHTML = '<span>' + escapeHtml(shift.routeName) + ' — ' + formatDateLabel(shift.eventDate) +
-                            (shift.role ? ' (' + escapeHtml(shift.role) + ')' : '') +
-                            (shift.source === 'self' ? ' <em>· self-signed up</em>' : '') + '</span>';
-                        var removeBtn = document.createElement('button');
-                        removeBtn.textContent = '✕';
-                        removeBtn.onclick = function() {
-                            runOp('/.netlify/functions/admin-assign-shift', {
-                                op: 'unassign', routeDateId: shift.routeDateId, volunteerId: vol.id
-                            }, 'volunteersStatus', 'Shift assignment removed.');
-                        };
-                        chip.appendChild(removeBtn);
-                        chips.appendChild(chip);
+                    footerBtn('Cancel', 'secondary', closeVolunteerModal);
+                    var rolesBtn = footerBtn('Save roles', '', function() {
+                        var overrides = {};
+                        VOLUNTEER_ROLES.forEach(function(r) { overrides[r[0]] = boxes[r[0]].checked; });
+                        save(rolesBtn, '/.netlify/functions/admin-update-volunteer', volunteerRolesBody(vol, overrides), 'Volunteer roles updated.', closeVolunteerModal);
                     });
-                    block.appendChild(chips);
+                } else if (mode === 'shift') {
+                    titleEl.textContent = 'Assign shift to ' + name;
+                    var taken = {};
+                    vol.shifts.forEach(function(s) { taken[s.routeDateId] = true; });
+                    var options = flattenRouteDates().filter(function(rd) { return !taken[rd.id]; });
+                    if (!options.length) {
+                        var none = document.createElement('p');
+                        none.style.cssText = 'color:var(--ink-soft); font-size:0.9rem;';
+                        none.textContent = flattenRouteDates().length ?
+                            "They're already signed up for every night." :
+                            'No route nights have been set up yet.';
+                        body.appendChild(none);
+                        footerBtn('Close', '', closeVolunteerModal);
+                    } else {
+                        var sel = document.createElement('select');
+                        options.forEach(function(rd) {
+                            var opt = document.createElement('option');
+                            opt.value = rd.id;
+                            opt.textContent = rd.label;
+                            sel.appendChild(opt);
+                        });
+                        field('Night', sel);
+                        var roleIn = field('Role (optional)', textInput('text', '', 'e.g. collector'));
+                        footerBtn('Cancel', 'secondary', closeVolunteerModal);
+                        var assignBtn = footerBtn('+ Assign shift', '', function() {
+                            save(assignBtn, '/.netlify/functions/admin-assign-shift', {
+                                op: 'assign', routeDateId: sel.value, volunteerId: vol.id, role: roleIn.value.trim()
+                            }, 'Shift assigned.', function() { openVolunteerModal(vol.id, 'details'); });
+                        });
+                    }
+                }
 
-                    var addForm = document.createElement('div');
-                    addForm.className = 'add-row-form';
-                    var select = document.createElement('select');
-                    routeDates.forEach(function(rd) {
-                        var opt = document.createElement('option');
-                        opt.value = rd.id;
-                        opt.textContent = rd.label;
-                        select.appendChild(opt);
-                    });
-                    var roleInput = document.createElement('input');
-                    roleInput.type = 'text';
-                    roleInput.placeholder = 'Role (optional, e.g. driver)';
-                    var assignBtn = document.createElement('button');
-                    assignBtn.className = 'admin-btn small';
-                    assignBtn.textContent = '+ Assign Shift';
-                    assignBtn.disabled = routeDates.length === 0;
-                    assignBtn.onclick = function() {
-                        runOp('/.netlify/functions/admin-assign-shift', {
-                            op: 'assign',
-                            routeDateId: select.value,
-                            volunteerId: vol.id,
-                            role: roleInput.value.trim()
-                        }, 'volunteersStatus', 'Shift assigned.');
-                    };
-                    addForm.appendChild(select);
-                    addForm.appendChild(roleInput);
-                    addForm.appendChild(assignBtn);
-                    block.appendChild(addForm);
-
-                    container.appendChild(block);
-                });
+                if (focusFirst) {
+                    var firstInput = body.querySelector('input, select');
+                    (firstInput || document.getElementById('volunteerModalClose')).focus();
+                }
             }
+
+            document.getElementById('volunteerModalClose').addEventListener('click', closeVolunteerModal);
+            document.getElementById('volunteerModal').addEventListener('click', function(e) {
+                if (e.target === e.currentTarget) closeVolunteerModal();
+            });
+            document.addEventListener('keydown', function(e) {
+                if (e.key !== 'Escape') return;
+                if (openVolunteerMenu) { var b = openVolunteerMenu.button; closeVolunteerMenu(); b.focus(); return; }
+                if (volunteerModalState) closeVolunteerModal();
+            });
 
             // ---- Toast notifications ----
             // Corner popup for save/upload/send actions -- auto-dismisses

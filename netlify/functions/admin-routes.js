@@ -7,6 +7,7 @@
 
 import { getUser } from '@netlify/identity';
 import { getDatabase } from '@netlify/database';
+import { purgePublicCache, CACHE_TAGS } from '../lib/cdn-cache.js';
 
 const headers = { 'Content-Type': 'application/json' };
 
@@ -14,7 +15,18 @@ function requireAdmin(user) {
   return !!(user && user.roles && user.roles.includes('admin'));
 }
 
+// Route, date and street edits feed get-routes / get-public-routes, the
+// season dates and Total Raised in get-site-status, and tonight's route in
+// get-tracking-data -- clear their CDN copies after every successful write.
 export default async (req, context) => {
+  const res = await handle(req, context);
+  if (res.status === 200) {
+    await purgePublicCache([CACHE_TAGS.routes, CACHE_TAGS.siteStatus, CACHE_TAGS.tracking], { retry: true });
+  }
+  return res;
+};
+
+async function handle(req, context) {
   if (req.method !== 'POST') {
     return new Response(JSON.stringify({ error: 'Method not allowed' }), { status: 405, headers });
   }
@@ -378,7 +390,7 @@ export default async (req, context) => {
     console.error('Error in admin-routes:', error);
     return new Response(JSON.stringify({ error: error.message }), { status: 500, headers });
   }
-};
+}
 
 function ok(extra) {
   return new Response(JSON.stringify(Object.assign({ success: true }, extra)), { status: 200, headers });
