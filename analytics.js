@@ -235,9 +235,14 @@
         });
     }
 
-    // Track time on page (ping every 30 seconds)
+    // Track time on page (ping every 30 seconds). Only time with the tab
+    // visible is counted, and nothing is sent while it's hidden -- so a tab
+    // left open in the background (common on route nights) stops logging
+    // a time_on_page event every minute, and the figure reflects time
+    // actually spent looking at the page.
     let timeOnPage = 0;
     setInterval(function() {
+        if (document.hidden) return;
         timeOnPage += 30;
         if (timeOnPage % 60 === 0) { // Log every minute
             trackEvent('time_on_page', {

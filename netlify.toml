@@ -28,32 +28,13 @@
   [headers.values]
     Cache-Control = "public, max-age=604800, must-revalidate"
 
-# Cache API responses for 5 minutes
-[[headers]]
-  for = "/.netlify/functions/*"
-  [headers.values]
-    Cache-Control = "public, max-age=300, s-maxage=300"
-
-# Admin QR sign reports carry private sign locations: never cache them.
-[[headers]]
-  for = "/.netlify/functions/admin-qr-signs"
-  [headers.values]
-    Cache-Control = "no-store"
-
-# Registration status (is sign-up open / is this invite valid) must never
-# be served stale either.
-[[headers]]
-  for = "/.netlify/functions/helpout-status"
-  [headers.values]
-    Cache-Control = "no-store"
-
-# ...except the live sleigh-tracking endpoint, which must never be served
-# stale from the CDN -- this more specific rule overrides the wildcard
-# above for this one path.
-[[headers]]
-  for = "/.netlify/functions/get-tracking-data"
-  [headers.values]
-    Cache-Control = "no-store"
+# Function responses: [[headers]] rules here never apply to them (Netlify
+# only applies custom headers to static files), so each function sets its
+# own caching headers. Public read endpoints are CDN-cached and purged on
+# admin writes -- see netlify/lib/cdn-cache.js. Everything else, including
+# get-tracking-data's privacy-sensitive gating, helpout-status and
+# admin-qr-signs, sends Cache-Control: no-store or a short CDN max-age
+# from the function itself.
 
 # helpout.santasleighsalford.co.uk -- the volunteer registration page.
 # The subdomain is a domain alias on this same site: its root serves

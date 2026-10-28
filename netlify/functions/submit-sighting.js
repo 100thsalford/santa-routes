@@ -7,6 +7,7 @@
 // Reports are deleted after 30 days by purge-old-logs.js.
 
 import { getDatabase } from '@netlify/database';
+import { purgePublicCache, CACHE_TAGS } from '../lib/cdn-cache.js';
 
 const headers = { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' };
 
@@ -39,6 +40,10 @@ export default async (req) => {
       INSERT INTO sightings (street, seen_time, seen_when)
       VALUES (${street}, ${time}, ${when})
     `;
+
+    // get-sightings is CDN-cached; clear it before replying so the list the
+    // page reloads straight after this includes the new report.
+    await purgePublicCache([CACHE_TAGS.sightings]);
 
     return json({ success: true, message: 'Thank you! Santa sighting recorded.' });
   } catch (error) {

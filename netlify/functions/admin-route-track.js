@@ -14,6 +14,7 @@
 
 import { getUser } from '@netlify/identity';
 import { getDatabase } from '@netlify/database';
+import { purgePublicCache, CACHE_TAGS } from '../lib/cdn-cache.js';
 
 const headers = { 'Content-Type': 'application/json' };
 const MAX_POINTS = 3000;
@@ -23,7 +24,17 @@ function requireAdmin(user) {
   return !!(user && user.roles && user.roles.includes('admin'));
 }
 
+// Route tracks are drawn on map.html (get-public-routes) and track.html
+// (get-tracking-data) -- clear their CDN copies after a successful change.
 export default async (req, context) => {
+  const res = await handle(req, context);
+  if (res.status === 200) {
+    await purgePublicCache([CACHE_TAGS.routes, CACHE_TAGS.tracking], { retry: true });
+  }
+  return res;
+};
+
+async function handle(req, context) {
   if (req.method !== 'POST') {
     return new Response(JSON.stringify({ error: 'Method not allowed' }), { status: 405, headers });
   }
@@ -76,4 +87,4 @@ export default async (req, context) => {
     console.error('Error in admin-route-track:', error);
     return new Response(JSON.stringify({ error: error.message }), { status: 500, headers });
   }
-};
+}
