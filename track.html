@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Track Santa's Sleigh live on its route around Salford tonight. 100th Salford Scout Group Christmas fundraiser.">
     <title>Track Santa Live | Santa Super Sleigh Salford</title>
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="styles.css?v=20261029a">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
     <style>
         body {
@@ -116,6 +116,16 @@
             color: var(--ink-soft);
         }
 
+        .track-location {
+            margin: -0.25rem 0 1rem;
+            font-weight: 600;
+            color: var(--text-dark);
+        }
+
+        .track-location[hidden] {
+            display: none;
+        }
+
         .track-meta {
             display: flex;
             justify-content: space-between;
@@ -164,18 +174,27 @@
     <script src="privacy-prefs.js?v=20261024a"></script>
 </head>
 <body>
-    <div class="track-container">
+    <a class="skip-link" href="#main">Skip to content</a>
+
+    <main class="track-container" id="main" tabindex="-1">
         <div class="track-header">
-            <h1>🎅 Track Santa Live</h1>
+            <h1><span aria-hidden="true">🎅</span> Track Santa Live</h1>
             <p>Follow the sleigh's GPS live around tonight's route.</p>
         </div>
 
-        <div class="track-status" id="trackStatus">Checking tonight's route&hellip;</div>
+        <!-- role="status": screen readers announce changes (Santa's set off,
+             finished for tonight...). Only rewritten when the message
+             actually changes, so it isn't re-read on every 30s poll. -->
+        <div class="track-status" id="trackStatus" role="status" aria-live="polite">Checking tonight's route&hellip;</div>
+
+        <!-- Text version of the sleigh's position, for anyone who can't
+             use the map. Same street/town TruTrak already sends. -->
+        <p class="track-location" id="trackLocation" hidden></p>
 
         <div class="map-wrap">
-            <div id="trackMap"></div>
+            <div id="trackMap" role="region" aria-label="Live map of the sleigh's position"></div>
             <div class="map-overlay" id="mapOverlay" hidden>
-                <div class="map-overlay-icon">📡<span class="overlay-badge">❌</span></div>
+                <div class="map-overlay-icon" aria-hidden="true">📡<span class="overlay-badge">❌</span></div>
                 <p class="map-overlay-title">Connection unavailable</p>
                 <p class="map-overlay-detail" id="mapOverlayDetail"></p>
             </div>
@@ -191,12 +210,12 @@
         <div class="track-back">
             <a href="index.html" class="back-btn">Return to Home</a>
         </div>
-    </div>
+    </main>
 
     <footer class="footer">
-        <p>🎄 Supporting <a href="https://www.facebook.com/100thsalford" target="_blank" rel="noopener noreferrer" class="footer-link">100th Salford Scout Group</a> 🎄</p>
+        <p><span aria-hidden="true">🎄</span> Supporting <a href="https://www.facebook.com/100thsalford" target="_blank" rel="noopener noreferrer" class="footer-link">100th Salford Scout Group</a> <span aria-hidden="true">🎄</span></p>
         <p>Donations help fund Scouting activities for young people in Salford</p>
-        <p class="footer-note"><a href="privacy.html" class="footer-link">Privacy Policy</a> · <a href="#" data-analytics-prefs class="footer-link">Analytics preferences</a></p>
+        <p class="footer-note"><a href="privacy.html" class="footer-link">Privacy Policy</a> · <button type="button" data-analytics-prefs class="footer-link link-button">Analytics preferences</button></p>
     </footer>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -221,6 +240,35 @@
             var lastRouteKey = null; // avoids redrawing an unchanged route line every poll
 
             var statusEl = document.getElementById('trackStatus');
+            var locationEl = document.getElementById('trackLocation');
+
+            // statusEl is a live region: only touch it when the message
+            // really changes, otherwise every 30s poll would make screen
+            // readers read the same sentence out again.
+            var lastStatusHtml = null;
+            function setStatus(html) {
+                if (html === lastStatusHtml) return;
+                lastStatusHtml = html;
+                statusEl.innerHTML = html;
+            }
+            function setStatusText(text) {
+                var div = document.createElement('div');
+                div.textContent = text;
+                setStatus(div.innerHTML);
+            }
+
+            function setLocation(position) {
+                var place = position ? [position.street, position.town].filter(function(x) { return x && String(x).trim(); }).join(', ') : '';
+                var m = position && position.updatedAt ? String(position.updatedAt).match(/T(\d{2}):(\d{2})/) : null;
+                var when = m ? (m[1] + ':' + m[2]) : '';
+                if (!place && !when) {
+                    locationEl.hidden = true;
+                    locationEl.textContent = '';
+                    return;
+                }
+                locationEl.textContent = (place ? 'Last seen near ' + place : 'Last GPS update') + (when ? (place ? ' at ' : ': ') + when : '');
+                locationEl.hidden = false;
+            }
             var routeNameEl = document.getElementById('trackRouteName');
             var updatedAtEl = document.getElementById('trackUpdatedAt');
             var legendEl = document.getElementById('trackLegend');
@@ -334,6 +382,8 @@
                     sleighMarker.setTooltipContent(label);
                     sleighMarker.setPopupContent(label);
                 }
+                var markerEl = sleighMarker.getElement && sleighMarker.getElement();
+                if (markerEl) markerEl.setAttribute('aria-label', "Santa's sleigh. " + label);
                 if (followMode) {
                     programmaticView(function() {
                         map.setView(latlng, Math.max(map.getZoom(), 14), { animate: false });
@@ -365,13 +415,15 @@
                 routeNameEl.textContent = data.routeName ? ('Tonight’s route: ' + data.routeName) : '';
                 hideMapOverlay(); // most states have a perfectly good map to show -- only the branches below re-show it
 
+                if (data.state !== 'active' || !data.position) setLocation(null);
+
                 if (data.state === 'not-a-route-day') {
-                    statusEl.innerHTML = 'Santa isn’t out tonight. Check <a href="index.html">the home page</a> for the next scheduled route.';
+                    setStatus('Santa isn’t out tonight. Check <a href="index.html">the home page</a> for the next scheduled route.');
                     updatedAtEl.textContent = '';
                     return;
                 }
                 if (data.state === 'before-window') {
-                    statusEl.innerHTML = '<strong>Tonight’s route is ' + (data.routeName || 'on') + '.</strong> Santa sets off at ' + (data.windowStart || 'the usual time') + ' — the route is shown below, check back once he’s on his way!';
+                    setStatus('<strong>Tonight’s route is ' + (data.routeName || 'on') + '.</strong> Santa sets off at ' + (data.windowStart || 'the usual time') + ' — the route is shown below, check back once he’s on his way!');
                     updatedAtEl.textContent = '';
                     return;
                 }
@@ -380,25 +432,26 @@
                     // clear anything left over from earlier polls too.
                     if (sleighMarker) { map.removeLayer(sleighMarker); sleighMarker = null; }
                     followBtn.hidden = true;
-                    statusEl.innerHTML = '<strong>That’s Santa done for tonight!</strong> Thanks for following along. Check <a href="index.html">the home page</a> for the next route.';
+                    setStatus('<strong>That’s Santa done for tonight!</strong> Thanks for following along. Check <a href="index.html">the home page</a> for the next route.');
                     updatedAtEl.textContent = '';
                     return;
                 }
                 if (data.state === 'error') {
-                    statusEl.textContent = "Something went wrong loading tracking data. We'll keep trying.";
+                    setStatusText("Something went wrong loading tracking data. We'll keep trying.");
                     showMapOverlay("We're having trouble reaching the tracking service. This page will keep trying automatically.");
                     return;
                 }
 
                 // state === 'active'
                 if (data.position) {
-                    statusEl.innerHTML = '<strong>Santa is out right now!</strong> Follow the sleigh below.' +
-                        '<span class="refresh-note">🔄 This page updates automatically about every 30 seconds — no need to refresh. Hover or tap the sleigh for its exact GPS time.</span>';
+                    setStatus('<strong>Santa is out right now!</strong> Follow the sleigh below.' +
+                        '<span class="refresh-note"><span aria-hidden="true">🔄</span> This page updates automatically about every 30 seconds — no need to refresh. Hover or tap the sleigh for its exact GPS time.</span>');
                     updateSleighMarker(data.position);
+                    setLocation(data.position);
                     updatedAtEl.textContent = formatUpdatedAt(data.position.updatedAt);
                 } else {
-                    statusEl.innerHTML = '<strong>Santa is out right now!</strong>' +
-                        '<span class="refresh-note">🔄 This page updates automatically about every 30 seconds — no need to refresh.</span>';
+                    setStatus('<strong>Santa is out right now!</strong>' +
+                        '<span class="refresh-note"><span aria-hidden="true">🔄</span> This page updates automatically about every 30 seconds — no need to refresh.</span>');
                     updatedAtEl.textContent = '';
                     showMapOverlay(data.positionError || 'Waiting for a GPS signal from the sleigh...');
                 }
@@ -415,7 +468,7 @@
                     render(data);
                 } catch (err) {
                     console.error('Error fetching tracking data:', err);
-                    statusEl.textContent = "Couldn't reach the tracking service -- we'll keep trying.";
+                    setStatusText("Couldn't reach the tracking service -- we'll keep trying.");
                 }
             }
 
