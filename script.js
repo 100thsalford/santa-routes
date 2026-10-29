@@ -69,6 +69,83 @@ function updateTrackSantaButton() {
     btn.classList.toggle('tracking-hidden', !active);
 }
 
+// Decorative emoji: shown on screen, skipped by screen readers (otherwise
+// VoiceOver reads e.g. "spiral calendar pad" before every date).
+function ico(emoji) {
+    return '<span aria-hidden="true">' + emoji + '</span>';
+}
+
+// Short spoken summary for the search results (#searchStatus is a
+// visually-hidden role="status" region). Debounced so a screen reader
+// hears one summary after typing pauses, not one per keystroke; cleared
+// first so the same message is still announced if it repeats.
+let searchStatusTimer = null;
+function announceSearch(message) {
+    const el = document.getElementById('searchStatus');
+    if (!el) return;
+    clearTimeout(searchStatusTimer);
+    searchStatusTimer = setTimeout(function() {
+        el.textContent = '';
+        setTimeout(function() { el.textContent = message; }, 50);
+    }, 700);
+}
+
+// By Street / By Date toggle buttons: keep aria-pressed in step with the
+// existing .active class.
+function setActiveTabButton(tab) {
+    document.querySelectorAll('.tab-btn').forEach(function(b) {
+        const on = b.dataset.tab === tab;
+        b.classList.toggle('active', on);
+        b.setAttribute('aria-pressed', on ? 'true' : 'false');
+    });
+}
+
+// ---- Dialogs (All Routes, Report a Sighting) ------------------------------
+// Same open/close behaviour as before (the .show class), plus: focus moves
+// into the dialog when it opens, Tab stays inside it while open, and focus
+// goes back to whatever opened it when it closes.
+function openDialog(modal) {
+    if (!modal) return;
+    if (!modal.classList.contains('show')) {
+        modal._returnFocus = document.activeElement;
+    }
+    modal.classList.add('show');
+    const panel = modal.querySelector('.modal-content');
+    if (panel) panel.focus({ preventScroll: true });
+}
+
+function closeDialog(modal) {
+    if (!modal || !modal.classList.contains('show')) return;
+    modal.classList.remove('show');
+    const back = modal._returnFocus;
+    modal._returnFocus = null;
+    if (back && back.focus && document.contains(back) && back.offsetParent !== null) {
+        back.focus({ preventScroll: true });
+    }
+}
+
+document.addEventListener('keydown', function(e) {
+    if (e.key !== 'Tab') return;
+    const modal = document.querySelector('.modal.show');
+    if (!modal) return;
+    const panel = modal.querySelector('.modal-content');
+    const focusable = Array.prototype.filter.call(
+        panel.querySelectorAll('a[href], button:not([disabled]), input:not([disabled]), select, textarea, [tabindex]:not([tabindex="-1"])'),
+        function(el) { return el.offsetParent !== null; }
+    );
+    if (focusable.length === 0) { e.preventDefault(); return; }
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    const active = document.activeElement;
+    if (e.shiftKey && (active === first || active === panel)) {
+        e.preventDefault();
+        last.focus();
+    } else if (!e.shiftKey && (active === last || !panel.contains(active))) {
+        e.preventDefault();
+        first.focus();
+    }
+});
+
 // Initialize when DOM is ready
 document.addEventListener('DOMContentLoaded', async function() {
     console.log('DOM loaded, initializing...');
@@ -123,10 +200,7 @@ function initializeMobileNavigation() {
                 // If date tab requested, switch to it
                 if (tabToActivate === 'date') {
                     switchTab('date');
-                    document.querySelectorAll('.tab-btn').forEach(function(tb) {
-                        tb.classList.remove('active');
-                    });
-                    document.querySelectorAll('.tab-btn')[1].classList.add('active');
+                    setActiveTabButton('date');
                 }
                 
                 // Scroll to top
@@ -155,14 +229,15 @@ function initializeMobileNavigation() {
 function initializeDisclaimerToggle() {
     const toggleBtn = document.getElementById('disclaimerToggle');
     const content = document.getElementById('disclaimerContent');
+    if (!toggleBtn || !content) return;
+
     const arrow = toggleBtn.querySelector('.disclaimer-arrow');
     const toggleText = document.getElementById('disclaimerToggleText');
-    
-    if (!toggleBtn || !content) return;
     
     toggleBtn.addEventListener('click', function() {
         content.classList.toggle('expanded');
         arrow.classList.toggle('rotated');
+        toggleBtn.setAttribute('aria-expanded', content.classList.contains('expanded') ? 'true' : 'false');
         
         if (content.classList.contains('expanded')) {
             toggleText.textContent = 'Read less';
@@ -202,10 +277,7 @@ function initializeTabs() {
             switchTab(tab);
             
             // Update button states
-            tabButtons.forEach(function(b) {
-                b.classList.remove('active');
-            });
-            btn.classList.add('active');
+            setActiveTabButton(tab);
         });
     });
 }
@@ -272,7 +344,7 @@ function loadTodaysStreets() {
     });
 
     if (todaysRoutes.length > 0) {
-        if (titleEl) titleEl.textContent = "🗓️ Today's Streets";
+        if (titleEl) titleEl.innerHTML = ico('🗓️') + " Today's Streets";
         if (subtitleEl) subtitleEl.textContent = 'Streets Santa visits today:';
         container.innerHTML = renderRouteStreetsHtml(todaysRoutes);
         return;
@@ -283,9 +355,9 @@ function loadTodaysStreets() {
     const nextDate = findNextAvailableDate();
 
     if (!nextDate) {
-        if (titleEl) titleEl.textContent = "🗓️ Today's Streets";
+        if (titleEl) titleEl.innerHTML = ico('🗓️') + " Today's Streets";
         if (subtitleEl) subtitleEl.textContent = 'Streets Santa visits today:';
-        container.innerHTML = '<div style="text-align: center; padding: 2rem; color: #666;">🎅 No upcoming routes scheduled</div>';
+        container.innerHTML = '<div style="text-align: center; padding: 2rem; color: #666;">' + ico('🎅') + ' No upcoming routes scheduled</div>';
         return;
     }
 
@@ -294,16 +366,16 @@ function loadTodaysStreets() {
     });
 
     if (nextRoutes.length > 0) {
-        if (titleEl) titleEl.textContent = '📅 Coming Up';
+        if (titleEl) titleEl.innerHTML = ico('📅') + ' Coming Up';
         if (subtitleEl) subtitleEl.textContent = "Santa isn't out tonight -- here's the next route:";
         container.innerHTML = renderRouteStreetsHtml(nextRoutes);
     } else {
         // We know the next date but don't have its streets yet for some
         // reason -- fall back to the simple announcement.
-        if (titleEl) titleEl.textContent = "🗓️ Today's Streets";
+        if (titleEl) titleEl.innerHTML = ico('🗓️') + " Today's Streets";
         if (subtitleEl) subtitleEl.textContent = 'Streets Santa visits today:';
         const formattedDate = formatDate(nextDate);
-        container.innerHTML = '<div style="text-align: center; padding: 2rem; color: #666; line-height: 1.6;"><strong style="display: block; font-size: 1.1rem; margin-bottom: 0.5rem;">🎅</strong>Santa returns ' + formattedDate + '</div>';
+        container.innerHTML = '<div style="text-align: center; padding: 2rem; color: #666; line-height: 1.6;"><strong style="display: block; font-size: 1.1rem; margin-bottom: 0.5rem;" aria-hidden="true">🎅</strong>Santa returns ' + formattedDate + '</div>';
     }
 }
 
@@ -325,7 +397,7 @@ function renderRouteStreetsHtml(routes) {
     const headerHtml = '<div class="route-group"><div class="route-title">' + formatDate(routeDate) + '</div><div class="route-subtitle">' + escapeHtml(routeName) + '</div></div>';
 
     const streetsHtml = sorted.map(function(item) {
-        const timeDisplay = item.time ? '<span style="color: #165b33; margin-left: 0.5rem;">🕐 Approx. ' + escapeHtml(item.time) + '</span>' : '';
+        const timeDisplay = item.time ? '<span style="color: #165b33; margin-left: 0.5rem;">' + ico('🕐') + ' Approx. ' + escapeHtml(item.time) + '</span>' : '';
         return '<div class="street-list-item">' + streetLabelHtml(item.street, item) + timeDisplay + partialNoteHtml(item) + '</div>';
     }).join('');
 
@@ -384,7 +456,7 @@ function displayTodaysStreets(routes) {
         html += '<div class="streets-list-view">';
         
         routeItems.forEach(function(item) {
-            const timeDisplay = item.time ? '<span style="color: #165b33; margin-left: 0.5rem;">🕐 Approx. ' + escapeHtml(item.time) + '</span>' : '';
+            const timeDisplay = item.time ? '<span style="color: #165b33; margin-left: 0.5rem;">' + ico('🕐') + ' Approx. ' + escapeHtml(item.time) + '</span>' : '';
             html += '<div class="street-list-item">' + streetLabelHtml(item.street, item) + timeDisplay + partialNoteHtml(item) + '</div>';
         });
         
@@ -577,6 +649,7 @@ function setupSearchListeners() {
         if (query.length < 2) {
             resultsArea.classList.remove('show');
             resultsArea.innerHTML = '<div class="loading">Start typing to search...</div>';
+            announceSearch('');
             return;
         }
 
@@ -632,7 +705,8 @@ function setupSearchListeners() {
         if (results.length === 0) {
             // Show helpful message
             resultsArea.classList.add('show');
-            resultsArea.innerHTML = '<div class="no-results">😕 No routes scheduled for this date.<br>Please select a different date or search by street.</div>';
+            resultsArea.innerHTML = '<div class="no-results">' + ico('😕') + ' No routes scheduled for this date.<br>Please select a different date or search by street.</div>';
+            announceSearch('No routes scheduled for ' + formatDate(selectedDate) + '.');
             return;
         }
 
@@ -666,7 +740,8 @@ async function checkNearestStreet(query, gen) {
             const resultsArea = document.getElementById('resultsArea');
             if (!resultsArea) return;
             const ns = data.nearestStreet;
-            resultsArea.innerHTML = '<div class="no-results">😕 Sorry, we don\'t cover that street.<br>The nearest street we cover is <strong>' + escapeHtml(ns.street) + '</strong> — coming up on ' + formatDate(ns.date) + (ns.timeRange ? ', roughly ' + escapeHtml(ns.timeRange) : '') + '.' + partialNoteHtml({ partial: ns.partial, street: ns.street }) + '</div>';
+            announceSearch('We don\'t cover that street. The nearest street we cover is ' + ns.street + ', on ' + formatDate(ns.date) + (ns.timeRange ? ', roughly ' + ns.timeRange : '') + '.');
+            resultsArea.innerHTML = '<div class="no-results">' + ico('😕') + ' Sorry, we don\'t cover that street.<br>The nearest street we cover is <strong>' + escapeHtml(ns.street) + '</strong> — coming up on ' + formatDate(ns.date) + (ns.timeRange ? ', roughly ' + escapeHtml(ns.timeRange) : '') + '.' + partialNoteHtml({ partial: ns.partial, street: ns.street }) + '</div>';
         }
         // No nearby match: leave the existing "no matches found" message as-is.
     } catch (err) {
@@ -683,7 +758,8 @@ function displayResults(results, searchType) {
     resultsArea.classList.add('show');
 
     if (results.length === 0) {
-        resultsArea.innerHTML = '<div class="no-results">😕 No matches found in our routes, meaning we likely do not cover your street.<br>Try a nearby street or check the map to see if we visit a nearby area!</div>';
+        resultsArea.innerHTML = '<div class="no-results">' + ico('😕') + ' No matches found in our routes, meaning we likely do not cover your street.<br>Try a nearby street or check the map to see if we visit a nearby area!</div>';
+        announceSearch('No matches found. We likely do not cover that street.');
         return;
     }
 
@@ -722,14 +798,23 @@ function displayResults(results, searchType) {
     const html = results.map(function(item) {
         if (searchType === 'street') {
             // REMOVE numbers for street search
-            return '<div class="result-item"><div class="result-date">📅 ' + formatDate(item.date) + '</div><div class="result-street">' + streetLabelHtml(getCleanStreetName(item.street), item) + '</div>' + partialNoteHtml(item) + '<div class="result-route">🎅 ' + escapeHtml(item.route) + '</div>' + (item.time ? '<div class="result-time">🕐 Approx. ' + escapeHtml(item.time) + '</div>' : '') + '</div>';
+            return '<div class="result-item"><div class="result-date">' + ico('📅') + ' ' + formatDate(item.date) + '</div><div class="result-street">' + streetLabelHtml(getCleanStreetName(item.street), item) + '</div>' + partialNoteHtml(item) + '<div class="result-route">' + ico('🎅') + ' ' + escapeHtml(item.route) + '</div>' + (item.time ? '<div class="result-time">' + ico('🕐') + ' Approx. ' + escapeHtml(item.time) + '</div>' : '') + '</div>';
         } else {
             // KEEP numbers for date search (to show order)
-            return '<div class="result-item"><div class="result-street">' + streetLabelHtml(item.street, item) + '</div>' + partialNoteHtml(item) + '<div class="result-route">🎅 ' + escapeHtml(item.route) + '</div>' + (item.time ? '<div class="result-time">🕐 Approx. ' + escapeHtml(item.time) + '</div>' : '') + '</div>';
+            return '<div class="result-item"><div class="result-street">' + streetLabelHtml(item.street, item) + '</div>' + partialNoteHtml(item) + '<div class="result-route">' + ico('🎅') + ' ' + escapeHtml(item.route) + '</div>' + (item.time ? '<div class="result-time">' + ico('🕐') + ' Approx. ' + escapeHtml(item.time) + '</div>' : '') + '</div>';
         }
     }).join('');
 
     resultsArea.innerHTML = html;
+
+    if (searchType === 'street') {
+        const first = results[0];
+        announceSearch(results.length + (results.length === 1 ? ' visit' : ' visits') + ' found. First: ' +
+            getCleanStreetName(first.street).replace(/\s*\(partial\)\s*/gi, ' ').trim() + ' on ' + formatDate(first.date) +
+            (first.time ? ', approx. ' + first.time : '') + '.');
+    } else {
+        announceSearch(results.length + (results.length === 1 ? ' street' : ' streets') + ' on ' + formatDate(results[0].date) + '.');
+    }
 }
 
 // Format date
@@ -807,12 +892,12 @@ function initializeModal() {
     }
 
     closeModalBtn.addEventListener('click', function() {
-        allRoutesModal.classList.remove('show');
+        closeDialog(allRoutesModal);
     });
 
     allRoutesModal.addEventListener('click', function(e) {
         if (e.target === allRoutesModal) {
-            allRoutesModal.classList.remove('show');
+            closeDialog(allRoutesModal);
         }
     });
 }
@@ -825,7 +910,7 @@ function showAllRoutes() {
     
     if (routesData.length === 0) {
         modalBody.innerHTML = '<div class="loading">Loading routes...</div>';
-        allRoutesModal.classList.add('show');
+        openDialog(allRoutesModal);
         return;
     }
 
@@ -866,7 +951,7 @@ function showAllRoutes() {
         
         // Display as list with street and time on same line
         const streetsHtml = groupItems.map(function(item) {
-            const timeDisplay = item.time ? '<span style="color: #165b33; margin-left: 0.5rem;">🕐 Approx. ' + escapeHtml(item.time) + '</span>' : '';
+            const timeDisplay = item.time ? '<span style="color: #165b33; margin-left: 0.5rem;">' + ico('🕐') + ' Approx. ' + escapeHtml(item.time) + '</span>' : '';
             return '<div class="street-list-item">' + streetLabelHtml(item.street, item) + timeDisplay + partialNoteHtml(item) + '</div>';
         }).join('');
         
@@ -874,7 +959,7 @@ function showAllRoutes() {
     }).join('');
 
     modalBody.innerHTML = html;
-    allRoutesModal.classList.add('show');
+    openDialog(allRoutesModal);
 }
 
 // Load sightings
@@ -891,7 +976,7 @@ async function loadSightings() {
     
     if (!sightingsStatus.showData) {
         // Show appropriate message
-        container.innerHTML = '<div style="text-align: center; padding: 2rem; color: #666; line-height: 1.6;"><strong style="display: block; font-size: 1.1rem; margin-bottom: 0.5rem;">🎅</strong>' + sightingsStatus.message + '</div>';
+        container.innerHTML = '<div style="text-align: center; padding: 2rem; color: #666; line-height: 1.6;"><strong style="display: block; font-size: 1.1rem; margin-bottom: 0.5rem;" aria-hidden="true">🎅</strong>' + sightingsStatus.message + '</div>';
         return;
     }
     
@@ -902,11 +987,11 @@ async function loadSightings() {
         if (data.success && data.sightings && data.sightings.length > 0) {
             displaySightings(data.sightings);
         } else {
-            container.innerHTML = '<div style="text-align: center; padding: 1rem; color: #666;">🎅 No sightings yet - be the first to spot Santa!</div>';
+            container.innerHTML = '<div style="text-align: center; padding: 1rem; color: #666;">' + ico('🎅') + ' No sightings yet - be the first to spot Santa!</div>';
         }
     } catch (error) {
         console.error('Error loading sightings:', error);
-        container.innerHTML = '<div style="text-align: center; padding: 1rem; color: #666;">🎅 No sightings yet - be the first to spot Santa!</div>';
+        container.innerHTML = '<div style="text-align: center; padding: 1rem; color: #666;">' + ico('🎅') + ' No sightings yet - be the first to spot Santa!</div>';
     }
 }
 
@@ -984,7 +1069,7 @@ function displaySightings(sightings) {
     const html = sightings.map(function(sighting) {
         const timeAgo = formatSightingTime(sighting.timestamp);
         const cleanStreetName = getCleanStreetName(sighting.street);
-        return '<div class="sighting-item"><div class="sighting-icon">🎅</div><div class="sighting-details"><div class="sighting-street">' + escapeHtml(cleanStreetName) + '</div><div class="sighting-user-time">' + escapeHtml(sighting.time) + '</div><div class="sighting-reported">Reported ' + timeAgo + '</div></div></div>';
+        return '<div class="sighting-item"><div class="sighting-icon" aria-hidden="true">🎅</div><div class="sighting-details"><div class="sighting-street">' + escapeHtml(cleanStreetName) + '</div><div class="sighting-user-time">' + escapeHtml(sighting.time) + '</div><div class="sighting-reported">Reported ' + timeAgo + '</div></div></div>';
     }).join('');
     
     container.innerHTML = html;
@@ -1061,7 +1146,7 @@ function initializeSightingModal() {
         }
         
         console.log('Report button clicked');
-        sightingModal.classList.add('show');
+        openDialog(sightingModal);
         // Set default time to now
         const now = new Date();
         const hours = String(now.getHours()).padStart(2, '0');
@@ -1095,24 +1180,81 @@ function initializeSightingModal() {
 
     // Close modal
     closeSightingModal.addEventListener('click', function() {
-        sightingModal.classList.remove('show');
+        closeDialog(sightingModal);
         resetSightingForm();
     });
 
     sightingModal.addEventListener('click', function(e) {
         if (e.target === sightingModal) {
-            sightingModal.classList.remove('show');
+            closeDialog(sightingModal);
             resetSightingForm();
         }
     });
 
-    // Street autocomplete with smart matching
+    // Street autocomplete with smart matching. The list is an ARIA listbox:
+    // Up/Down arrows move through it, Enter picks the highlighted street,
+    // Escape closes it -- alongside the existing tap/click to pick.
     if (sightingStreetInput && streetSuggestions) {
+        let activeIndex = -1;
+
+        function suggestionItems() {
+            return streetSuggestions.querySelectorAll('.suggestion-item');
+        }
+        function setSuggestionsOpen(open) {
+            streetSuggestions.classList.toggle('show', open);
+            sightingStreetInput.setAttribute('aria-expanded', open ? 'true' : 'false');
+            setActiveSuggestion(-1);
+        }
+        function setActiveSuggestion(index) {
+            const items = suggestionItems();
+            activeIndex = index;
+            items.forEach(function(item, i) {
+                const on = i === index;
+                item.classList.toggle('is-active', on);
+                item.setAttribute('aria-selected', on ? 'true' : 'false');
+                if (on) item.scrollIntoView({ block: 'nearest' });
+            });
+            if (index >= 0 && items[index]) {
+                sightingStreetInput.setAttribute('aria-activedescendant', items[index].id);
+            } else {
+                sightingStreetInput.removeAttribute('aria-activedescendant');
+            }
+        }
+        function pickSuggestion(item) {
+            const street = item.dataset.street;
+            // Show clean name in the input field
+            sightingStreetInput.value = getCleanStreetName(street);
+            // But store the full name for validation
+            selectedStreet = street;
+            setSuggestionsOpen(false);
+        }
+
+        sightingStreetInput.addEventListener('keydown', function(e) {
+            const open = streetSuggestions.classList.contains('show');
+            const count = suggestionItems().length;
+            if (e.key === 'ArrowDown' && open && count) {
+                e.preventDefault();
+                setActiveSuggestion(activeIndex < count - 1 ? activeIndex + 1 : 0);
+            } else if (e.key === 'ArrowUp' && open && count) {
+                e.preventDefault();
+                setActiveSuggestion(activeIndex > 0 ? activeIndex - 1 : count - 1);
+            } else if (e.key === 'Enter' && open && activeIndex >= 0) {
+                // Pick the street rather than submitting the form.
+                e.preventDefault();
+                pickSuggestion(suggestionItems()[activeIndex]);
+            } else if (e.key === 'Escape' && open) {
+                // Close just the list, not the whole dialog.
+                e.preventDefault();
+                e.stopPropagation();
+                setSuggestionsOpen(false);
+            }
+        });
+
         sightingStreetInput.addEventListener('input', function(e) {
             const query = e.target.value.toLowerCase().trim();
             
             if (query.length < 2) {
-                streetSuggestions.classList.remove('show');
+                setSuggestionsOpen(false);
                 return;
             }
 
@@ -1141,27 +1283,23 @@ function initializeSightingModal() {
 
             if (matches.length > 0) {
                 // REMOVE numbers from autocomplete suggestions
-                const html = matches.map(function(item) {
+                const html = matches.map(function(item, i) {
                     const cleanName = getCleanStreetName(item.street);
-                    return '<div class="suggestion-item" data-street="' + escapeHtml(item.street) + '">' + escapeHtml(cleanName) + '</div>';
+                    return '<div class="suggestion-item" role="option" aria-selected="false" id="streetSuggestion' + i + '" data-street="' + escapeHtml(item.street) + '">' + escapeHtml(cleanName) + '</div>';
                 }).join('');
                 
                 streetSuggestions.innerHTML = html;
-                streetSuggestions.classList.add('show');
+                setSuggestionsOpen(true);
             } else {
-                streetSuggestions.classList.remove('show');
+                setSuggestionsOpen(false);
             }
         });
 
         // Handle suggestion click
         streetSuggestions.addEventListener('click', function(e) {
-            if (e.target.classList.contains('suggestion-item')) {
-                const street = e.target.dataset.street;
-                // Show clean name in the input field
-                sightingStreetInput.value = getCleanStreetName(street);
-                // But store the full name for validation
-                selectedStreet = street;
-                streetSuggestions.classList.remove('show');
+            const item = e.target.closest ? e.target.closest('.suggestion-item') : null;
+            if (item) {
+                pickSuggestion(item);
             }
         });
     }
@@ -1172,8 +1310,10 @@ function initializeSightingModal() {
         btn.addEventListener('click', function() {
             timeButtons.forEach(function(b) {
                 b.classList.remove('active');
+                b.setAttribute('aria-pressed', 'false');
             });
             btn.classList.add('active');
+            btn.setAttribute('aria-pressed', 'true');
             
             // If "Just Now" is clicked, update the time input to current time
             if (btn.dataset.when === 'now') {
@@ -1201,9 +1341,10 @@ function initializeSightingModal() {
 function updateReportButtonState(button) {
     const isAvailable = checkReportButtonAvailability();
     
-    // Store original text if not already stored
-    if (!button.dataset.originalText) {
-        button.dataset.originalText = button.textContent;
+    // Store original label if not already stored (as HTML, so the
+    // screen-reader-hidden emoji span survives the swap)
+    if (!button.dataset.originalHtml) {
+        button.dataset.originalHtml = button.innerHTML.trim();
     }
     
     if (isAvailable) {
@@ -1211,13 +1352,13 @@ function updateReportButtonState(button) {
         button.style.cursor = 'pointer';
         button.style.background = 'var(--santa-red)';
         button.disabled = false;
-        button.textContent = button.dataset.originalText;
+        button.innerHTML = button.dataset.originalHtml;
     } else {
         button.style.opacity = '0.5';
         button.style.cursor = 'not-allowed';
         button.style.background = '#999';
         button.disabled = true;
-        button.textContent = '🔒 ' + button.dataset.originalText;
+        button.innerHTML = ico('🔒') + ' ' + button.dataset.originalHtml;
     }
 }
 
@@ -1292,10 +1433,7 @@ async function submitSighting() {
             
             // Reset form
             setTimeout(function() {
-                const sightingModal = document.getElementById('sightingModal');
-                if (sightingModal) {
-                    sightingModal.classList.remove('show');
-                }
+                closeDialog(document.getElementById('sightingModal'));
                 resetSightingForm();
                 loadSightings();
             }, 2000);
@@ -1322,6 +1460,11 @@ function resetSightingForm() {
     if (sightingForm) sightingForm.reset();
     selectedStreet = '';
     if (streetSuggestions) streetSuggestions.classList.remove('show');
+    const streetInput = document.getElementById('sightingStreet');
+    if (streetInput) {
+        streetInput.setAttribute('aria-expanded', 'false');
+        streetInput.removeAttribute('aria-activedescendant');
+    }
     if (messageDiv) {
         messageDiv.className = 'form-message';
         messageDiv.style.display = 'none';
@@ -1330,9 +1473,13 @@ function resetSightingForm() {
     const timeButtons = document.querySelectorAll('.time-btn');
     timeButtons.forEach(function(b) {
         b.classList.remove('active');
+        b.setAttribute('aria-pressed', 'false');
     });
     const nowBtn = document.querySelector('.time-btn[data-when="now"]');
-    if (nowBtn) nowBtn.classList.add('active');
+    if (nowBtn) {
+        nowBtn.classList.add('active');
+        nowBtn.setAttribute('aria-pressed', 'true');
+    }
 }
 
 // Keyboard accessibility
@@ -1341,12 +1488,8 @@ document.addEventListener('keydown', function(e) {
         const allRoutesModal = document.getElementById('allRoutesModal');
         const sightingModal = document.getElementById('sightingModal');
         
-        if (allRoutesModal && allRoutesModal.classList.contains('show')) {
-            allRoutesModal.classList.remove('show');
-        }
-        if (sightingModal && sightingModal.classList.contains('show')) {
-            sightingModal.classList.remove('show');
-        }
+        closeDialog(allRoutesModal);
+        closeDialog(sightingModal);
     }
 });
 // Compact the sticky header on mobile once the visitor scrolls (CSS does the rest).

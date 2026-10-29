@@ -280,9 +280,10 @@ body {
 }
 
 .search-input:focus {
-    outline: none;
+    outline: 2px solid var(--santa-red);
+    outline-offset: 1px;
     border-color: var(--santa-red);
-    box-shadow: 0 0 0 3px rgba(196, 30, 58, 0.1);
+    box-shadow: none;
 }
 
 .search-icon {
@@ -490,7 +491,7 @@ body {
 .fb-link {
     display: block;
     text-align: center;
-    background: #1877f2;
+    background: #166FE5; /* Facebook blue, a touch darker so white text passes 4.5:1 */
     color: white;
     padding: 1rem;
     border-radius: 8px;
@@ -518,9 +519,10 @@ body {
 }
 
 .date-picker:focus {
-    outline: none;
+    outline: 2px solid var(--santa-red);
+    outline-offset: 1px;
     border-color: var(--santa-red);
-    box-shadow: 0 0 0 3px rgba(196, 30, 58, 0.1);
+    box-shadow: none;
 }
 
 /* Style the date picker placeholder/empty state on mobile */
@@ -538,7 +540,7 @@ body {
 
 /* When empty, show a better placeholder */
 .date-picker:invalid {
-    color: #999;
+    color: #6B6B6B;
 }
 
 /* Helper text below date picker */
@@ -888,7 +890,7 @@ body {
 }
 
 .sighting-reported {
-    color: #999;
+    color: #6B6B6B;
     font-size: 0.8rem;
     margin-top: 0.5rem;
     font-style: italic;
@@ -940,9 +942,10 @@ body {
 }
 
 .form-input:focus {
-    outline: none;
+    outline: 2px solid var(--santa-red);
+    outline-offset: 1px;
     border-color: var(--santa-red);
-    box-shadow: 0 0 0 3px rgba(196, 30, 58, 0.1);
+    box-shadow: none;
 }
 
 .street-suggestions {
@@ -967,7 +970,8 @@ body {
     transition: background 0.2s;
 }
 
-.suggestion-item:hover {
+.suggestion-item:hover,
+.suggestion-item.is-active {
     background: var(--snow);
 }
 
@@ -1070,7 +1074,7 @@ body {
 
 .footer-note {
     font-size: 0.8rem;
-    color: #888;
+    color: #666;
     margin-top: 0.75rem;
 }
 
@@ -1403,4 +1407,99 @@ html { scroll-padding-top: 1rem; }
     appearance: none;
     min-height: 3.4rem;
     -webkit-min-logical-width: 0;
+}
+
+/* ---- Accessibility (2026-10-29) ---------------------------------------- */
+
+/* Text for screen readers only. */
+.visually-hidden {
+    position: absolute !important;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* "Skip to content": off-screen until it receives keyboard focus. */
+.skip-link {
+    position: absolute;
+    left: 1rem;
+    top: -200px;
+    z-index: 20000;
+    background: var(--santa-green);
+    color: #fff;
+    padding: 0.75rem 1.25rem;
+    border-radius: var(--radius-sm);
+    font-weight: bold;
+    text-decoration: none;
+}
+.skip-link:focus {
+    top: 1rem;
+}
+
+/* Landmark/dialog targets that receive focus from script only. */
+main:focus,
+.modal-content:focus {
+    outline: none;
+}
+
+/* Keyboard focus ring: a white inner ring plus a dark outer ring, so it
+   shows up on both the white cards and the red page background. Only on
+   :focus-visible, so mouse and touch users never see it. */
+a:focus-visible,
+button:focus-visible,
+summary:focus-visible,
+[tabindex]:not([tabindex="-1"]):focus-visible {
+    outline: 3px solid var(--text-dark);
+    outline-offset: 2px;
+    box-shadow: 0 0 0 5px #fff;
+}
+.close-modal:focus-visible {
+    outline-color: #fff;
+    box-shadow: none;
+}
+
+/* Inputs: a border dark enough to see (3:1 against white). */
+.search-input,
+.date-picker,
+.form-input {
+    border-color: #8A8F96;
+}
+
+/* Menu entries that are links rather than buttons look the same. */
+a.menu-btn {
+    text-decoration: none;
+}
+
+/* Footer "Analytics preferences" is a button styled as a footer link. */
+.link-button {
+    background: none;
+    border: 0;
+    padding: 0;
+    font-family: inherit;
+    font-size: inherit;
+    line-height: inherit;
+    cursor: pointer;
+}
+
+/* Section titles are now real headings; keep their old line height. */
+/* Subtitle on the gold "Santa Spotted!" card: grey on gold was 2.4:1. */
+.last-seen-section .section-subtitle {
+    color: var(--text-dark);
+}
+
+h2.search-title,
+h2.section-title,
+h2.menu-title {
+    line-height: normal;
+}
+
+
+/* Small-print footer links: underline so they don't rely on colour alone. */
+.footer-note .footer-link {
+    text-decoration: underline;
 }

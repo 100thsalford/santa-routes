@@ -22,7 +22,7 @@
             }
         })();
     </script>
-    <link rel="stylesheet" href="styles.css?v=20261023c">
+    <link rel="stylesheet" href="styles.css?v=20261029a">
     <style>
         /* Additional styles for holding page */
         .holding-card {
@@ -125,29 +125,31 @@
 </head>
 
 <body>
-    <!-- Decorative snowflakes -->
-    <div class="snowflake" style="left: 10%; animation-duration: 10s; animation-delay: 0s;">❄</div>
-    <div class="snowflake" style="left: 30%; animation-duration: 12s; animation-delay: 2s;">❄</div>
-    <div class="snowflake" style="left: 50%; animation-duration: 11s; animation-delay: 4s;">❄</div>
-    <div class="snowflake" style="left: 70%; animation-duration: 13s; animation-delay: 1s;">❄</div>
-    <div class="snowflake" style="left: 90%; animation-duration: 10s; animation-delay: 3s;">❄</div>
+    <a class="skip-link" href="#main">Skip to content</a>
 
-    <div class="header">
-        <h1>🎅 Santa Super Sleigh Salford</h1>
+    <!-- Decorative snowflakes -->
+    <div class="snowflake" aria-hidden="true" style="left: 10%; animation-duration: 10s; animation-delay: 0s;">❄</div>
+    <div class="snowflake" aria-hidden="true" style="left: 30%; animation-duration: 12s; animation-delay: 2s;">❄</div>
+    <div class="snowflake" aria-hidden="true" style="left: 50%; animation-duration: 11s; animation-delay: 4s;">❄</div>
+    <div class="snowflake" aria-hidden="true" style="left: 70%; animation-duration: 13s; animation-delay: 1s;">❄</div>
+    <div class="snowflake" aria-hidden="true" style="left: 90%; animation-duration: 10s; animation-delay: 3s;">❄</div>
+
+    <header class="header">
+        <h1><span aria-hidden="true">🎅</span> Santa Super Sleigh Salford</h1>
         <p>All the info you need to see when Santa will be coming to the Irlams o' th' Height and Pendlebury neighbourhoods of Salford. Brought to you by The 100th Salford Scout Group.</p>
         <a href="https://checkout.square.site/merchant/MLHCM2TZHZ9NA/checkout/E4KKJFETD5BQZJYHETXWV6S2" 
            target="_blank" 
            rel="noopener noreferrer" 
            class="donate-btn">
-            💝 Donate to Support Our Scouts
+            <span aria-hidden="true">💝</span> Donate to Support Our Scouts
         </a>
-    </div>
+    </header>
 
-    <div class="container">
+    <main class="container" id="main" tabindex="-1">
         <!-- Holding Page Card - See You in 2026 -->
         <div class="holding-card off-season-only">
             <img src="santa-relaxing.jpg" alt="Santa and his elves servicing the sleigh in the workshop, getting ready for next season">
-            <div class="holding-title">Coming soon!</div>
+            <h2 class="holding-title">Coming soon!</h2>
             <div class="holding-subtitle">
                 We'll be back in December 2026. Santa and his elves at 100th Salford St Luke's are already in the workshop getting the sleigh ready!
             </div>
@@ -162,17 +164,17 @@
 
         <!-- Mobile Navigation Menu (only visible on mobile) -->
         <div class="mobile-menu" id="mobileMenu">
-            <div class="menu-title">What do you want to do?</div>
+            <h2 class="menu-title">What do you want to do?</h2>
             <div class="menu-buttons">
-                <button class="menu-btn date-conditional hidden-after-season" data-section="todays-streets-section">🗓️ Today's Streets</button>
-                <button class="menu-btn date-conditional hidden-after-season" data-section="search-section">🔍 Search my street name</button>
-                <button class="menu-btn date-conditional hidden-after-season" data-section="search-section" data-tab="date">📅 Search streets by date</button>
-                <button class="menu-btn date-conditional hidden-after-season" data-section="sightings-view-section">👀 See Santa spotting reports</button>
-                <button class="menu-btn date-conditional hidden-after-season" data-section="map-section">🗺️ View route maps</button>
-                <button class="menu-btn date-conditional hidden-after-season" data-section="all-routes-section">📋 View list of all routes</button>
-                <button class="menu-btn" data-section="facebook-section">📱 See Facebook updates</button>
-                <button class="menu-btn" onclick="window.location.href='about.html'">🎅 About the Sleigh</button>
-                <button class="menu-btn" onclick="window.open('https://checkout.square.site/merchant/MLHCM2TZHZ9NA/checkout/E4KKJFETD5BQZJYHETXWV6S2', '_blank')">💝 Make a donation</button>
+                <button class="menu-btn date-conditional hidden-after-season" data-section="todays-streets-section"><span><span aria-hidden="true">🗓️</span> Today's Streets</span></button>
+                <button class="menu-btn date-conditional hidden-after-season" data-section="search-section"><span><span aria-hidden="true">🔍</span> Search my street name</span></button>
+                <button class="menu-btn date-conditional hidden-after-season" data-section="search-section" data-tab="date"><span><span aria-hidden="true">📅</span> Search streets by date</span></button>
+                <button class="menu-btn date-conditional hidden-after-season" data-section="sightings-view-section"><span><span aria-hidden="true">👀</span> See Santa spotting reports</span></button>
+                <button class="menu-btn date-conditional hidden-after-season" data-section="map-section"><span><span aria-hidden="true">🗺️</span> View route maps</span></button>
+                <button class="menu-btn date-conditional hidden-after-season" data-section="all-routes-section"><span><span aria-hidden="true">📋</span> View list of all routes</span></button>
+                <button class="menu-btn" data-section="facebook-section"><span><span aria-hidden="true">📱</span> See Facebook updates</span></button>
+                <a class="menu-btn" href="about.html"><span><span aria-hidden="true">🎅</span> About the Sleigh</span></a>
+                <a class="menu-btn" href="https://checkout.square.site/merchant/MLHCM2TZHZ9NA/checkout/E4KKJFETD5BQZJYHETXWV6S2" target="_blank" rel="noopener noreferrer"><span><span aria-hidden="true">💝</span> Make a donation<span class="visually-hidden"> (opens in a new tab)</span></span></a>
             </div>
         </div>
 
@@ -180,7 +182,7 @@
         <div class="content-section date-conditional hidden-after-season" id="todays-streets-section">
             <button class="back-btn mobile-only">← Back to Menu</button>
             <div class="search-card">
-                <div class="search-title" id="todaysStreetsTitle">🗓️ Today's Streets</div>
+                <h2 class="search-title" id="todaysStreetsTitle"><span aria-hidden="true">🗓️</span> Today's Streets</h2>
                 <div class="search-subtitle" id="todaysStreetsSubtitle">Streets Santa visits today:</div>
                 <div id="todaysStreetsContent" class="todays-streets-content">
                     <div class="loading">
@@ -195,26 +197,28 @@
         <div class="content-section date-conditional hidden-after-season" id="search-section">
             <button class="back-btn mobile-only">← Back to Menu</button>
         <div class="search-card">
-            <div class="search-title">When is Santa visiting?</div>
+            <h2 class="search-title">When is Santa visiting?</h2>
             <div class="search-subtitle">Search your street or pick a date</div>
 
-            <div class="tab-buttons">
-                <button class="tab-btn active" data-tab="street">🏘️ By Street</button>
-                <button class="tab-btn" data-tab="date">📅 By Date</button>
+            <div class="tab-buttons" role="group" aria-label="Search by">
+                <button class="tab-btn active" data-tab="street" aria-pressed="true"><span aria-hidden="true">🏘️</span> By Street</button>
+                <button class="tab-btn" data-tab="date" aria-pressed="false"><span aria-hidden="true">📅</span> By Date</button>
             </div>
 
             <div id="street-search">
                 <div class="search-box">
-                    <span class="search-icon">🔍</span>
+                    <label for="streetInput" class="visually-hidden">Search for your street or postcode</label>
+                    <span class="search-icon" aria-hidden="true">🔍</span>
                     <input 
                         type="text" 
                         class="search-input" 
                         id="streetInput" 
                         placeholder="Type your street name..."
                         autocomplete="off"
+                        aria-describedby="streetSearchNote"
                     >
                 </div>
-                <p class="search-privacy-note" style="font-size:0.8rem; color:#666; margin:0.5rem 0 0; text-align:center;">Just your street or postcode, please &mdash; no names. <a href="privacy.html#searches" style="color:inherit;">How we use searches</a></p>
+                <p class="search-privacy-note" id="streetSearchNote" style="font-size:0.8rem; color:#666; margin:0.5rem 0 0; text-align:center;">Just your street or postcode, please &mdash; no names. <a href="privacy.html#searches" style="color:inherit;">How we use searches</a></p>
             </div>
 
             <div id="date-search" style="display: none;">
@@ -226,7 +230,7 @@
                     aria-label="Select a date to see Santa's route"
                 >
                 <div class="date-helper" id="dateHelper">
-                    📅 Tap to select a date
+                    <span aria-hidden="true">📅</span> Tap to select a date
                 </div>
             </div>
 
@@ -236,14 +240,17 @@
                     Loading routes...
                 </div>
             </div>
+            <!-- Short spoken summary of the results above (the full list is
+                 not re-read on every keystroke). Filled by script.js. -->
+            <div class="visually-hidden" id="searchStatus" role="status" aria-live="polite"></div>
 
             <div class="disclaimer">
-                <strong>⚠️ PLEASE NOTE:</strong>
+                <strong><span aria-hidden="true">⚠️</span> PLEASE NOTE:</strong>
                 <div class="disclaimer-content" id="disclaimerContent">
                     The times are estimated and factors such as crowds and traffic may mean Santa arrives later than suggested. Some streets are marked 'Partial' as Santa uses them to connect to other streets. Streets are displayed in the order they are planned to be visited, however these may change last minute/without notice.
                 </div>
-                <button class="disclaimer-toggle" id="disclaimerToggle">
-                    <span class="disclaimer-arrow">▶</span>
+                <button class="disclaimer-toggle" id="disclaimerToggle" aria-expanded="false" aria-controls="disclaimerContent">
+                    <span class="disclaimer-arrow" aria-hidden="true">▶</span>
                     <span id="disclaimerToggleText">Read more</span>
                 </button>
             </div>
@@ -255,9 +262,9 @@
         <div class="content-section date-conditional hidden-after-season" id="sightings-view-section">
             <button class="back-btn mobile-only">← Back to Menu</button>
             <div class="last-seen-section">
-                <div class="section-title">
-                    👀 Santa Spotted!
-                </div>
+                <h2 class="section-title">
+                    <span><span aria-hidden="true">👀</span> Santa Spotted!</span>
+                </h2>
                 <div class="section-subtitle">
                     Help others keep track of Santa and report when and where you see him!
                 </div>
@@ -267,7 +274,7 @@
                 </div>
                 
                 <button class="report-sighting-btn" id="reportSightingBtn">
-                    📍 Report a Santa Sighting
+                    <span aria-hidden="true">📍</span> Report a Santa Sighting
                 </button>
             </div>
         </div>
@@ -276,10 +283,10 @@
         <div class="content-section date-conditional hidden-after-season" id="map-section">
             <button class="back-btn mobile-only">← Back to Menu</button>
             <div class="search-card">
-                <div class="search-title">Interactive Map</div>
+                <h2 class="search-title">Interactive Map</h2>
                 <div class="search-subtitle">View all routes on the map</div>
                 <a href="map.html" class="action-btn action-btn-outlined" style="display: block; text-align: center; text-decoration: none;">
-                    <div class="action-icon">🗺️</div>
+                    <div class="action-icon" aria-hidden="true">🗺️</div>
                     <div class="action-text">Open Map</div>
                 </a>
             </div>
@@ -289,10 +296,10 @@
         <div class="content-section date-conditional hidden-after-season" id="all-routes-section">
             <button class="back-btn mobile-only">← Back to Menu</button>
             <div class="search-card">
-                <div class="search-title">All Routes</div>
+                <h2 class="search-title">All Routes</h2>
                 <div class="search-subtitle">Browse all streets and routes</div>
                 <button class="action-btn action-btn-outlined" id="allRoutesBtnMobile" style="width: 100%; margin-top: 1rem; cursor: pointer;">
-                    <div class="action-icon">📋</div>
+                    <div class="action-icon" aria-hidden="true">📋</div>
                     <div class="action-text">View All Routes</div>
                 </button>
             </div>
@@ -302,37 +309,55 @@
         <div class="content-section" id="facebook-section">
             <button class="back-btn mobile-only">← Back to Menu</button>
             <div class="updates-section">
-                <div class="section-title">
-                    📢 Latest Updates
-                </div>
+                <h2 class="section-title">
+                    <span><span aria-hidden="true">📢</span> Latest Updates</span>
+                </h2>
                 
                 <p class="section-subtitle">Our latest news, photos and Santa updates are posted on Facebook.</p>
                 <a class="fb-link fb-link-logo" href="https://www.facebook.com/SuperSleighSalford" target="_blank" rel="noopener noreferrer">
                     <svg class="fb-logo" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" focusable="false"><path fill="currentColor" d="M24 12.07C24 5.4 18.63 0 12 0S0 5.4 0 12.07C0 18.1 4.39 23.1 10.13 24v-8.44H7.08v-3.49h3.05V9.41c0-3.02 1.79-4.69 4.53-4.69 1.31 0 2.68.24 2.68.24v2.97h-1.51c-1.49 0-1.96.93-1.96 1.89v2.25h3.33l-.53 3.49h-2.8V24C19.61 23.1 24 18.1 24 12.07z"/></svg>
-                    <span>Open our Facebook page</span>
+                    <span>Open our Facebook page</span><span class="visually-hidden"> (opens in a new tab)</span>
                 </a>
             </div>
         </div>
 
         <div class="content-section">
             <div class="search-card">
-                <div class="search-title">About Santa Super Sleigh</div>
+                <h2 class="search-title">About Santa Super Sleigh</h2>
                 <div class="search-subtitle">Learn more about our Christmas tradition</div>
                 <a href="about.html" class="action-btn action-btn-outlined" style="display: block; text-align: center; text-decoration: none;">
-                    <div class="action-icon">ℹ️</div>
+                    <div class="action-icon" aria-hidden="true">ℹ️</div>
                     <div class="action-text">About the Sleigh</div>
                 </a>
             </div>
         </div>
-    </div>
+
+        <!-- Floating Track Santa Button -- links to our own live map
+             (track.html), not the old Glympse tracker. Hidden by default
+             (tracking-hidden) and shown by script.js's updateTrackSantaButton()
+             only while siteStatus.sightings.active is true, i.e. the same
+             route-night live window the sightings feature uses. -->
+        <a href="track.html"
+           class="track-santa-float tracking-hidden"
+           id="trackSantaFloatBtn"
+           data-tracking="track-santa-live-click"
+           aria-label="Track Santa Live">
+            <div class="track-santa-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor" focusable="false">
+                    <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+                </svg>
+            </div>
+            <div class="track-santa-text">Track Santa Live</div>
+        </a>
+    </main>
 
     <!-- Sighting Form Modal -->
     <!-- All Routes Modal (opened by "View All Routes"; filled by
          showAllRoutes() in script.js) -->
     <div id="allRoutesModal" class="modal">
-        <div class="modal-content">
+        <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="allRoutesTitle" tabindex="-1">
             <div class="modal-header">
-                <h2>📋 All Routes</h2>
+                <h2 id="allRoutesTitle"><span aria-hidden="true">📋</span> All Routes</h2>
                 <button class="close-modal" id="closeModal" aria-label="Close">&times;</button>
             </div>
             <div id="allRoutesContent" class="modal-body">
@@ -342,9 +367,9 @@
     </div>
 
     <div id="sightingModal" class="modal">
-        <div class="modal-content">
+        <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="sightingTitle" tabindex="-1">
             <div class="modal-header">
-                <h2>📍 Report Santa Sighting</h2>
+                <h2 id="sightingTitle"><span aria-hidden="true">📍</span> Report Santa Sighting</h2>
                 <button class="close-modal" id="closeSightingModal" aria-label="Close">&times;</button>
             </div>
             <div class="modal-body">
@@ -357,9 +382,13 @@
                             class="form-input"
                             placeholder="Start typing street name..."
                             autocomplete="off"
+                            role="combobox"
+                            aria-autocomplete="list"
+                            aria-expanded="false"
+                            aria-controls="streetSuggestions"
                             required
                         >
-                        <div id="streetSuggestions" class="street-suggestions"></div>
+                        <div id="streetSuggestions" class="street-suggestions" role="listbox" aria-label="Matching streets"></div>
                     </div>
 
                     <div class="form-group">
@@ -373,14 +402,14 @@
                     </div>
 
                     <div class="form-group">
-                        <label>When was this? *</label>
-                        <div class="time-options">
-                            <button type="button" class="time-btn active" data-when="now">Just Now</button>
-                            <button type="button" class="time-btn" data-when="earlier">Earlier Today</button>
+                        <label id="whenLabel">When was this? *</label>
+                        <div class="time-options" role="group" aria-labelledby="whenLabel">
+                            <button type="button" class="time-btn active" data-when="now" aria-pressed="true">Just Now</button>
+                            <button type="button" class="time-btn" data-when="earlier" aria-pressed="false">Earlier Today</button>
                         </div>
                     </div>
 
-                    <div id="formMessage" class="form-message"></div>
+                    <div id="formMessage" class="form-message" role="status" aria-live="polite"></div>
 
                     <button type="submit" class="submit-btn">Submit Sighting</button>
                     <p style="font-size:0.8rem; color:#666; margin:0.75rem 0 0; text-align:center;">We store only the street and time, shown to other visitors and deleted after 30 days. <a href="privacy.html#sightings" style="color:inherit;">Privacy policy</a></p>
@@ -389,30 +418,13 @@
         </div>
     </div>
 
-    <!-- Floating Track Santa Button -- links to our own live map
-         (track.html), not the old Glympse tracker. Hidden by default
-         (tracking-hidden) and shown by script.js's updateTrackSantaButton()
-         only while siteStatus.sightings.active is true, i.e. the same
-         route-night live window the sightings feature uses. -->
-    <a href="track.html"
-       class="track-santa-float tracking-hidden"
-       id="trackSantaFloatBtn"
-       data-tracking="track-santa-live-click"
-       aria-label="Track Santa Live">
-        <div class="track-santa-icon">
-            <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
-                <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
-            </svg>
-        </div>
-        <div class="track-santa-text">Track Santa Live</div>
-    </a>
 
     <footer class="footer">
-        <p>🎄&nbsp;Supporting <a href="https://www.facebook.com/100thsalford" target="_blank" rel="noopener noreferrer" class="footer-link">100th Salford Scout&nbsp;Group</a>&nbsp;🎄</p>
+        <p><span aria-hidden="true">🎄</span>&nbsp;Supporting <a href="https://www.facebook.com/100thsalford" target="_blank" rel="noopener noreferrer" class="footer-link">100th Salford Scout&nbsp;Group</a>&nbsp;<span aria-hidden="true">🎄</span></p>
         <p>Donations help fund Scouting activities for young people in Salford</p>
         <p class="footer-note">Some graphics on this site were created using AI image-generation tools. <a href="privacy.html#ai-content" class="footer-link">Learn more</a></p>
         <p><a href="https://helpout.santasleighsalford.co.uk/" class="footer-link">Volunteer login / sign up</a></p>
-        <p><a href="terms.html" class="footer-link">Terms &amp; Conditions</a>&nbsp;· <a href="privacy.html" class="footer-link">Privacy Policy</a> · <a href="#" data-analytics-prefs class="footer-link">Analytics preferences</a></p>
+        <p><a href="terms.html" class="footer-link">Terms &amp; Conditions</a>&nbsp;· <a href="privacy.html" class="footer-link">Privacy Policy</a> · <button type="button" data-analytics-prefs class="footer-link link-button">Analytics preferences</button></p>
     </footer>
 
     <!-- Date-based Visibility Script -->
@@ -462,7 +474,7 @@
         })();
     </script>
 
-    <script src="script.js?v=20261028a"></script>
+    <script src="script.js?v=20261029a"></script>
     <script src="analytics.js"></script>
     
 
