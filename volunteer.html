@@ -282,6 +282,21 @@
             border: 1px solid var(--border-subtle) !important;
         }
 
+        /* Volunteer Briefing video modal */
+        .risk-modal.briefing-modal { max-width: 640px; }
+        .briefing-video {
+            display: block;
+            width: 100%;
+            aspect-ratio: 16 / 9;
+            max-height: 60vh;
+            background: #000;
+            border-radius: var(--radius-md);
+        }
+        .risk-modal .briefing-note { font-size: 0.85rem; color: var(--ink-soft); margin: 0.6rem 0 0; white-space: normal; }
+        .risk-modal .briefing-note[hidden] { display: none; }
+        .risk-modal-checkbox.is-locked { opacity: 0.6; }
+        .briefing-modal .risk-modal-actions { margin-top: 1rem; }
+
         .shift-row-cancel-btn {
             background: none;
             border: 1px solid var(--santa-red);
@@ -701,7 +716,10 @@
         .square-app-links a { flex: 1; text-align: center; border: 1px solid var(--border-subtle); border-radius: 999px; padding: 0.55rem 0.5rem; font-size: 0.88rem; font-weight: bold; color: var(--santa-green); text-decoration: none; }
         .square-error { color: #A8382F; font-size: 0.88rem; margin-top: 0.6rem; }
         .square-error:empty { display: none; }
-        .utility-mini { display: flex; gap: 0.5rem; }
+        .utility-mini { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+        @media (max-width: 419px) {
+            .utility-mini { display: grid; grid-template-columns: 1fr 1fr; }
+        }
         .utility-mini .utility-btn {
             flex: 1;
             justify-content: center;
@@ -1050,6 +1068,11 @@
                     <button type="button" id="riskBannerBtn">Review &amp; acknowledge</button>
                 </div>
 
+                <div class="risk-banner" id="briefingBanner">
+                    <span>🎬 Please watch the 2-minute volunteer briefing before your next shift.</span>
+                    <button type="button" id="briefingBannerBtn">Watch briefing</button>
+                </div>
+
                 <!-- Phase 9: WhatsApp / Donate / Safety Brief / FAQs as small
                      on-demand utility buttons (matching the Replit reference
                      app) instead of an always-open banner + section. -->
@@ -1061,6 +1084,7 @@
                     <div class="utility-mini">
                         <a class="utility-btn" href="https://chat.whatsapp.com/BcxtgyZBZ4B42NltCxmyM4?mode=gi_t" target="_blank" rel="noopener noreferrer">📱 WhatsApp</a>
                         <button type="button" class="utility-btn" id="safetyBriefUtilityBtn">🦺 Safety</button>
+                        <button type="button" class="utility-btn" id="briefingUtilityBtn">🎬 Briefing</button>
                         <button type="button" class="utility-btn" id="faqUtilityBtn">❓ FAQs</button>
                     </div>
                 </div>
@@ -1126,6 +1150,28 @@
             <div class="risk-modal-actions">
                 <button type="button" class="risk-ack-btn" id="riskAckBtn" disabled>I acknowledge</button>
                 <button type="button" class="risk-later-btn" id="riskLaterBtn">Remind me later</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Volunteer Briefing video: shown once after the safety guidance,
+         reopenable any time from "🎬 Briefing". The video only loads when
+         this opens, so it costs nothing on an ordinary portal visit. -->
+    <div class="risk-modal-overlay" id="briefingModalOverlay">
+        <div class="risk-modal briefing-modal" role="dialog" aria-modal="true" aria-labelledby="briefingModalTitle">
+            <h2 id="briefingModalTitle">🎬 Volunteer Briefing</h2>
+            <video class="briefing-video" id="briefingVideo" controls playsinline preload="metadata" poster="media/volunteer-briefing-poster.jpg" tabindex="-1" aria-label="Volunteer briefing video, about 2 minutes">
+                Your browser can't play this video.
+            </video>
+            <p class="briefing-note" id="briefingHint">Watch to the end to unlock the acknowledgement.</p>
+            <p class="briefing-note" id="briefingError" role="alert" hidden>The video didn't load here. <a id="briefingOpenLink" href="media/volunteer-briefing.mp4" target="_blank" rel="noopener noreferrer">Open it in a new tab</a> instead.</p>
+            <label class="risk-modal-checkbox is-locked" id="briefingCheckboxRow">
+                <input type="checkbox" id="briefingAckCheckbox" disabled>
+                <span>I've watched this volunteer briefing.</span>
+            </label>
+            <div class="risk-modal-actions">
+                <button type="button" class="risk-ack-btn" id="briefingAckBtn" disabled>I acknowledge</button>
+                <button type="button" class="risk-later-btn" id="briefingLaterBtn">Remind me later</button>
             </div>
         </div>
     </div>
@@ -1482,7 +1528,7 @@
 
             function hideRiskModal() {
                 riskModalOverlay.classList.remove('visible');
-                maybeShowTour();
+                maybeShowBriefing();
             }
 
             riskAckCheckbox.addEventListener('change', function() {
@@ -1812,7 +1858,7 @@
             });
 
             // ---- Welcome tour ----
-            // Offered once after the 18+ and safety-guidance prompts on a
+            // Offered once after the 18+, safety and briefing prompts on a
             // volunteer's first visit. Starting it, finishing it or "Don't
             // show this again" records TOUR_VERSION on their account
             // (portal-tour-seen.js), so it follows them across devices;
@@ -1875,6 +1921,7 @@
                         '<li><strong>\uD83D\uDCB3 Take Card Payments</strong> \u2014 take contactless donations on your own phone with Square. Unlocks once you\u2019ve signed up for a night.</li>' +
                         '<li><strong>\uD83D\uDCF1 WhatsApp</strong> \u2014 join the volunteer group chat for on-the-night updates.</li>' +
                         '<li><strong>\uD83E\uDDBA Safety</strong> \u2014 re-read the safety guidance any time.</li>' +
+                        '<li><strong>\uD83C\uDFAC Briefing</strong> \u2014 rewatch the 2-minute volunteer briefing.</li>' +
                         '<li><strong>\u2753 FAQs</strong> \u2014 what to wear, what to say on the doorstep, bringing kids, and more.</li></ul>'
                 },
                 {
@@ -1948,13 +1995,13 @@
             }
 
             // Called once the profile has loaded and again whenever the
-            // 18+ / safety prompts close, so the tour never stacks on top
+            // 18+ / safety / briefing prompts close, so the tour never stacks on top
             // of them. Offered at most once per page load.
             function maybeShowTour() {
                 if (tourCheckedThisLoad || !currentProfile) return;
                 if (dashboardCard.classList.contains('not-approved')) return;
                 if ((currentProfile.portalTourVersion || 0) >= TOUR_VERSION) { tourCheckedThisLoad = true; return; }
-                if (adultModalOverlay.classList.contains('visible') || riskModalOverlay.classList.contains('visible')) return;
+                if (adultModalOverlay.classList.contains('visible') || riskModalOverlay.classList.contains('visible') || briefingModalOverlay.classList.contains('visible')) return;
                 tourCheckedThisLoad = true;
                 openTour(0);
             }
@@ -2036,6 +2083,115 @@
                 }
             });
 
+            // ---- Volunteer Briefing video ----
+            // Offered once after the safety guidance has been acknowledged,
+            // then again on each visit until they acknowledge it too. The
+            // tick box unlocks when the video ends. "🎬 Briefing" reopens it
+            // any time; once acknowledged that's just the video.
+            var briefingBanner = document.getElementById('briefingBanner');
+            var briefingModalOverlay = document.getElementById('briefingModalOverlay');
+            var briefingVideo = document.getElementById('briefingVideo');
+            var briefingHint = document.getElementById('briefingHint');
+            var briefingError = document.getElementById('briefingError');
+            var briefingCheckboxRow = document.getElementById('briefingCheckboxRow');
+            var briefingAckCheckbox = document.getElementById('briefingAckCheckbox');
+            var briefingAckBtn = document.getElementById('briefingAckBtn');
+            var briefingLaterBtn = document.getElementById('briefingLaterBtn');
+            var briefingVideoUrl = document.getElementById('briefingOpenLink').getAttribute('href');
+            var briefingCheckedThisLoad = false;
+            var briefingUnlocked = false;
+            var briefingOpener = null;
+
+            function updateBriefingUI(profile) {
+                briefingBanner.classList.toggle('visible', !profile.briefingAckAt);
+            }
+
+            function unlockBriefingAck() {
+                briefingUnlocked = true;
+                briefingAckCheckbox.disabled = false;
+                briefingCheckboxRow.classList.remove('is-locked');
+                briefingHint.hidden = true;
+            }
+
+            // Same readOnly meaning as showRiskModal above.
+            function showBriefingModal(readOnly) {
+                var alreadyAcked = !!(currentProfile && currentProfile.briefingAckAt);
+                var ackNeeded = !(readOnly && alreadyAcked);
+                briefingCheckboxRow.style.display = ackNeeded ? '' : 'none';
+                briefingAckBtn.style.display = ackNeeded ? '' : 'none';
+                briefingHint.hidden = !ackNeeded || briefingUnlocked;
+                briefingLaterBtn.textContent = ackNeeded ? 'Remind me later' : 'Close';
+                briefingAckCheckbox.checked = false;
+                briefingAckCheckbox.disabled = !briefingUnlocked;
+                briefingCheckboxRow.classList.toggle('is-locked', !briefingUnlocked);
+                briefingAckBtn.disabled = true;
+                briefingOpener = document.activeElement;
+                if (!briefingVideo.getAttribute('src')) briefingVideo.setAttribute('src', briefingVideoUrl);
+                briefingModalOverlay.classList.add('visible');
+                briefingVideo.focus();
+            }
+
+            function hideBriefingModal() {
+                briefingVideo.pause();
+                briefingModalOverlay.classList.remove('visible');
+                if (briefingOpener && briefingOpener.focus) briefingOpener.focus();
+                briefingOpener = null;
+                maybeShowTour();
+            }
+
+            // Called when the profile has loaded and when the 18+ / safety
+            // prompts close. A later "Remind me later" on the safety guidance
+            // moves on to the tour; the banner still shows until it's done.
+            function maybeShowBriefing() {
+                if (!currentProfile) return;
+                if (briefingCheckedThisLoad || !currentProfile.riskAckAt || currentProfile.briefingAckAt) {
+                    maybeShowTour();
+                    return;
+                }
+                if (adultModalOverlay.classList.contains('visible') || riskModalOverlay.classList.contains('visible')) return;
+                briefingCheckedThisLoad = true;
+                showBriefingModal(false);
+            }
+
+            briefingVideo.addEventListener('ended', unlockBriefingAck);
+            briefingVideo.addEventListener('error', function() { briefingError.hidden = false; });
+            briefingVideo.addEventListener('playing', function() { briefingError.hidden = true; });
+            // If it won't play here, watching it in a new tab is the way
+            // through; we can't see that tab reach the end.
+            document.getElementById('briefingOpenLink').addEventListener('click', unlockBriefingAck);
+
+            briefingAckCheckbox.addEventListener('change', function() {
+                briefingAckBtn.disabled = !briefingAckCheckbox.checked;
+            });
+
+            document.getElementById('briefingBannerBtn').addEventListener('click', function() { showBriefingModal(false); });
+            document.getElementById('briefingUtilityBtn').addEventListener('click', function() { showBriefingModal(true); });
+            briefingLaterBtn.addEventListener('click', hideBriefingModal);
+
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape' && briefingModalOverlay.classList.contains('visible')) hideBriefingModal();
+            });
+
+            briefingAckBtn.addEventListener('click', async function() {
+                briefingAckBtn.disabled = true;
+                briefingAckBtn.textContent = 'Saving...';
+                try {
+                    var res = await authedFetch('/.netlify/functions/acknowledge-volunteer-briefing', { method: 'POST' });
+                    var data = await res.json();
+                    if (!res.ok) throw new Error(data.error || 'Could not save');
+                    if (currentProfile) currentProfile.briefingAckAt = data.briefingAckAt;
+                    briefingBanner.classList.remove('visible');
+                    hideBriefingModal();
+                    showToast('Volunteer briefing acknowledged.', 'success');
+                } catch (err) {
+                    console.error('Error acknowledging volunteer briefing:', err);
+                    briefingAckBtn.disabled = false;
+                    showToast("Couldn't save \u2014 please try again.", 'error');
+                } finally {
+                    briefingAckBtn.textContent = 'I acknowledge';
+                }
+            });
+
             // ---- One-time 18+ confirmation (shown before the safety guidance) ----
             var adultModalOverlay = document.getElementById('adultModalOverlay');
             var adultConfirmCheckbox = document.getElementById('adultConfirmCheckbox');
@@ -2066,7 +2222,7 @@
                     if (currentProfile) currentProfile.adultConfirmedAt = data.adultConfirmedAt;
                     adultModalOverlay.classList.remove('visible');
                     if (currentProfile && !currentProfile.riskAckAt) showRiskModal();
-                    else maybeShowTour();
+                    else maybeShowBriefing();
                 } catch (err) {
                     console.error('Error confirming age:', err);
                     adultConfirmBtn.disabled = false;
@@ -2250,10 +2406,11 @@
                     renderDetails();
 
                     updateRiskUI(profile);
+                    updateBriefingUI(profile);
                     updateCardPayButton();
                     if (!profile.adultConfirmedAt) showAdultModal();
                     else if (!profile.riskAckAt) showRiskModal();
-                    else maybeShowTour();
+                    else maybeShowBriefing();
 
                     if (profile.shifts && profile.shifts.length > 0) {
                         shiftsContent.innerHTML = '';
@@ -2972,6 +3129,8 @@
             netlifyIdentity.on('logout', function() {
                 currentProfile = null;
                 tourCheckedThisLoad = false;
+                briefingCheckedThisLoad = false;
+                briefingUnlocked = false;
                 closeTour();
                 showLoggedOut();
             });

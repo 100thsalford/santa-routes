@@ -28,6 +28,13 @@
   [headers.values]
     Cache-Control = "public, max-age=604800, must-revalidate"
 
+# Volunteer Briefing video: a plain file, kept out of search results.
+[[headers]]
+  for = "/media/volunteer-briefing.mp4"
+  [headers.values]
+    Cache-Control = "public, max-age=604800, must-revalidate"
+    X-Robots-Tag = "noindex"
+
 # Function responses: [[headers]] rules here never apply to them (Netlify
 # only applies custom headers to static files), so each function sets its
 # own caching headers. Public read endpoints are CDN-cached and purged on

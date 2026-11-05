@@ -3536,7 +3536,8 @@
                         ['Type', vol.isGuest ? 'Guest (no login)' : 'Account holder'],
                         ['Email', vol.email || '—'],
                         ['Phone', vol.phone || '—'],
-                        ['Can be', roleNames || 'No roles yet']
+                        ['Can be', roleNames || 'No roles yet'],
+                        ['Briefing video', vol.isGuest ? 'Brief in person (no login)' : (vol.briefingAckDate ? 'Watched ' + formatDateLabel(vol.briefingAckDate) : 'Not watched yet')]
                     ].forEach(function(pair) {
                         var dt = document.createElement('dt'); dt.textContent = pair[0];
                         var dd = document.createElement('dd'); dd.textContent = pair[1];

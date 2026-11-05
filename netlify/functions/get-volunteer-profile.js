@@ -44,7 +44,7 @@ export default async (req, context) => {
     }
 
     let rows = await db.sql`
-      SELECT id, identity_user_id, email, full_name, phone, reminder_email_opt_in, preferred_email, risk_ack_at, adult_confirmed_at, portal_tour_version,
+      SELECT id, identity_user_id, email, full_name, phone, reminder_email_opt_in, preferred_email, risk_ack_at, briefing_ack_at, adult_confirmed_at, portal_tour_version,
              can_be_santa, can_be_safety_walker, can_be_driver
       FROM volunteers WHERE identity_user_id = ${user.id}
     `;
@@ -54,14 +54,14 @@ export default async (req, context) => {
         INSERT INTO volunteers (identity_user_id, email, full_name)
         VALUES (${user.id}, ${user.email}, ${fullName})
         ON CONFLICT (identity_user_id) DO UPDATE SET email = EXCLUDED.email, full_name = COALESCE(EXCLUDED.full_name, volunteers.full_name)
-        RETURNING id, identity_user_id, email, full_name, phone, reminder_email_opt_in, preferred_email, risk_ack_at, adult_confirmed_at, portal_tour_version,
+        RETURNING id, identity_user_id, email, full_name, phone, reminder_email_opt_in, preferred_email, risk_ack_at, briefing_ack_at, adult_confirmed_at, portal_tour_version,
                   can_be_santa, can_be_safety_walker, can_be_driver
       `;
     } else if (fullName && !rows[0].full_name) {
       // Keep the denormalized name fresh if Identity has one we didn't yet.
       rows = await db.sql`
         UPDATE volunteers SET full_name = ${fullName} WHERE id = ${rows[0].id}
-        RETURNING id, identity_user_id, email, full_name, phone, reminder_email_opt_in, preferred_email, risk_ack_at, adult_confirmed_at, portal_tour_version,
+        RETURNING id, identity_user_id, email, full_name, phone, reminder_email_opt_in, preferred_email, risk_ack_at, briefing_ack_at, adult_confirmed_at, portal_tour_version,
                   can_be_santa, can_be_safety_walker, can_be_driver
       `;
     }
@@ -133,6 +133,7 @@ export default async (req, context) => {
       reminderEmailOptIn: profile.reminder_email_opt_in,
       preferredEmail: profile.preferred_email,
       riskAckAt: profile.risk_ack_at,
+      briefingAckAt: profile.briefing_ack_at,
       adultConfirmedAt: profile.adult_confirmed_at,
       portalTourVersion: profile.portal_tour_version || 0,
       qualifiedRoles: {
