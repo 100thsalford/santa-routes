@@ -261,6 +261,13 @@
             max-width: 560px;
         }
 
+        .broadcast-audience {
+            color: #666;
+            font-size: 0.85rem;
+            line-height: 1.4;
+            margin: 0.4rem 0 0;
+        }
+
         .broadcast-form label {
             display: block;
             font-weight: bold;
@@ -1260,7 +1267,9 @@
                         <select id="broadcastScope">
                             <option value="all">All volunteers</option>
                             <option value="event">Volunteers signed up to one date</option>
+                            <option value="no_upcoming">Volunteers not signed up to any upcoming night</option>
                         </select>
+                        <p class="broadcast-audience admin-hidden" id="broadcastAudience" aria-live="polite"></p>
                     </div>
                     <div id="broadcastEventRow" class="admin-hidden">
                         <label for="broadcastEvent">Which date</label>
@@ -2856,8 +2865,28 @@
                 if (current) select.value = current;
             }
 
+            // Sends nothing: asks the server who this audience is right now.
+            async function showBroadcastAudience() {
+                var el = document.getElementById('broadcastAudience');
+                var scope = document.getElementById('broadcastScope').value;
+                el.classList.toggle('admin-hidden', scope !== 'no_upcoming');
+                if (scope !== 'no_upcoming') return;
+                el.textContent = 'Checking who this will go to...';
+                try {
+                    var result = await postOp('/.netlify/functions/admin-broadcast-email', { scope: scope, preview: true });
+                    if (document.getElementById('broadcastScope').value !== scope) return;
+                    el.textContent = result.recipientCount === 0
+                        ? 'Every volunteer has an upcoming night, so this would go to nobody.'
+                        : 'This will go to ' + result.recipientCount + ' volunteer' + (result.recipientCount === 1 ? '' : 's') + ': ' + result.names.join(', ') + '.';
+                } catch (err) {
+                    console.error('Error checking broadcast audience:', err);
+                    el.textContent = "Couldn't check who this will go to.";
+                }
+            }
+
             document.getElementById('broadcastScope').addEventListener('change', function() {
                 document.getElementById('broadcastEventRow').classList.toggle('admin-hidden', this.value !== 'event');
+                showBroadcastAudience();
             });
 
             document.getElementById('broadcastForm').addEventListener('submit', async function(e) {
@@ -2882,6 +2911,7 @@
                     if (result.sent > 0) {
                         document.getElementById('broadcastForm').reset();
                         document.getElementById('broadcastEventRow').classList.add('admin-hidden');
+                        document.getElementById('broadcastAudience').classList.add('admin-hidden');
                     }
                 } catch (err) {
                     console.error('Error sending broadcast:', err);

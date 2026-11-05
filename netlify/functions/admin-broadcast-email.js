@@ -1,15 +1,22 @@
-// Admin-only custom email broadcast: a free-text subject/message sent
-// either to every volunteer, or just the volunteers signed up (any source)
-// to one specific route_date. For general announcements (a schedule
+// Admin-only custom email broadcast: a free-text subject/message sent to
+// every volunteer, the volunteers signed up (any source) to one specific
+// route_date, or the volunteers with nothing booked on any upcoming night.
+// For general announcements (a schedule
 // change, a weather cancellation, a reminder to bring something) that
 // don't fit the nightly per-shift reminder template in
 // send-shift-reminders.js / admin-send-reminders.js. Sends regardless of
 // reminder_email_opt_in -- that flag is scoped to the automatic nightly
 // shift reminder, not admin-initiated announcements.
 //
-// POST body: { subject, message, scope: 'all' | 'event', routeDateId? }
+// POST body: { subject, message, scope: 'all' | 'event' | 'no_upcoming', routeDateId? }
 // message is plain text; line breaks become <br>, everything else is
 // HTML-escaped.
+//
+// { scope, preview: true } sends nothing and returns who would receive it.
+//
+// 'no_upcoming' means approved volunteers with a login who have no shift or
+// Santa/Driver/Safety Walker slot on a night from today onwards. Guests are
+// left out: they have no login to sign up with.
 
 import { getUser } from '@netlify/identity';
 import { getDatabase } from '@netlify/database';
@@ -17,6 +24,13 @@ import { getDatabase } from '@netlify/database';
 const headers = { 'Content-Type': 'application/json' };
 const FROM_ADDRESS = 'Santa Super Sleigh Salford <noreply@santasleighsalford.co.uk>';
 const REPLY_TO = 'nathan.talbot@100thsalford.co.uk';
+const SCOPES = ['all', 'event', 'no_upcoming'];
+
+function londonDateString(date) {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Europe/London', year: 'numeric', month: '2-digit', day: '2-digit'
+  }).format(date);
+}
 
 function requireAdmin(user) {
   return !!(user && user.roles && user.roles.includes('admin'));
@@ -72,6 +86,38 @@ async function sendEmail(toEmail, html, subject) {
   }
 }
 
+async function findRecipients(db, scope, routeDateId) {
+  if (scope === 'event') {
+    return db.sql`
+      SELECT DISTINCT v.email, v.preferred_email, v.full_name
+      FROM shift_assignments sa
+      JOIN volunteers v ON sa.volunteer_id = v.id
+      WHERE sa.route_date_id = ${routeDateId}
+    `;
+  }
+  if (scope === 'no_upcoming') {
+    const today = londonDateString(new Date());
+    return db.sql`
+      SELECT v.email, v.preferred_email, v.full_name
+      FROM volunteers v
+      WHERE v.approval_status = 'approved'
+        AND NOT v.is_guest
+        AND NOT EXISTS (
+          SELECT 1 FROM shift_assignments sa
+          JOIN route_dates rd ON rd.id = sa.route_date_id
+          WHERE sa.volunteer_id = v.id AND rd.event_date >= ${today}
+        )
+        AND NOT EXISTS (
+          SELECT 1 FROM event_role_assignments era
+          JOIN route_dates rd ON rd.id = era.route_date_id
+          WHERE era.volunteer_id = v.id AND rd.event_date >= ${today}
+        )
+      ORDER BY COALESCE(v.full_name, v.email)
+    `;
+  }
+  return db.sql`SELECT email, preferred_email, full_name FROM volunteers WHERE approval_status = 'approved'`;
+}
+
 export default async (req, context) => {
   if (req.method !== 'POST') {
     return new Response(JSON.stringify({ error: 'Method not allowed' }), { status: 405, headers });
@@ -86,9 +132,14 @@ export default async (req, context) => {
     const body = await req.json();
     const subject = (body.subject || '').trim();
     const message = (body.message || '').trim();
-    const scope = body.scope === 'event' ? 'event' : 'all';
+    const scope = body.scope;
+    const preview = body.preview === true;
 
-    if (!subject || !message) {
+    // An unrecognised scope must never fall through to emailing everyone.
+    if (!SCOPES.includes(scope)) {
+      return new Response(JSON.stringify({ error: 'Unknown scope' }), { status: 400, headers });
+    }
+    if (!preview && (!subject || !message)) {
       return new Response(JSON.stringify({ error: 'subject and message are required' }), { status: 400, headers });
     }
     if (scope === 'event' && !body.routeDateId) {
@@ -96,16 +147,14 @@ export default async (req, context) => {
     }
 
     const db = getDatabase();
-    let recipientRows;
-    if (scope === 'event') {
-      recipientRows = await db.sql`
-        SELECT DISTINCT v.email, v.preferred_email
-        FROM shift_assignments sa
-        JOIN volunteers v ON sa.volunteer_id = v.id
-        WHERE sa.route_date_id = ${body.routeDateId}
-      `;
-    } else {
-      recipientRows = await db.sql`SELECT email, preferred_email FROM volunteers WHERE approval_status = 'approved'`;
+    const recipientRows = await findRecipients(db, scope, body.routeDateId);
+
+    if (preview) {
+      return new Response(JSON.stringify({
+        success: true,
+        recipientCount: recipientRows.length,
+        names: recipientRows.map((r) => r.full_name || r.preferred_email || r.email)
+      }), { status: 200, headers });
     }
 
     const html = buildEmailHtml(message);
