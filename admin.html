@@ -3391,13 +3391,14 @@
                 rolesTd.className = 'col-roles';
                 var q = vol.qualifiedRoles || {};
                 var held = VOLUNTEER_ROLES.filter(function(r) { return q[r[0]]; });
-                if (held.length) {
+                if (held.length || vol.mailboxAccess) {
                     var icons = document.createElement('span');
                     icons.className = 'vol-role-icons';
-                    icons.textContent = held.map(function(r) { return r[2]; }).join('');
+                    icons.textContent = held.map(function(r) { return r[2]; }).join('') + (vol.mailboxAccess ? '📬' : '');
                     var names = held.map(function(r) { return r[3]; }).join(', ');
-                    icons.title = 'Can be: ' + names;
-                    icons.setAttribute('aria-label', 'Can be: ' + names);
+                    var label = (names ? 'Can be: ' + names : '') + (vol.mailboxAccess ? (names ? '. ' : '') + 'Has mailbox access' : '');
+                    icons.title = label;
+                    icons.setAttribute('aria-label', label);
                     rolesTd.appendChild(icons);
                 } else {
                     var none = document.createElement('span');
@@ -3458,6 +3459,10 @@
                     vol.isGuest ? null : { disabled: 'Name and email come from their own login' });
                 item('🎅 Assign roles', function() { openVolunteerModal(vol.id, 'roles'); });
                 item('📅 Assign shift', function() { openVolunteerModal(vol.id, 'shift'); });
+                // hello@ mailbox in the portal (mailbox.html) -- account holders only.
+                item(vol.mailboxAccess ? '📬 Remove mailbox access' : '📬 Give mailbox access', function() {
+                    setMailboxAccess(vol, !vol.mailboxAccess);
+                }, vol.isGuest && !vol.mailboxAccess ? { disabled: 'Guests have no portal login' } : null);
                 menu.appendChild(document.createElement('hr'));
                 item('🗑 Delete', function() { deleteVolunteer(vol); }, { danger: true });
 
@@ -3495,6 +3500,13 @@
             });
             window.addEventListener('resize', positionVolunteerMenu);
             window.addEventListener('scroll', positionVolunteerMenu, true);
+
+            function setMailboxAccess(vol, enabled) {
+                var name = volunteerDisplayName(vol);
+                if (enabled && !confirm('Give ' + name + ' access to the shared mailbox?\n\nThey will be able to read and send emails as the Santa Sleigh address.')) return;
+                runOp('/.netlify/functions/admin-mailbox-access', { volunteerId: vol.id, enabled: enabled }, 'volunteersStatus',
+                    enabled ? name + ' can now use the Mailbox.' : 'Mailbox access removed for ' + name + '.').catch(function() {});
+            }
 
             function openVolunteerModal(volId, mode) {
                 volunteerModalState = { id: volId, mode: mode };
@@ -3567,6 +3579,7 @@
                         ['Email', vol.email || '—'],
                         ['Phone', vol.phone || '—'],
                         ['Can be', roleNames || 'No roles yet'],
+                        ['Mailbox', vol.mailboxAccess ? '📬 Has access' : 'No access'],
                         ['Briefing video', vol.isGuest ? 'Brief in person (no login)' : (vol.briefingAckDate ? 'Watched ' + formatDateLabel(vol.briefingAckDate) : 'Not watched yet')]
                     ].forEach(function(pair) {
                         var dt = document.createElement('dt'); dt.textContent = pair[0];

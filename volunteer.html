@@ -632,6 +632,14 @@
             display: none;
         }
 
+        .volunteer-tabs .mailbox-tab { margin-left: auto; text-decoration: none; display: inline-flex; align-items: center; gap: 0.35rem; }
+        .volunteer-tabs .mailbox-tab[hidden] { display: none; }
+        .mailbox-tab-count {
+            background: var(--santa-red); color: #fff; border-radius: 999px;
+            font-size: 0.72rem; line-height: 1; padding: 0.2rem 0.45rem; min-width: 1.2rem; text-align: center;
+        }
+        .mailbox-tab-count[hidden] { display: none; }
+
         /* Phase 9: small utility entry points (WhatsApp / Donate / Safety
            Brief / FAQs) replacing the always-open WhatsApp banner and
            donation section -- opened on demand instead of taking up
@@ -1092,6 +1100,9 @@
                 <div class="volunteer-tabs">
                     <button class="tab-btn active" data-tab="events">🎄 Open Nights</button>
                     <button class="tab-btn" data-tab="myschedule">🗓️ My Schedule</button>
+                    <!-- Only for volunteers an admin has given mailbox access
+                         (profile.mailboxAccess); opens the hello@ mailbox page. -->
+                    <a class="tab-btn mailbox-tab" id="mailboxTab" href="mailbox.html" hidden>📬 Mailbox<span class="mailbox-tab-count" id="mailboxTabCount" hidden></span></a>
                 </div>
 
                 <div class="tab-panel" id="tab-events">
@@ -1853,7 +1864,7 @@
                 });
             }
 
-            document.querySelectorAll('.volunteer-tabs .tab-btn').forEach(function(btn) {
+            document.querySelectorAll('.volunteer-tabs button.tab-btn').forEach(function(btn) {
                 btn.addEventListener('click', function() { switchTab(btn.dataset.tab); });
             });
 
@@ -2368,6 +2379,25 @@
                 setTimeout(function() { URL.revokeObjectURL(url); }, 1000);
             }
 
+            // 📬 Mailbox tab: only for volunteers with mailbox access. The
+            // unread count is best-effort -- the tab still works without it.
+            async function updateMailboxTab(profile) {
+                var tab = document.getElementById('mailboxTab');
+                var count = document.getElementById('mailboxTabCount');
+                tab.hidden = !(profile && profile.mailboxAccess);
+                count.hidden = true;
+                if (tab.hidden) return;
+                try {
+                    var res = await authedFetch('/.netlify/functions/mailbox?op=summary');
+                    var data = await res.json();
+                    if (res.ok && data.unread > 0) {
+                        count.textContent = data.unread > 99 ? '99+' : String(data.unread);
+                        count.hidden = false;
+                        tab.setAttribute('aria-label', 'Mailbox, ' + data.unread + ' unread');
+                    }
+                } catch (err) { /* no count shown */ }
+            }
+
             async function loadProfile() {
                 welcomeText.textContent = 'Loading your profile...';
                 welcomeText.classList.add('volunteer-loading');
@@ -2408,6 +2438,7 @@
                     updateRiskUI(profile);
                     updateBriefingUI(profile);
                     updateCardPayButton();
+                    updateMailboxTab(profile);
                     if (!profile.adultConfirmedAt) showAdultModal();
                     else if (!profile.riskAckAt) showRiskModal();
                     else maybeShowBriefing();
@@ -3128,6 +3159,7 @@
 
             netlifyIdentity.on('logout', function() {
                 currentProfile = null;
+                document.getElementById('mailboxTab').hidden = true;
                 tourCheckedThisLoad = false;
                 briefingCheckedThisLoad = false;
                 briefingUnlocked = false;

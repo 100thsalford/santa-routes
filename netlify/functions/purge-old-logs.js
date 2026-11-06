@@ -5,6 +5,7 @@
 //   - Santa sighting reports: 30 days
 //   - registration-attempt (anti-abuse) records, which hold an IP address:
 //     24 hours
+//   - mailbox "sent by" records (mailbox_sent_log): 13 months
 //   - cached TruTrak trails for past route nights (Blobs store 'trutrak'):
 //     deleted once the night is over (kept for today and yesterday only)
 // It also FLAGS volunteers with no login/volunteering activity for 3 years:
@@ -64,6 +65,13 @@ export default async () => {
     summary.oldEventsDeleted = oldEvents.length;
     summary.sightingsDeleted = oldSightings.length;
     summary.registrationAttemptsDeleted = oldAttempts.length;
+
+    // Who-sent-what records for the hello@ mailbox (the emails themselves
+    // live in Resend): 13 months.
+    const oldSentLog = await db.sql`
+      DELETE FROM mailbox_sent_log WHERE created_at < now() - interval '13 months' RETURNING id
+    `;
+    summary.mailboxSentLogDeleted = oldSentLog.length;
 
     try {
       summary.trailsDeleted = await purgeOldTrails();

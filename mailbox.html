@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex">
+    <title>Mailbox | Santa Super Sleigh Salford</title>
+    <link rel="stylesheet" href="styles.css?v=20261021b">
+    <style>
+        /* hello@ mailbox for volunteers with mailbox access. Mobile-first:
+           one view at a time (list -> conversation -> compose); from 900px
+           the list and the open conversation sit side by side. */
+        [hidden] { display: none !important; }
+        .mb-wrap { max-width: 1180px; margin: 0 auto; padding: 1rem 0.75rem 2rem; }
+        .mb-card {
+            background: var(--surface); border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-lg); box-shadow: var(--shadow-sm);
+        }
+        .mb-gate { padding: 2rem 1.5rem; text-align: center; }
+        .mb-gate p { line-height: 1.6; margin-bottom: 1.25rem; }
+        .mb-btn {
+            display: inline-flex; align-items: center; justify-content: center; gap: 0.35rem;
+            background: var(--santa-green); color: #fff; border: 1px solid var(--santa-green);
+            border-radius: 999px; padding: 0.55rem 1.1rem; font: inherit; font-size: 0.92rem; font-weight: bold;
+            cursor: pointer; text-decoration: none; white-space: nowrap;
+        }
+        .mb-btn:disabled { opacity: 0.55; cursor: default; }
+        .mb-btn.secondary { background: var(--surface); color: var(--santa-green); border-color: var(--border-subtle); }
+        .mb-btn.quiet { background: none; border-color: transparent; color: var(--ink-soft); padding: 0.45rem 0.6rem; }
+        .mb-btn.danger { background: var(--surface); color: var(--santa-red); border-color: var(--border-subtle); }
+        .mb-btn:focus-visible, .mb-icon-btn:focus-visible, .mb-thread:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+
+        .mb-topbar {
+            display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;
+            padding: 0.75rem; border-bottom: 1px solid var(--border-subtle);
+        }
+        .mb-back { color: var(--santa-green); text-decoration: none; font-weight: bold; font-size: 0.9rem; }
+        .mb-address { font-size: 0.85rem; color: var(--ink-soft); margin-right: auto; overflow: hidden; text-overflow: ellipsis; }
+        .mb-folders { display: flex; gap: 0.35rem; overflow-x: auto; padding: 0.6rem 0.75rem 0; scrollbar-width: none; }
+        .mb-folders::-webkit-scrollbar { display: none; }
+        .mb-folder {
+            border: 1px solid var(--border-subtle); background: var(--surface); color: var(--ink-soft);
+            border-radius: 999px; padding: 0.35rem 0.8rem; font: inherit; font-size: 0.85rem; cursor: pointer; white-space: nowrap;
+        }
+        .mb-folder.active { background: var(--santa-green); border-color: var(--santa-green); color: #fff; font-weight: bold; }
+        .mb-search { display: flex; gap: 0.4rem; padding: 0.6rem 0.75rem; }
+        .mb-search input {
+            flex: 1; min-width: 0; border: 1px solid var(--border-subtle); border-radius: 999px;
+            padding: 0.5rem 0.9rem; font: inherit; font-size: 0.9rem;
+        }
+
+        .mb-layout { display: block; }
+        .mb-list-pane { min-width: 0; }
+        .mb-read-pane { min-width: 0; display: none; }
+        .mb-layout.reading .mb-list-pane { display: none; }
+        .mb-layout.reading .mb-read-pane { display: block; }
+
+        .mb-threads { list-style: none; margin: 0; padding: 0; }
+        .mb-thread {
+            display: grid; grid-template-columns: 1fr auto; gap: 0.1rem 0.6rem; width: 100%;
+            text-align: left; background: none; border: none; border-top: 1px solid var(--border-subtle);
+            padding: 0.75rem; font: inherit; color: var(--text-dark); cursor: pointer;
+        }
+        .mb-thread:hover { background: var(--surface-muted); }
+        .mb-thread.selected { background: #EAF2EE; }
+        .mb-thread .from { font-size: 0.92rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .mb-thread .when { font-size: 0.78rem; color: var(--ink-soft); white-space: nowrap; }
+        .mb-thread .subj { grid-column: 1 / -1; font-size: 0.86rem; color: var(--ink-soft); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .mb-thread.unread .from, .mb-thread.unread .subj { font-weight: bold; color: var(--text-dark); }
+        .mb-thread.unread .from::before { content: ''; display: inline-block; width: 0.5rem; height: 0.5rem; border-radius: 50%; background: var(--santa-red); margin-right: 0.4rem; vertical-align: middle; }
+        .mb-empty { padding: 2rem 1rem; text-align: center; color: var(--ink-soft); font-size: 0.92rem; }
+        .mb-more { padding: 0.75rem; text-align: center; border-top: 1px solid var(--border-subtle); }
+
+        .mb-read-head { display: flex; align-items: center; gap: 0.5rem; padding: 0.75rem; border-bottom: 1px solid var(--border-subtle); flex-wrap: wrap; }
+        .mb-read-head h2 { flex: 1 1 100%; order: 2; font-size: 1.1rem; margin: 0.25rem 0 0; color: var(--text-dark); overflow-wrap: anywhere; }
+        .mb-read-actions { display: flex; gap: 0.35rem; flex-wrap: wrap; margin-left: auto; }
+        .mb-icon-btn {
+            background: var(--surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm);
+            padding: 0.4rem 0.55rem; font: inherit; font-size: 0.82rem; color: var(--text-dark); cursor: pointer; white-space: nowrap;
+        }
+        .mb-icon-btn:hover { background: var(--surface-muted); }
+        .mb-messages { padding: 0.5rem 0.75rem 0.75rem; }
+        .mb-msg { background: var(--surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); margin-top: 0.75rem; overflow: hidden; }
+        .mb-msg.outbound { border-color: #CFE3D8; }
+        .mb-msg-head { padding: 0.6rem 0.75rem; background: var(--surface-muted); font-size: 0.84rem; line-height: 1.45; }
+        .mb-msg.outbound .mb-msg-head { background: #EEF6F1; }
+        .mb-msg-head .who { font-weight: bold; color: var(--text-dark); overflow-wrap: anywhere; }
+        .mb-msg-head .meta { color: var(--ink-soft); overflow-wrap: anywhere; }
+        .mb-sentby { display: inline-block; margin-top: 0.2rem; font-size: 0.78rem; color: var(--santa-green); font-weight: bold; }
+        .mb-msg-body { padding: 0.75rem; }
+        .mb-msg-body iframe { width: 100%; border: 0; display: block; min-height: 60px; background: #fff; }
+        .mb-msg-text { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 0.92rem; line-height: 1.55; }
+        .mb-images-note { display: flex; gap: 0.5rem; align-items: center; justify-content: space-between; flex-wrap: wrap; font-size: 0.8rem; color: var(--ink-soft); background: #FFF8E6; border-bottom: 1px solid #F0E2B8; padding: 0.45rem 0.75rem; }
+        .mb-attachments { display: flex; flex-wrap: wrap; gap: 0.4rem; padding: 0 0.75rem 0.75rem; }
+        .mb-attachment {
+            border: 1px solid var(--border-subtle); border-radius: 999px; background: var(--surface);
+            padding: 0.35rem 0.75rem; font: inherit; font-size: 0.8rem; cursor: pointer; max-width: 100%;
+            overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+        .mb-reply-bar { display: flex; gap: 0.5rem; flex-wrap: wrap; padding: 0.75rem; border-top: 1px solid var(--border-subtle); }
+
+        .mb-alerts { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-top: 1rem; padding: 0.9rem 1rem; font-size: 0.88rem; }
+        .mb-alerts small { display: block; color: var(--ink-soft); margin-top: 0.15rem; }
+
+        /* Compose: full screen on phones, a large dialog on wider screens. */
+        .mb-compose-overlay { position: fixed; inset: 0; z-index: 1500; background: rgba(36, 39, 46, 0.45); display: none; }
+        .mb-compose-overlay.open { display: block; }
+        .mb-compose {
+            position: absolute; inset: 0; background: var(--surface); display: flex; flex-direction: column;
+        }
+        .mb-compose-head { display: flex; align-items: center; gap: 0.5rem; padding: 0.7rem 0.75rem; border-bottom: 1px solid var(--border-subtle); }
+        .mb-compose-head h2 { flex: 1; font-size: 1.05rem; margin: 0; color: var(--text-dark); }
+        .mb-compose-body { flex: 1; overflow-y: auto; padding: 0.25rem 0.75rem 0.75rem; }
+        .mb-field { display: flex; align-items: center; gap: 0.5rem; border-bottom: 1px solid var(--border-subtle); padding: 0.35rem 0; }
+        .mb-field label { width: 3.6rem; flex: none; font-size: 0.85rem; color: var(--ink-soft); }
+        .mb-field input { flex: 1; min-width: 0; border: none; padding: 0.5rem 0; font: inherit; font-size: 0.95rem; background: none; }
+        .mb-field input:focus { outline: none; }
+        .mb-field:focus-within { border-bottom-color: var(--santa-green); }
+        .mb-field .mb-btn.quiet { font-size: 0.8rem; }
+        .mb-context { font-size: 0.82rem; color: var(--ink-soft); padding: 0.55rem 0 0.2rem; overflow-wrap: anywhere; }
+        .mb-toolbar { display: flex; gap: 0.25rem; flex-wrap: wrap; padding: 0.55rem 0; }
+        .mb-toolbar button {
+            min-width: 2.2rem; height: 2.2rem; border: 1px solid var(--border-subtle); border-radius: var(--radius-sm);
+            background: var(--surface); font: inherit; font-size: 0.9rem; cursor: pointer; color: var(--text-dark);
+        }
+        .mb-toolbar button:hover { background: var(--surface-muted); }
+        .mb-editor {
+            min-height: 12rem; border: 1px solid var(--border-subtle); border-radius: var(--radius-md);
+            padding: 0.75rem; font-size: 0.95rem; line-height: 1.55; overflow-wrap: anywhere; outline: none; background: #fff;
+        }
+        .mb-editor:focus { border-color: var(--santa-green); }
+        .mb-editor blockquote { border-left: 3px solid var(--border-subtle); margin: 0.5rem 0; padding-left: 0.75rem; color: var(--ink-soft); }
+        .mb-editor ul, .mb-editor ol { padding-left: 1.5rem; }
+        .mb-files { margin-top: 0.75rem; }
+        .mb-file-list { list-style: none; padding: 0; margin: 0.5rem 0 0; display: flex; flex-direction: column; gap: 0.35rem; }
+        .mb-file-list li { display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; background: var(--surface-muted); border-radius: var(--radius-sm); padding: 0.35rem 0.5rem; }
+        .mb-file-list li span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .mb-file-total { font-size: 0.8rem; color: var(--ink-soft); margin-top: 0.35rem; }
+        .mb-compose-foot { display: flex; align-items: center; gap: 0.5rem; padding: 0.7rem 0.75rem; border-top: 1px solid var(--border-subtle); }
+        .mb-compose-error { flex: 1; color: var(--santa-red); font-size: 0.85rem; }
+        .mb-sender-note { font-size: 0.78rem; color: var(--ink-soft); padding: 0.6rem 0 0; }
+
+        .toggle-switch { position: relative; display: inline-block; width: 46px; height: 26px; flex-shrink: 0; }
+        .toggle-switch input { opacity: 0; width: 0; height: 0; }
+        .toggle-slider { position: absolute; cursor: pointer; inset: 0; background-color: #ccc; border-radius: 999px; transition: 0.2s; }
+        .toggle-slider::before { position: absolute; content: ""; height: 20px; width: 20px; left: 3px; bottom: 3px; background-color: white; border-radius: 50%; transition: 0.2s; }
+        .toggle-switch input:checked + .toggle-slider { background-color: var(--santa-green); }
+        .toggle-switch input:checked + .toggle-slider::before { transform: translateX(20px); }
+        .toggle-switch input:focus-visible + .toggle-slider { outline: 3px solid var(--gold); outline-offset: 2px; }
+
+        .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+        .toast-container { position: fixed; top: 1rem; right: 1rem; z-index: 2000; display: flex; flex-direction: column; gap: 0.5rem; max-width: min(22rem, calc(100vw - 2rem)); }
+        .toast { display: flex; align-items: flex-start; gap: 0.5rem; background: var(--surface); border-left: 4px solid var(--santa-green); border-radius: var(--radius-sm); box-shadow: var(--shadow-md); padding: 0.7rem 0.8rem; font-size: 0.9rem; color: var(--text-dark); }
+        .toast.error { border-left-color: var(--santa-red); }
+        .toast span { flex: 1; }
+        .toast-close { background: none; border: none; color: var(--ink-soft); font-size: 1.1rem; line-height: 1; cursor: pointer; }
+
+        @media (min-width: 700px) {
+            .mb-compose { inset: 4vh 50% auto auto; transform: translateX(50%); width: min(760px, 94vw); height: 92vh; border-radius: var(--radius-lg); overflow: hidden; box-shadow: var(--shadow-lg); }
+        }
+        @media (min-width: 900px) {
+            .mb-layout { display: grid; grid-template-columns: minmax(300px, 380px) 1fr; min-height: 60vh; }
+            .mb-list-pane { display: block !important; border-right: 1px solid var(--border-subtle); }
+            .mb-read-pane { display: block !important; }
+            .mb-read-back { display: none; }
+            .mb-read-placeholder { display: flex; align-items: center; justify-content: center; height: 100%; color: var(--ink-soft); font-size: 0.92rem; padding: 2rem; }
+        }
+        @media (max-width: 899px) {
+            .mb-read-placeholder { display: none; }
+        }
+    </style>
+    <script src="privacy-prefs.js?v=20261024a"></script>
+</head>
+<body>
+    <div id="toastContainer" class="toast-container" aria-live="polite"></div>
+
+    <div class="header">
+        <h1>📬 Mailbox</h1>
+        <p>100th Salford Scout Group | Santa Super Sleigh Salford</p>
+    </div>
+
+    <main class="mb-wrap">
+        <!-- Shown until we know who's here and whether they have access. -->
+        <div class="mb-card mb-gate" id="gateCard">
+            <p id="gateText">Loading the mailbox...</p>
+            <button type="button" class="mb-btn" id="gateLoginBtn" hidden>Log In</button>
+            <a class="mb-btn secondary" id="gatePortalLink" href="volunteer.html" hidden>Back to the volunteer portal</a>
+        </div>
+
+        <div id="appArea" hidden>
+            <div class="mb-card">
+                <div class="mb-topbar">
+                    <a class="mb-back" href="volunteer.html">← Portal</a>
+                    <span class="mb-address" id="addressLabel"></span>
+                    <button type="button" class="mb-btn quiet" id="refreshBtn" aria-label="Refresh">⟳</button>
+                    <button type="button" class="mb-btn" id="newEmailBtn">✏️ New email</button>
+                </div>
+
+                <div class="mb-layout" id="layout">
+                    <section class="mb-list-pane" aria-label="Conversations">
+                        <div class="mb-folders" role="tablist" aria-label="Folders" id="folderTabs">
+                            <button type="button" class="mb-folder active" data-folder="inbox" role="tab" aria-selected="true">Inbox</button>
+                            <button type="button" class="mb-folder" data-folder="sent" role="tab" aria-selected="false">Sent</button>
+                            <button type="button" class="mb-folder" data-folder="archive" role="tab" aria-selected="false">Archive</button>
+                            <button type="button" class="mb-folder" data-folder="spam" role="tab" aria-selected="false">Spam</button>
+                            <button type="button" class="mb-folder" data-folder="trash" role="tab" aria-selected="false">Bin</button>
+                        </div>
+                        <form class="mb-search" id="searchForm" role="search">
+                            <label class="visually-hidden" for="searchInput">Search this folder</label>
+                            <input type="search" id="searchInput" placeholder="Search this folder" autocomplete="off">
+                            <button type="submit" class="mb-btn secondary">Search</button>
+                        </form>
+                        <ul class="mb-threads" id="threadList" aria-live="polite"></ul>
+                        <div class="mb-empty" id="threadEmpty" hidden></div>
+                        <div class="mb-more" id="loadMoreRow" hidden><button type="button" class="mb-btn secondary" id="loadMoreBtn">Load more</button></div>
+                    </section>
+
+                    <section class="mb-read-pane" aria-label="Conversation" id="readPane">
+                        <div class="mb-read-placeholder" id="readPlaceholder">Choose a conversation to read it.</div>
+                        <div id="readContent" hidden>
+                            <div class="mb-read-head">
+                                <button type="button" class="mb-btn quiet mb-read-back" id="readBackBtn">← Back</button>
+                                <div class="mb-read-actions" id="readActions"></div>
+                                <h2 id="readSubject" tabindex="-1"></h2>
+                            </div>
+                            <div class="mb-messages" id="readMessages"></div>
+                            <div class="mb-reply-bar">
+                                <button type="button" class="mb-btn" id="replyBtn">↩︎ Reply</button>
+                                <button type="button" class="mb-btn secondary" id="replyAllBtn">↩︎ Reply all</button>
+                                <button type="button" class="mb-btn secondary" id="forwardBtn">↪︎ Forward</button>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+            </div>
+
+            <div class="mb-card mb-alerts">
+                <span>Email me when new mail arrives
+                    <small>At most one alert every 30 minutes, sent to your portal email address.</small>
+                </span>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="alertsToggle" aria-label="Email me when new mail arrives">
+                    <span class="toggle-slider"></span>
+                </label>
+            </div>
+        </div>
+    </main>
+
+    <!-- Compose / reply / forward -->
+    <div class="mb-compose-overlay" id="composeOverlay">
+        <div class="mb-compose" role="dialog" aria-modal="true" aria-labelledby="composeTitle">
+            <div class="mb-compose-head">
+                <h2 id="composeTitle">New email</h2>
+                <button type="button" class="mb-btn quiet" id="composeCloseBtn" aria-label="Close">✕</button>
+            </div>
+            <div class="mb-compose-body">
+                <p class="mb-context" id="composeContext" hidden></p>
+                <div class="mb-field" id="toRow">
+                    <label for="toInput">To</label>
+                    <input type="text" id="toInput" inputmode="email" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="name@example.com, ...">
+                    <button type="button" class="mb-btn quiet" id="showCcBtn">Cc/Bcc</button>
+                </div>
+                <div class="mb-field" id="ccRow" hidden>
+                    <label for="ccInput">Cc</label>
+                    <input type="text" id="ccInput" inputmode="email" autocomplete="off" autocapitalize="off" spellcheck="false">
+                </div>
+                <div class="mb-field" id="bccRow" hidden>
+                    <label for="bccInput">Bcc</label>
+                    <input type="text" id="bccInput" inputmode="email" autocomplete="off" autocapitalize="off" spellcheck="false">
+                </div>
+                <div class="mb-field" id="subjectRow">
+                    <label for="subjectInput">Subject</label>
+                    <input type="text" id="subjectInput" maxlength="300">
+                </div>
+
+                <div class="mb-toolbar" role="toolbar" aria-label="Formatting" id="toolbar">
+                    <button type="button" data-cmd="bold" aria-label="Bold"><b>B</b></button>
+                    <button type="button" data-cmd="italic" aria-label="Italic"><i>I</i></button>
+                    <button type="button" data-cmd="underline" aria-label="Underline"><u>U</u></button>
+                    <button type="button" data-cmd="insertUnorderedList" aria-label="Bulleted list">•</button>
+                    <button type="button" data-cmd="insertOrderedList" aria-label="Numbered list">1.</button>
+                    <button type="button" data-cmd="createLink" aria-label="Add link">🔗</button>
+                    <button type="button" data-cmd="removeFormat" aria-label="Clear formatting">⨯</button>
+                </div>
+                <div class="mb-editor" id="editor" contenteditable="true" role="textbox" aria-multiline="true" aria-label="Message"></div>
+
+                <div class="mb-files">
+                    <label class="mb-btn secondary" for="fileInput">📎 Attach files</label>
+                    <input type="file" id="fileInput" multiple hidden>
+                    <ul class="mb-file-list" id="fileList"></ul>
+                    <p class="mb-file-total" id="fileTotal">Up to 4 MB in total.</p>
+                </div>
+                <p class="mb-sender-note" id="senderNote"></p>
+            </div>
+            <div class="mb-compose-foot">
+                <span class="mb-compose-error" id="composeError" role="alert"></span>
+                <button type="button" class="mb-btn secondary" id="composeCancelBtn">Cancel</button>
+                <button type="button" class="mb-btn" id="sendBtn">Send</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="text/javascript" src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
+    <script src="mailbox.js?v=20261106a"></script>
+</body>
+</html>
