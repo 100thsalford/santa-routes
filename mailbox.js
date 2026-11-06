@@ -343,24 +343,44 @@
         box.innerHTML = '';
         // Newest first (volunteer feedback). th.emails stays oldest-first,
         // which replyTarget() and forwarding rely on.
-        th.emails.slice().reverse().forEach(function(e) { box.appendChild(renderMessage(e)); });
+        th.emails.slice().reverse().forEach(function(e, i) { box.appendChild(renderMessage(e, i === 0)); });
         var hasEmails = th.emails.length > 0;
         $('replyBtn').disabled = !hasEmails;
         $('replyAllBtn').disabled = !hasEmails;
         $('forwardBtn').disabled = !hasEmails;
     }
 
-    function renderMessage(e) {
+    // Each email is a card. Only the newest is open; older ones show the
+    // sender, date and a one-line preview until tapped. A card's body is
+    // only built the first time it's opened, so the email frame can size
+    // itself while visible.
+    function renderMessage(e, open) {
         var wrap = document.createElement('article');
-        wrap.className = 'mb-msg ' + (e.direction === 'outbound' ? 'outbound' : 'inbound');
+        wrap.className = 'mb-msg ' + (e.direction === 'outbound' ? 'outbound' : 'inbound') + (open ? '' : ' collapsed');
 
-        var head = document.createElement('div');
+        var head = document.createElement('button');
+        head.type = 'button';
         head.className = 'mb-msg-head';
-        var who = document.createElement('div');
+        head.setAttribute('aria-expanded', open ? 'true' : 'false');
+
+        var row = document.createElement('span');
+        row.className = 'row';
+        var who = document.createElement('span');
         who.className = 'who';
         who.textContent = e.direction === 'outbound' ? 'From ' + (state.address || 'us') : e.from;
-        head.appendChild(who);
-        var meta = document.createElement('div');
+        var date = document.createElement('span');
+        date.className = 'date';
+        date.textContent = (e.attachments && e.attachments.length ? '📎 ' : '') + shortDate(e.receivedAt);
+        var chev = document.createElement('span');
+        chev.className = 'chev';
+        chev.setAttribute('aria-hidden', 'true');
+        chev.textContent = '▾';
+        row.appendChild(who);
+        row.appendChild(date);
+        row.appendChild(chev);
+        head.appendChild(row);
+
+        var meta = document.createElement('span');
         meta.className = 'meta';
         var lines = ['To: ' + (e.to || []).join(', ')];
         if (e.cc && e.cc.length) lines.push('Cc: ' + e.cc.join(', '));
@@ -368,6 +388,12 @@
         lines.push(fullDate(e.receivedAt));
         meta.textContent = lines.join(' · ');
         head.appendChild(meta);
+
+        var snippet = document.createElement('span');
+        snippet.className = 'snippet';
+        snippet.textContent = messageText(e).replace(/\s+/g, ' ').slice(0, 160) || '(No message text)';
+        head.appendChild(snippet);
+
         if (e.direction === 'outbound') {
             var by = document.createElement('span');
             by.className = 'mb-sentby';
@@ -377,6 +403,24 @@
         }
         wrap.appendChild(head);
 
+        var content = document.createElement('div');
+        content.className = 'mb-msg-content';
+        content.hidden = !open;
+        wrap.appendChild(content);
+        if (open) buildMessageContent(e, content);
+
+        head.addEventListener('click', function() {
+            var opening = content.hidden;
+            content.hidden = !opening;
+            wrap.classList.toggle('collapsed', !opening);
+            head.setAttribute('aria-expanded', opening ? 'true' : 'false');
+            if (opening && !content.childNodes.length) buildMessageContent(e, content);
+        });
+        return wrap;
+    }
+
+    function buildMessageContent(e, content) {
+        content.innerHTML = '';
         if (e.html) {
             var remote = hasRemoteImages(e.html);
             var allow = !!state.showImages[e.id];
@@ -391,21 +435,21 @@
                 show.textContent = 'Show pictures';
                 show.addEventListener('click', function() {
                     state.showImages[e.id] = true;
-                    wrap.parentNode.replaceChild(renderMessage(e), wrap);
+                    buildMessageContent(e, content);
                 });
                 note.appendChild(span);
                 note.appendChild(show);
-                wrap.appendChild(note);
+                content.appendChild(note);
             }
             var body = document.createElement('div');
             body.className = 'mb-msg-body';
             body.appendChild(emailFrame(e.html, allow));
-            wrap.appendChild(body);
+            content.appendChild(body);
         } else {
             var textBody = document.createElement('div');
             textBody.className = 'mb-msg-body mb-msg-text';
             textBody.textContent = e.text || '(No message text)';
-            wrap.appendChild(textBody);
+            content.appendChild(textBody);
         }
 
         if (e.attachments && e.attachments.length) {
@@ -420,9 +464,8 @@
                 b.addEventListener('click', function() { openAttachment(e, a, b); });
                 atts.appendChild(b);
             });
-            wrap.appendChild(atts);
+            content.appendChild(atts);
         }
-        return wrap;
     }
 
     // Received HTML is shown in a sandboxed frame: no scripts, no forms, no

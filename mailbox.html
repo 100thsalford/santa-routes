@@ -82,11 +82,24 @@
         .mb-messages { padding: 0.5rem 0.75rem 0.75rem; }
         .mb-msg { background: var(--surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); margin-top: 0.75rem; overflow: hidden; }
         .mb-msg.outbound { border-color: #CFE3D8; }
-        .mb-msg-head { padding: 0.6rem 0.75rem; background: var(--surface-muted); font-size: 0.84rem; line-height: 1.45; }
+        .mb-msg-head {
+            display: block; width: 100%; text-align: left; border: none; font: inherit; cursor: pointer;
+            padding: 0.6rem 0.75rem; background: var(--surface-muted); font-size: 0.84rem; line-height: 1.45; color: var(--text-dark);
+        }
+        .mb-msg-head:focus-visible { outline: 3px solid var(--gold); outline-offset: -3px; }
         .mb-msg.outbound .mb-msg-head { background: #EEF6F1; }
-        .mb-msg-head .who { font-weight: bold; color: var(--text-dark); overflow-wrap: anywhere; }
-        .mb-msg-head .meta { color: var(--ink-soft); overflow-wrap: anywhere; }
-        .mb-sentby { display: inline-block; margin-top: 0.2rem; font-size: 0.78rem; color: var(--santa-green); font-weight: bold; }
+        .mb-msg-head .row { display: flex; align-items: baseline; gap: 0.5rem; }
+        .mb-msg-head .who { flex: 1; min-width: 0; font-weight: bold; overflow-wrap: anywhere; }
+        .mb-msg-head .date { font-size: 0.78rem; color: var(--ink-soft); white-space: nowrap; }
+        .mb-msg-head .chev { color: var(--ink-soft); transition: transform 0.15s; }
+        .mb-msg-head .meta { display: block; color: var(--ink-soft); overflow-wrap: anywhere; }
+        .mb-msg-head .snippet { display: none; color: var(--ink-soft); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .mb-msg.collapsed .mb-msg-head { background: var(--surface); }
+        .mb-msg.collapsed .mb-msg-head .who { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .mb-msg.collapsed .mb-msg-head .meta { display: none; }
+        .mb-msg.collapsed .mb-msg-head .snippet { display: block; }
+        .mb-msg.collapsed .mb-msg-head .chev { transform: rotate(-90deg); }
+        .mb-sentby { display: block; margin-top: 0.2rem; font-size: 0.78rem; color: var(--santa-green); font-weight: bold; }
         .mb-msg-body { padding: 0.75rem; }
         .mb-msg-body iframe { width: 100%; border: 0; display: block; min-height: 60px; background: #fff; }
         .mb-msg-text { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 0.92rem; line-height: 1.55; }
@@ -302,6 +315,6 @@
     </div>
 
     <script type="text/javascript" src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
-    <script src="mailbox.js?v=20261106b"></script>
+    <script src="mailbox.js?v=20261106c"></script>
 </body>
 </html>
