@@ -1,18 +1,19 @@
 // Returns view-count stats for the admin "Site Activity" tab, specifically
-// for the live sleigh-tracking page (track.html) -- Nathan wants to know
-// how many people are viewing it. Built from the same cookie-free
-// analytics_events rows that analytics.js already logs on every page load
-// (see log-analytics.js) -- no new tracking or cookies added. "Unique
-// visitors" is an approximation (distinct IP address per period), since no
-// visitor/session ID is stored anywhere in this pipeline. Raw IPs/user
-// agents are never returned here, only aggregate counts. Requires a
-// logged-in Identity user with the 'admin' role.
+// for the live sleigh-tracking page (track.html). Built from the same
+// cookie-free analytics_events rows that analytics.js already logs on every
+// page load (see log-analytics.js) -- no new tracking or cookies added. No
+// IP address or visitor ID is stored, so these are view counts only, not
+// unique visitors. With ?export=1 it instead returns every page view on the
+// site (all pages, not just track.html) in chunks of EXPORT_CHUNK, oldest
+// first (?after=<last id> for the next chunk), for the admin CSV download.
+// Requires a logged-in Identity user with the 'admin' role.
 
 import { getUser } from '@netlify/identity';
 import { getDatabase } from '@netlify/database';
 
 const headers = { 'Content-Type': 'application/json' };
 const TRACK_PAGE = '/track.html';
+const EXPORT_CHUNK = 5000;
 
 function requireAdmin(user) {
   return !!(user && user.roles && user.roles.includes('admin'));
@@ -26,6 +27,22 @@ export default async (req, context) => {
     }
 
     const db = getDatabase();
+    const params = new URL(req.url).searchParams;
+
+    if (params.get('export')) {
+      const after = Math.max(0, parseInt(params.get('after'), 10) || 0);
+      const rows = await db.sql`
+        SELECT id, created_at, page
+        FROM analytics_events
+        WHERE event_type = 'page_view' AND id > ${after}
+        ORDER BY id ASC
+        LIMIT ${EXPORT_CHUNK}
+      `;
+      return new Response(JSON.stringify({
+        rows: rows.map((r) => ({ id: r.id, createdAt: r.created_at, page: r.page })),
+        nextAfter: rows.length === EXPORT_CHUNK ? rows[rows.length - 1].id : null
+      }), { status: 200, headers });
+    }
 
     const [totalsRows, dailyRows] = await Promise.all([
       db.sql`

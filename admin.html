@@ -496,6 +496,19 @@
             margin: 0 0 1.5rem;
         }
 
+        .sa-export { margin: 0 0 1.25rem; }
+        .sa-pager {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.5rem;
+            margin: 0.75rem 0 0;
+            font-size: 0.9rem;
+            color: var(--ink-soft);
+        }
+        .sa-pager-buttons { display: flex; gap: 0.5rem; }
+
         table.admin-table td.truncate {
             overflow: hidden;
             text-overflow: ellipsis;
@@ -1313,8 +1326,8 @@
             <!-- Site Activity: page views for the live sleigh-tracking map
                  (track.html), from the same cookie-free analytics_events the
                  rest of the site already logs -- no new tracking added.
-                 "Unique visitors" is an approximation (distinct IP per
-                 period), since no visitor ID is stored anywhere here. -->
+                 Views only: no IP or visitor ID is stored, so there's no
+                 unique-visitor figure. -->
             <div class="admin-card admin-hidden" id="tab-site-activity">
                 <p id="siteActivityLoading" class="admin-loading">Loading site activity...</p>
                 <div id="siteActivityContent"></div>
@@ -1509,11 +1522,18 @@
                 }
             }
 
+            var searchActivityState = { page: 1, total: 0, pageSize: 50 };
+
+            async function fetchSearchActivity(page) {
+                var res = await authedFetch('/.netlify/functions/admin-search-activity?page=' + page);
+                var data = await res.json();
+                if (!res.ok) throw new Error(data.error || 'Could not load search activity');
+                return data;
+            }
+
             async function loadSearchActivity() {
                 try {
-                    var res = await authedFetch('/.netlify/functions/admin-search-activity');
-                    var data = await res.json();
-                    if (!res.ok) throw new Error(data.error || 'Could not load search activity');
+                    var data = await fetchSearchActivity(1);
                     renderSearchActivity(data);
                 } catch (err) {
                     console.error('Error loading search activity:', err);
@@ -1521,10 +1541,27 @@
                 }
             }
 
+            async function goToSearchPage(page) {
+                var section = document.getElementById('saRecent');
+                section.querySelectorAll('button').forEach(function(b) { b.disabled = true; });
+                try {
+                    var data = await fetchSearchActivity(page);
+                    searchActivityState.total = data.totals.total;
+                    renderRecentSearches(data);
+                    var title = document.getElementById('saRecentTitle');
+                    if (title && title.getBoundingClientRect().top < 0) title.scrollIntoView();
+                } catch (err) {
+                    console.error('Error loading search page:', err);
+                    showToast("Couldn't load that page: " + err.message, 'error');
+                    section.querySelectorAll('button').forEach(function(b) { b.disabled = false; });
+                }
+            }
+
             function renderSearchActivity(data) {
                 document.getElementById('searchActivityLoading').classList.add('admin-hidden');
                 var container = document.getElementById('searchActivityContent');
                 container.innerHTML = '';
+                searchActivityState.total = data.totals.total;
 
                 var stats = document.createElement('div');
                 stats.className = 'search-stats-row';
@@ -1539,6 +1576,14 @@
                     stats.appendChild(stat);
                 });
                 container.appendChild(stats);
+
+                var exportRow = document.createElement('div');
+                exportRow.className = 'add-row-form sa-export';
+                exportRow.innerHTML =
+                    '<button type="button" class="admin-btn small" data-export="searches">&#11015; Export all searches (CSV)</button>' +
+                    '<button type="button" class="admin-btn small" data-export="page-views">&#11015; Export page views (CSV)</button>';
+                container.appendChild(exportRow);
+                wireActivityExportButtons(exportRow);
 
                 var noMatchTitle = document.createElement('div');
                 noMatchTitle.className = 'search-activity-subtitle';
@@ -1563,45 +1608,161 @@
 
                 var recentTitle = document.createElement('div');
                 recentTitle.className = 'search-activity-subtitle';
-                recentTitle.textContent = 'Recent searches';
+                recentTitle.id = 'saRecentTitle';
+                recentTitle.textContent = 'All searches (newest first)';
                 container.appendChild(recentTitle);
+
+                var help = document.createElement('p');
+                help.className = 'no-match-empty';
+                help.textContent = '"Results" is how many street visits the search matched (one street on one route night), so a street visited on two nights shows 2.';
+                container.appendChild(help);
+
+                var recentSection = document.createElement('div');
+                recentSection.id = 'saRecent';
+                container.appendChild(recentSection);
+                renderRecentSearches(data);
+            }
+
+            function renderRecentSearches(data) {
+                var section = document.getElementById('saRecent');
+                section.innerHTML = '';
+                var pageSize = data.pageSize || 50;
+                var page = data.page || 1;
+                var total = searchActivityState.total;
+                var totalPages = Math.max(1, Math.ceil(total / pageSize));
+                searchActivityState.page = page;
+                searchActivityState.pageSize = pageSize;
 
                 if (data.recent.length === 0) {
                     var emptyRecent = document.createElement('p');
                     emptyRecent.className = 'no-match-empty';
-                    emptyRecent.textContent = 'No searches logged yet.';
-                    container.appendChild(emptyRecent);
-                    return;
+                    emptyRecent.textContent = page > 1 ? 'No searches on this page.' : 'No searches logged yet.';
+                    section.appendChild(emptyRecent);
+                    if (page <= 1) return;
+                } else {
+                    var table = document.createElement('table');
+                    table.className = 'admin-table';
+                    table.innerHTML = '<thead><tr>' +
+                        '<th class="sa-col-time">When</th>' +
+                        '<th class="sa-col-term">Search</th>' +
+                        '<th class="sa-col-match">Match?</th>' +
+                        '<th class="sa-col-street">Matched street</th>' +
+                        '<th class="sa-col-results">Results</th>' +
+                        '</tr></thead>';
+                    var tbody = document.createElement('tbody');
+                    data.recent.forEach(function(r) {
+                        var tr = document.createElement('tr');
+                        var when = new Date(r.createdAt).toLocaleString('en-GB', {
+                            day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'
+                        });
+                        tr.innerHTML =
+                            '<td>' + escapeHtml(when) + '</td>' +
+                            '<td class="truncate">' + escapeHtml(r.searchTerm || '—') + '</td>' +
+                            '<td>' + (r.matchFound ? '✅' : '❌') + '</td>' +
+                            '<td class="truncate">' + escapeHtml(r.matchedStreet || '—') + '</td>' +
+                            '<td>' + r.resultsCount + '</td>';
+                        tbody.appendChild(tr);
+                    });
+                    table.appendChild(tbody);
+                    var tableScroll = document.createElement('div');
+                    tableScroll.className = 'table-scroll';
+                    tableScroll.appendChild(table);
+                    section.appendChild(tableScroll);
                 }
 
-                var table = document.createElement('table');
-                table.className = 'admin-table';
-                table.innerHTML = '<thead><tr>' +
-                    '<th class="sa-col-time">When</th>' +
-                    '<th class="sa-col-term">Search</th>' +
-                    '<th class="sa-col-match">Match?</th>' +
-                    '<th class="sa-col-street">Matched street</th>' +
-                    '<th class="sa-col-results">Results</th>' +
-                    '</tr></thead>';
-                var tbody = document.createElement('tbody');
-                data.recent.forEach(function(r) {
-                    var tr = document.createElement('tr');
-                    var when = new Date(r.createdAt).toLocaleString('en-GB', {
-                        day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'
+                var first = total === 0 ? 0 : (page - 1) * pageSize + 1;
+                var last = Math.min(total, (page - 1) * pageSize + data.recent.length);
+                var pager = document.createElement('div');
+                pager.className = 'sa-pager';
+                pager.innerHTML =
+                    '<span>Showing ' + first.toLocaleString('en-GB') + '&ndash;' + last.toLocaleString('en-GB') +
+                    ' of ' + total.toLocaleString('en-GB') + ' &middot; page ' + page + ' of ' + totalPages + '</span>' +
+                    '<span class="sa-pager-buttons">' +
+                    '<button type="button" class="admin-btn small" data-page="1"' + (page <= 1 ? ' disabled' : '') + '>&laquo; Newest</button>' +
+                    '<button type="button" class="admin-btn small" data-page="' + (page - 1) + '"' + (page <= 1 ? ' disabled' : '') + '>&lsaquo; Newer</button>' +
+                    '<button type="button" class="admin-btn small" data-page="' + (page + 1) + '"' + (page >= totalPages ? ' disabled' : '') + '>Older &rsaquo;</button>' +
+                    '<button type="button" class="admin-btn small" data-page="' + totalPages + '"' + (page >= totalPages ? ' disabled' : '') + '>Oldest &raquo;</button>' +
+                    '</span>';
+                pager.querySelectorAll('button[data-page]').forEach(function(btn) {
+                    btn.addEventListener('click', function() {
+                        goToSearchPage(parseInt(btn.getAttribute('data-page'), 10));
                     });
-                    tr.innerHTML =
-                        '<td>' + escapeHtml(when) + '</td>' +
-                        '<td class="truncate">' + escapeHtml(r.searchTerm || '—') + '</td>' +
-                        '<td>' + (r.matchFound ? '✅' : '❌') + '</td>' +
-                        '<td class="truncate">' + escapeHtml(r.matchedStreet || '—') + '</td>' +
-                        '<td>' + r.resultsCount + '</td>';
-                    tbody.appendChild(tr);
                 });
-                table.appendChild(tbody);
-                var tableScroll = document.createElement('div');
-                tableScroll.className = 'table-scroll';
-                tableScroll.appendChild(table);
-                container.appendChild(tableScroll);
+                section.appendChild(pager);
+            }
+
+            // ---- Search / page-view CSV exports ----
+            // Fetched in chunks (the function returns up to 5,000 rows per
+            // call, oldest first) so a busy season can't exceed the function
+            // response size limit. Times are written in UK time.
+
+            function ukDateTime(iso) {
+                var parts = {};
+                new Intl.DateTimeFormat('en-GB', {
+                    timeZone: 'Europe/London', year: 'numeric', month: '2-digit', day: '2-digit',
+                    hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23'
+                }).formatToParts(new Date(iso)).forEach(function(p) { parts[p.type] = p.value; });
+                return parts.year + '-' + parts.month + '-' + parts.day + ' ' + parts.hour + ':' + parts.minute + ':' + parts.second;
+            }
+
+            async function fetchAllExportRows(endpoint) {
+                var rows = [];
+                var after = 0;
+                for (var guard = 0; guard < 200; guard++) {
+                    var res = await authedFetch('/.netlify/functions/' + endpoint + '?export=1&after=' + after);
+                    var data = await res.json();
+                    if (!res.ok) throw new Error(data.error || 'Export failed');
+                    rows = rows.concat(data.rows);
+                    if (data.nextAfter == null) return rows;
+                    after = data.nextAfter;
+                }
+                return rows;
+            }
+
+            var activityExports = {
+                'searches': {
+                    endpoint: 'admin-search-activity',
+                    filename: 'santa-sleigh-searches',
+                    header: ['When (UK time)', 'Search', 'Match found', 'Matched street', 'Results'],
+                    row: function(r) {
+                        return [ukDateTime(r.createdAt), r.searchTerm || '', r.matchFound ? 'Yes' : 'No', r.matchedStreet || '', r.resultsCount];
+                    },
+                    noun: 'search'
+                },
+                'page-views': {
+                    endpoint: 'admin-site-activity',
+                    filename: 'santa-sleigh-page-views',
+                    header: ['When (UK time)', 'Page'],
+                    row: function(r) { return [ukDateTime(r.createdAt), r.page || '']; },
+                    noun: 'page view'
+                }
+            };
+
+            async function runActivityExport(kind, btn) {
+                var cfg = activityExports[kind];
+                var label = btn.innerHTML;
+                btn.disabled = true;
+                btn.textContent = 'Preparing…';
+                try {
+                    var rows = await fetchAllExportRows(cfg.endpoint);
+                    var today = ukDateTime(new Date().toISOString()).slice(0, 10);
+                    qrDownloadCsv(cfg.filename + '-' + today + '.csv', [cfg.header].concat(rows.map(cfg.row)));
+                    showToast('Exported ' + rows.length.toLocaleString('en-GB') + ' ' + cfg.noun + (rows.length === 1 ? '' : 's') + '.', 'success');
+                } catch (err) {
+                    console.error('Export failed:', err);
+                    showToast("Couldn't export: " + err.message, 'error');
+                } finally {
+                    btn.disabled = false;
+                    btn.innerHTML = label;
+                }
+            }
+
+            function wireActivityExportButtons(root) {
+                root.querySelectorAll('button[data-export]').forEach(function(btn) {
+                    btn.addEventListener('click', function() {
+                        runActivityExport(btn.getAttribute('data-export'), btn);
+                    });
+                });
             }
 
             async function loadSiteActivity() {
@@ -1639,6 +1800,13 @@
                     stats.appendChild(stat);
                 });
                 container.appendChild(stats);
+
+                var exportRow = document.createElement('div');
+                exportRow.className = 'add-row-form sa-export';
+                exportRow.innerHTML = '<button type="button" class="admin-btn small" data-export="page-views">&#11015; Export page views (CSV)</button>' +
+                    '<span class="no-match-empty" style="margin:0">Every page on the site, not just the tracker.</span>';
+                container.appendChild(exportRow);
+                wireActivityExportButtons(exportRow);
 
                 var dailyTitle = document.createElement('div');
                 dailyTitle.className = 'search-activity-subtitle';
