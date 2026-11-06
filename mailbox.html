@@ -97,7 +97,7 @@
             padding: 0.35rem 0.75rem; font: inherit; font-size: 0.8rem; cursor: pointer; max-width: 100%;
             overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
         }
-        .mb-reply-bar { display: flex; gap: 0.5rem; flex-wrap: wrap; padding: 0.75rem; border-top: 1px solid var(--border-subtle); }
+        .mb-reply-bar { display: flex; gap: 0.5rem; flex-wrap: wrap; padding: 0.75rem 0.75rem 0; }
 
         .mb-alerts { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-top: 1rem; padding: 0.9rem 1rem; font-size: 0.88rem; }
         .mb-alerts small { display: block; color: var(--ink-soft); margin-top: 0.15rem; }
@@ -224,12 +224,12 @@
                                 <div class="mb-read-actions" id="readActions"></div>
                                 <h2 id="readSubject" tabindex="-1"></h2>
                             </div>
-                            <div class="mb-messages" id="readMessages"></div>
                             <div class="mb-reply-bar">
                                 <button type="button" class="mb-btn" id="replyBtn">↩︎ Reply</button>
                                 <button type="button" class="mb-btn secondary" id="replyAllBtn">↩︎ Reply all</button>
                                 <button type="button" class="mb-btn secondary" id="forwardBtn">↪︎ Forward</button>
                             </div>
+                            <div class="mb-messages" id="readMessages"></div>
                         </div>
                     </section>
                 </div>
@@ -302,6 +302,6 @@
     </div>
 
     <script type="text/javascript" src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
-    <script src="mailbox.js?v=20261106a"></script>
+    <script src="mailbox.js?v=20261106b"></script>
 </body>
 </html>

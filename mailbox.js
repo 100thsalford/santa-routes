@@ -341,7 +341,9 @@
 
         var box = $('readMessages');
         box.innerHTML = '';
-        th.emails.forEach(function(e) { box.appendChild(renderMessage(e)); });
+        // Newest first (volunteer feedback). th.emails stays oldest-first,
+        // which replyTarget() and forwarding rely on.
+        th.emails.slice().reverse().forEach(function(e) { box.appendChild(renderMessage(e)); });
         var hasEmails = th.emails.length > 0;
         $('replyBtn').disabled = !hasEmails;
         $('replyAllBtn').disabled = !hasEmails;
