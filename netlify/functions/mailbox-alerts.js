@@ -1,11 +1,13 @@
-// Scheduled Netlify Function (every 15 minutes; not reachable by a public
+// Scheduled Netlify Function (every 6 hours; not reachable by a public
 // URL) that emails volunteers with mailbox access when new mail has
-// arrived in the hello@ inbox.
+// arrived in the hello@ inbox since the last check.
 //
-// To save Resend quota (received AND sent emails count against it, and
-// each alert is one email per recipient), alerts are batched: at most one
-// alert every 30 minutes, listing what's new since the last one. Volunteers
-// can switch alerts off from the Mailbox page (volunteers.mailbox_alerts).
+// Every 6 hours keeps Netlify function usage and Resend quota low
+// (received AND sent emails count against Resend's quota, and each alert
+// is one email per recipient): each alert lists everything new since the
+// previous one. Volunteers can switch alerts off from the Mailbox page
+// (volunteers.mailbox_alerts). If nobody has alerts on, it stops before
+// calling Resend at all.
 //
 // State is kept in settings.mailbox_alert_state as JSON:
 //   { lastSeen: <inbox last_received ISO>, lastAlertAt: <ISO> }
@@ -20,7 +22,6 @@ import { brandedEmailHtml, escapeHtml, sendEmail } from '../lib/email.js';
 import { MAILBOX_ADDRESS, mailboxConfigured, getInbox, listThreads } from '../lib/mailbox.js';
 
 const STATE_KEY = 'mailbox_alert_state';
-const MIN_GAP_MS = 30 * 60 * 1000;
 const PORTAL_MAILBOX_URL = 'https://santasleighsalford.co.uk/mailbox.html';
 
 async function readState(db) {
@@ -49,6 +50,12 @@ export default async () => {
     if (!mailboxConfigured()) { summary.skipped = 'no API key'; return; }
     const db = getDatabase();
 
+    const recipients = await db.sql`
+      SELECT full_name, email, preferred_email FROM volunteers
+      WHERE mailbox_access = true AND mailbox_alerts = true AND is_guest = false AND approval_status = 'approved'
+    `;
+    if (!recipients.length) { summary.skipped = 'nobody has alerts on'; return; }
+
     const inbox = await getInbox();
     const lastReceived = inbox && inbox.last_received;
     const state = await readState(db);
@@ -63,11 +70,6 @@ export default async () => {
       summary.skipped = 'nothing new';
       return;
     }
-    if (state.lastAlertAt && Date.now() - Date.parse(state.lastAlertAt) < MIN_GAP_MS) {
-      summary.skipped = 'alerted under 30 minutes ago';
-      return; // lastSeen not moved, so the next run picks these up
-    }
-
     const threads = await listThreads({ folder: 'inbox', read: false, limit: 20 });
     const fresh = (threads && threads.data ? threads.data : [])
       .filter((t) => String(t.received_at || '') > String(state.lastSeen || ''));
@@ -78,11 +80,6 @@ export default async () => {
       summary.skipped = 'new mail already read';
       return;
     }
-
-    const recipients = await db.sql`
-      SELECT full_name, email, preferred_email FROM volunteers
-      WHERE mailbox_access = true AND mailbox_alerts = true AND is_guest = false AND approval_status = 'approved'
-    `;
 
     const list = fresh.slice(0, 10).map((t) =>
       '<li style="margin:0 0 8px;"><strong>' + escapeHtml(shortFrom(t.from)) + '</strong><br>' +
@@ -126,5 +123,6 @@ export default async () => {
 };
 
 export const config = {
-  schedule: '*/15 * * * *'
+  // Every 6 hours (00:00, 06:00, 12:00, 18:00 UTC).
+  schedule: '0 */6 * * *'
 };
