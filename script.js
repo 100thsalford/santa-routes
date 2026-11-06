@@ -635,6 +635,45 @@ function setupSearchListeners() {
         dateInput.title = `Select a date between ${minDateFormatted} and ${maxDateFormatted}`;
     }
     
+    // ---- Search logging: one row per typing session ----
+    // A search is logged once the visitor has finished typing: when they
+    // leave the box, clear it, leave/hide the page, or stop typing for
+    // SEARCH_LOG_IDLE_MS. Each keystroke just updates the pending search,
+    // so "bol", "bolt", "bolton" becomes a single "bolton" row. A term that
+    // was already the last one logged isn't logged again.
+    var SEARCH_LOG_IDLE_MS = 5000;
+    var pendingSearchLog = null;
+    var lastLoggedSearch = null;
+    var searchLogTimer = null;
+
+    function flushSearchLog() {
+        clearTimeout(searchLogTimer);
+        var p = pendingSearchLog;
+        pendingSearchLog = null;
+        if (!p || typeof window.logSearch !== 'function') return;
+        if (p.term === lastLoggedSearch) return;
+        lastLoggedSearch = p.term;
+        window.logSearch(p.term, p.matchFound, p.matchedStreet, p.resultsCount);
+    }
+
+    function queueSearchLog(term, results) {
+        var matchFound = results.length > 0;
+        pendingSearchLog = {
+            term: term,
+            matchFound: matchFound,
+            matchedStreet: matchFound ? getCleanStreetName(results[0].street) : null,
+            resultsCount: results.length
+        };
+        clearTimeout(searchLogTimer);
+        searchLogTimer = setTimeout(flushSearchLog, SEARCH_LOG_IDLE_MS);
+    }
+
+    streetInput.addEventListener('blur', flushSearchLog);
+    window.addEventListener('pagehide', flushSearchLog);
+    document.addEventListener('visibilitychange', function() {
+        if (document.visibilityState === 'hidden') flushSearchLog();
+    });
+
     // Street search with smart matching
     streetInput.addEventListener('input', function(e) {
         const rawTyped = e.target.value.trim();
@@ -647,6 +686,7 @@ function setupSearchListeners() {
         clearTimeout(window.nearestStreetTimeout);
 
         if (query.length < 2) {
+            flushSearchLog();
             resultsArea.classList.remove('show');
             resultsArea.innerHTML = '<div class="loading">Start typing to search...</div>';
             announceSearch('');
@@ -675,19 +715,9 @@ function setupSearchListeners() {
             }, 800);
         }
 
-        // 🎅 LOG THE SEARCH - Track search terms and results for analytics
-        if (typeof window.logSearch === 'function') {
-            const matchFound = results.length > 0;
-            const firstMatch = matchFound ? getCleanStreetName(results[0].street) : null;
-            const resultsCount = results.length;
-            
-            // Log with a small delay to avoid logging every keystroke
-            clearTimeout(window.searchLogTimeout);
-            window.searchLogTimeout = setTimeout(function() {
-                // Log the cleaned query (without house number) for better analytics
-                window.logSearch(searchQuery, matchFound, firstMatch, resultsCount);
-            }, 1000); // Wait 1 second after user stops typing
-        }
+        // 🎅 LOG THE SEARCH - only the final term of each typing session is
+        // logged (not every pause mid-word). See queueSearchLog above.
+        queueSearchLog(searchQuery, results);
     });
 
     // Date search

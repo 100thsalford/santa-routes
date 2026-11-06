@@ -49,6 +49,7 @@
         try {
             fetch('/.netlify/functions/log-search', {
                 method: 'POST',
+                keepalive: true, // still sent if this fires as the page closes
                 headers: {
                     'Content-Type': 'application/json',
                 },
