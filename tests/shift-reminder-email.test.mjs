@@ -21,15 +21,16 @@ test('plain volunteer: no banner, unchanged subject', () => {
   const { subject, html } = shiftReminderEmail([shift()], opts);
   assert.equal(subject, 'Tonight’s shift: Route 3 🎅');
   assert.ok(!html.includes('You\'re Santa'));
-  assert.ok(!html.includes('counting on you'));
+  assert.ok(!html.includes('find cover'));
 });
 
 test('Santa: banner at the top, role in subject, pill on card', () => {
   const { subject, html } = shiftReminderEmail([shift({ eventRoles: ['santa'] })], opts);
   assert.equal(subject, 'Tonight you\'re Santa: Route 3 🎅');
   assert.ok(html.includes('🎅&nbsp; You\'re Santa tonight'));
-  assert.ok(html.indexOf('counting on you') < html.indexOf('Acacia Avenue'), 'banner sits above the route card');
+  assert.ok(html.indexOf('find cover') < html.indexOf('Acacia Avenue'), 'banner sits above the route card');
   assert.ok(html.includes('🎅 Santa</span>'));
+  assert.ok(!html.includes('counting on you'));
 });
 
 test('Driver and Safety Walker get "the"', () => {

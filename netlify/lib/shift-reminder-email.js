@@ -80,7 +80,7 @@ function roleBannerHtml(shifts, tonight) {
   return (
     '<div style="margin:0 0 20px; padding:16px 16px 6px; background:#FBECEA; border:2px solid #A8382F; border-radius:12px;">' +
       lines.join('') +
-      '<p style="margin:0 0 10px; font-size:14px; line-height:1.5; color:#24272E;">The team is counting on you for this role. If anything changes and you can\'t make it, please let us know as soon as possible so we can find cover.</p>' +
+      '<p style="margin:0 0 10px; font-size:14px; line-height:1.5; color:#24272E;">If anything changes and you can\'t make it, please let us know as soon as possible so we can find cover.</p>' +
     '</div>'
   );
 }
