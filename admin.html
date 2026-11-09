@@ -3006,6 +3006,7 @@
                         showToast('No shifts found for ' + result.date + ' — nothing sent.', 'success');
                     } else {
                         statusEl.textContent = 'Sent to ' + result.volunteersEmailed + ' volunteer(s) for ' + result.date +
+                            (result.roleHoldersEmailed ? ', including ' + result.roleHoldersEmailed + ' Santa/Driver/Safety Walker' : '') +
                             (result.errors && result.errors.length ? ' (' + result.errors.length + ' failed)' : '.');
                         showToast('Reminders sent to ' + result.volunteersEmailed + ' volunteer(s) for ' + result.date + '.', 'success');
                     }
