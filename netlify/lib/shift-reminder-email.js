@@ -38,6 +38,23 @@ function pill(text, bg) {
   return ' <span style="display:inline-block; margin-left:6px; padding:2px 10px; border-radius:999px; background:' + bg + '; color:#ffffff; font-size:12px; font-weight:bold; vertical-align:middle;">' + escapeHtml(text) + '</span>';
 }
 
+// Gathering time, what3words meeting point and the night's notes, as set
+// per route date in admin. Any that aren't set are left out.
+function meetingHtml(shift) {
+  const bits = [];
+  if (shift.gatheringTime) bits.push('⏰ Gather at ' + escapeHtml(shift.gatheringTime));
+  if (shift.what3words) {
+    bits.push('📍 <a href="https://w3w.co/' + encodeURIComponent(shift.what3words) + '" style="color:#1E5B45; font-weight:bold;">///' + escapeHtml(shift.what3words) + '</a>');
+  }
+  const meet = bits.length
+    ? '<div style="font-size:15px; color:#24272E; margin-top:8px; line-height:1.6;">' + bits.join(' &nbsp;·&nbsp; ') + '</div>'
+    : '';
+  const notes = shift.notes
+    ? '<div style="font-size:14px; color:#24272E; margin-top:8px; padding:8px 10px; background:#F6F4F0; border-radius:8px; line-height:1.5;">📝 ' + escapeHtml(shift.notes).replace(/\r?\n/g, '<br>') + '</div>'
+    : '';
+  return meet + notes;
+}
+
 function shiftCardHtml(shift) {
   const streetRows = shift.streets.map(function(s, i) {
     const bg = i % 2 === 0 ? '#ffffff' : '#F6F4F0';
@@ -61,6 +78,7 @@ function shiftCardHtml(shift) {
       '<div style="padding:14px 14px 12px;">' +
         '<div style="font-size:17px; font-weight:bold; color:#1E5B45;">' + escapeHtml(shift.routeName) + rolePills + '</div>' +
         '<div style="font-size:14px; color:#5B6169; margin-top:4px;">' + escapeHtml(formatDateLabel(shift.eventDate)) + '</div>' +
+        meetingHtml(shift) +
       '</div>' +
       streets +
     '</div>'
@@ -132,7 +150,8 @@ function todoBoxHtml(todo, portalUrl) {
   );
 }
 
-// shifts: [{ routeName, eventDate, role, eventRoles, streets: [{ name, timeRange }] }]
+// shifts: [{ routeName, eventDate, role, eventRoles, gatheringTime, what3words, notes,
+//   streets: [{ name, timeRange }] }]
 // options.tonight: true for the 7am same-day reminder.
 // options.todo: { briefing, square } -- see todoBoxHtml.
 export function shiftReminderEmail(shifts, { portalUrl, tonight, todo }) {
@@ -149,7 +168,7 @@ export function shiftReminderEmail(shifts, { portalUrl, tonight, todo }) {
     paragraphs: [intro],
     bodyHtml: roleBannerHtml(shifts, tonight) + shifts.map(shiftCardHtml).join('') + todoBoxHtml(todo, portalUrl),
     button: { label: 'Open the volunteer portal', url: portalUrl },
-    footnote: "Meeting point, gathering time and the route map are in the volunteer portal. " +
+    footnote: "The route map is in the volunteer portal. " +
       "You're getting this because you're signed up to help Santa Super Sleigh Salford; you can turn these reminders off from the portal at any time."
   });
 

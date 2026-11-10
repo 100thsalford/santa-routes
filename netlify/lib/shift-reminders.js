@@ -26,7 +26,7 @@ export const EVENT_ROLE_LABELS = {
 };
 
 // Returns [{ volunteerId, toEmail, todo: { briefing: bool, square: 'none'|'requested'|null },
-//   shifts: [{ routeName, eventDate, role,
+//   shifts: [{ routeName, eventDate, role, gatheringTime, what3words, notes,
 //   eventRoles: ['santa'|'driver'|'safety_walker'], streets: [{ name, timeRange }] }] }]
 // for volunteers who've opted in to reminder emails. toEmail can be null
 // (e.g. a guest volunteer with no email) -- callers skip those.
@@ -34,7 +34,7 @@ export async function loadShiftReminders(db, date) {
   const rows = await db.sql`
     SELECT v.id AS volunteer_id, v.email, v.preferred_email, v.is_guest,
            v.briefing_ack_at, v.square_requested_at, v.square_approved_at,
-           rd.id AS route_date_id,
+           rd.id AS route_date_id, rd.what3words, rd.gathering_time, rd.notes,
            to_char(rd.event_date, 'YYYY-MM-DD') AS event_date,
            CASE WHEN COALESCE(TRIM(r.internal_name), '') <> '' THEN r.name || ' — ' || TRIM(r.internal_name) ELSE r.name END AS route_name,
            sa.role AS shift_role,
@@ -83,6 +83,9 @@ export async function loadShiftReminders(db, date) {
     byVolunteer.get(row.volunteer_id).shifts.push({
       routeName: row.route_name,
       eventDate: row.event_date,
+      gatheringTime: row.gathering_time ? String(row.gathering_time).trim() : null,
+      what3words: row.what3words ? String(row.what3words).trim().replace(/^\/+/, '') : null,
+      notes: row.notes ? String(row.notes).trim() : null,
       role: row.shift_role,
       eventRoles: row.event_roles
         ? row.event_roles.split(',').filter((r) => EVENT_ROLE_LABELS[r])

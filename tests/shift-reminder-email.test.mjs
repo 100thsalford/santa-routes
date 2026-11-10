@@ -130,4 +130,30 @@ test('todo: Santa on one route but general volunteer on another still gets Squar
   assert.equal(reminderTodo(baseRow, [shift({ eventRoles: ['santa'] }), shift({ routeName: 'Route 4' })], true).square, 'none');
 });
 
+// ---- Meeting details ----
+
+test('gathering time, meeting point and notes show on the route card', () => {
+  const { html } = shiftReminderEmail([shift({
+    gatheringTime: '5:45pm', what3words: 'filled.count.soap', notes: 'Park on Elm Road.\nBring a torch & hi-vis.'
+  })], opts);
+  assert.ok(html.includes('⏰ Gather at 5:45pm'));
+  assert.ok(html.includes('href="https://w3w.co/filled.count.soap"'));
+  assert.ok(html.includes('///filled.count.soap'));
+  assert.ok(html.includes('Park on Elm Road.<br>Bring a torch &amp; hi-vis.'));
+  assert.ok(html.indexOf('Gather at') < html.indexOf('Acacia Avenue'), 'details sit above the street list');
+  assert.ok(!html.includes('Meeting point, gathering time'));
+});
+
+test('missing meeting details are left out', () => {
+  const { html } = shiftReminderEmail([shift({ what3words: 'filled.count.soap' })], opts);
+  assert.ok(!html.includes('Gather at'));
+  assert.ok(!html.includes('📝'));
+  assert.ok(html.includes('///filled.count.soap'));
+});
+
+test('notes are escaped', () => {
+  const { html } = shiftReminderEmail([shift({ notes: '<script>x</script>' })], opts);
+  assert.ok(!html.includes('<script>'));
+});
+
 console.log(passed + ' passed');
