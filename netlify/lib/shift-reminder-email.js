@@ -2,13 +2,57 @@
 // 7am job (send-shift-reminders.js) and the admin "Send tonight's
 // reminders now" button (admin-send-reminders.js), in the same Santa
 // Sleigh branded template as the registration emails (lib/email.js).
+//
+// Volunteers holding a special role (Santa / Driver / Safety Walker, from
+// event_role_assignments) get a highlighted banner at the very top of the
+// email, the role in the subject line, and a role pill on that route's card.
+//
+// options.todo ({ briefing, square } from lib/shift-reminders.js) adds a
+// "Before you head out" box after the route cards for anything they still
+// need to do: watch the briefing video, or sign up for / finish setting up
+// Square card payments. Nothing shows when there's nothing to do.
 
 import { brandedEmailHtml, escapeHtml } from './email.js';
+import { EVENT_ROLE_LABELS } from './shift-reminders.js';
+
+const EVENT_ROLE_ICONS = { santa: '🎅', driver: '🚐', safety_walker: '🦺' };
 
 function formatDateLabel(iso) {
   return new Date(iso + 'T00:00:00').toLocaleDateString('en-GB', {
     weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
   });
+}
+
+function shortDateLabel(iso) {
+  return new Date(iso + 'T00:00:00').toLocaleDateString('en-GB', {
+    weekday: 'long', day: 'numeric', month: 'long'
+  });
+}
+
+function joinWords(words) {
+  if (words.length <= 1) return words.join('');
+  return words.slice(0, -1).join(', ') + ' and ' + words[words.length - 1];
+}
+
+function pill(text, bg) {
+  return ' <span style="display:inline-block; margin-left:6px; padding:2px 10px; border-radius:999px; background:' + bg + '; color:#ffffff; font-size:12px; font-weight:bold; vertical-align:middle;">' + escapeHtml(text) + '</span>';
+}
+
+// Gathering time, what3words meeting point and the night's notes, as set
+// per route date in admin. Any that aren't set are left out.
+function meetingHtml(shift) {
+  const bits = [];
+  if (shift.gatheringTime) bits.push('⏰ Gather at ' + escapeHtml(shift.gatheringTime));
+  if (shift.what3words) {
+    bits.push('📍 Meet at <a href="https://w3w.co/' + encodeURIComponent(shift.what3words) + '" style="color:#1E5B45; font-weight:bold;">///' + escapeHtml(shift.what3words) + '</a>');
+  }
+  const meet = bits.length
+    ? '<div style="font-size:15px; color:#24272E; margin-top:8px; line-height:1.6;">' + bits.join('<br>') + '</div>'
+    : '';
+  const notes = shift.notes
+    ? '<div style="font-size:14px; color:#24272E; margin-top:8px; padding:8px 10px; background:#F6F4F0; border-radius:8px; line-height:1.5;">📝 ' + escapeHtml(shift.notes).replace(/\r?\n/g, '<br>') + '</div>'
+    : '';
+  return meet + notes;
 }
 
 function shiftCardHtml(shift) {
@@ -20,9 +64,10 @@ function shiftCardHtml(shift) {
       '</tr>';
   }).join('');
 
-  const role = shift.role
-    ? ' <span style="display:inline-block; margin-left:6px; padding:2px 10px; border-radius:999px; background:#1E5B45; color:#ffffff; font-size:12px; font-weight:bold; vertical-align:middle;">' + escapeHtml(shift.role) + '</span>'
-    : '';
+  const eventRoles = shift.eventRoles || [];
+  const rolePills = eventRoles.length
+    ? eventRoles.map(function(r) { return pill(EVENT_ROLE_ICONS[r] + ' ' + EVENT_ROLE_LABELS[r], '#A8382F'); }).join('')
+    : (shift.role ? pill(shift.role, '#1E5B45') : '');
 
   const streets = streetRows
     ? '<table role="presentation" cellpadding="0" cellspacing="0" style="border-collapse:collapse; width:100%; border-top:1px solid #E7E2D9;">' + streetRows + '</table>'
@@ -31,17 +76,85 @@ function shiftCardHtml(shift) {
   return (
     '<div style="border:1px solid #E7E2D9; border-radius:12px; overflow:hidden; margin:0 0 20px;">' +
       '<div style="padding:14px 14px 12px;">' +
-        '<div style="font-size:17px; font-weight:bold; color:#1E5B45;">' + escapeHtml(shift.routeName) + role + '</div>' +
+        '<div style="font-size:17px; font-weight:bold; color:#1E5B45;">' + escapeHtml(shift.routeName) + rolePills + '</div>' +
         '<div style="font-size:14px; color:#5B6169; margin-top:4px;">' + escapeHtml(formatDateLabel(shift.eventDate)) + '</div>' +
+        meetingHtml(shift) +
       '</div>' +
       streets +
     '</div>'
   );
 }
 
-// shifts: [{ routeName, eventDate, role, streets: [{ name, timeRange }] }]
+// One banner line per (route, role) the volunteer holds that night.
+function roleBannerHtml(shifts, tonight) {
+  const lines = [];
+  for (const shift of shifts) {
+    for (const r of shift.eventRoles || []) {
+      const when = tonight ? 'tonight' : 'on ' + shortDateLabel(shift.eventDate);
+      lines.push(
+        '<div style="font-size:20px; font-weight:bold; color:#A8382F; line-height:1.35;">' +
+          EVENT_ROLE_ICONS[r] + '&nbsp; You\'re ' + (r === 'santa' ? '' : 'the ') + escapeHtml(EVENT_ROLE_LABELS[r]) + ' ' + escapeHtml(when) +
+        '</div>' +
+        '<div style="font-size:15px; color:#24272E; margin:2px 0 10px;">on ' + escapeHtml(shift.routeName) + '</div>'
+      );
+    }
+  }
+  if (!lines.length) return '';
+  return (
+    '<div style="margin:0 0 20px; padding:16px 16px 6px; background:#FBECEA; border:2px solid #A8382F; border-radius:12px;">' +
+      lines.join('') +
+      '<p style="margin:0 0 10px; font-size:14px; line-height:1.5; color:#24272E;">If anything changes and you can\'t make it, please let us know as soon as possible so we can find cover.</p>' +
+    '</div>'
+  );
+}
+
+function withShow(url, show) {
+  return url + (url.includes('?') ? '&' : '?') + 'show=' + encodeURIComponent(show);
+}
+
+function todoItemHtml(icon, title, text, linkLabel, url) {
+  return (
+    '<div style="padding:12px 0; border-top:1px solid #E7E2D9;">' +
+      '<div style="font-size:16px; font-weight:bold; color:#24272E;">' + icon + '&nbsp; ' + escapeHtml(title) + '</div>' +
+      '<div style="font-size:14px; line-height:1.5; color:#5B6169; margin:4px 0 6px;">' + text + '</div>' +
+      '<a href="' + escapeHtml(url) + '" style="font-size:15px; font-weight:bold; color:#1E5B45;">' + escapeHtml(linkLabel) + ' →</a>' +
+    '</div>'
+  );
+}
+
+function todoBoxHtml(todo, portalUrl) {
+  if (!todo) return '';
+  const items = [];
+  if (todo.briefing) {
+    items.push(todoItemHtml('🎬', 'Watch the volunteer briefing',
+      "You haven't watched the 2-minute volunteer briefing yet. Please watch it in the portal before you head out.",
+      'Watch the briefing', portalUrl));
+  }
+  if (todo.square === 'none') {
+    items.push(todoItemHtml('💳', 'Take card donations on your phone',
+      'Sign up in the portal to take card donations with the free Square app. ' +
+      'One of the team has to finish setting you up, so it may not be ready in time for tonight.',
+      'Sign up for card payments', withShow(portalUrl, 'card-payments')));
+  } else if (todo.square === 'requested') {
+    items.push(todoItemHtml('💳', 'Accept your Square invitation',
+      'You\'ve asked to take card donations. Once you\'re set up, Square emails you an invitation to join our team: accept it, then sign in to the Square Point of Sale app with that login. ' +
+      'Don\'t create a new Square account.',
+      'Check your card payments status', withShow(portalUrl, 'card-payments')));
+  }
+  if (!items.length) return '';
+  return (
+    '<div style="margin:0 0 8px; padding:14px 16px 4px; background:#F6F4F0; border-radius:12px;">' +
+      '<div style="font-size:17px; font-weight:bold; color:#1E5B45; margin-bottom:10px;">Before you head out</div>' +
+      items.join('') +
+    '</div>'
+  );
+}
+
+// shifts: [{ routeName, eventDate, role, eventRoles, gatheringTime, what3words, notes,
+//   streets: [{ name, timeRange }] }]
 // options.tonight: true for the 7am same-day reminder.
-export function shiftReminderEmail(shifts, { portalUrl, tonight }) {
+// options.todo: { briefing, square } -- see todoBoxHtml.
+export function shiftReminderEmail(shifts, { portalUrl, tonight, todo }) {
   const many = shifts.length > 1;
   const heading = tonight
     ? (many ? "Your Santa Sleigh shifts tonight" : "Your Santa Sleigh shift tonight")
@@ -53,15 +166,30 @@ export function shiftReminderEmail(shifts, { portalUrl, tonight }) {
   const html = brandedEmailHtml({
     heading,
     paragraphs: [intro],
-    bodyHtml: shifts.map(shiftCardHtml).join(''),
+    bodyHtml: roleBannerHtml(shifts, tonight) + shifts.map(shiftCardHtml).join('') + todoBoxHtml(todo, portalUrl),
     button: { label: 'Open the volunteer portal', url: portalUrl },
-    footnote: "Meeting point, gathering time and the route map are in the volunteer portal. " +
+    footnote: "The route map is in the volunteer portal. " +
       "You're getting this because you're signed up to help Santa Super Sleigh Salford; you can turn these reminders off from the portal at any time."
   });
 
-  const subject = tonight
-    ? (many ? 'Tonight’s shifts (' + shifts.length + ')' : 'Tonight’s shift: ' + shifts[0].routeName) + ' 🎅'
-    : (many ? 'Shift reminders (' + shifts.length + ')' : 'Shift reminder: ' + shifts[0].routeName) + ' 🎅';
+  // Role(s) lead the subject so they show in the inbox preview.
+  const roleKeys = [];
+  for (const s of shifts) for (const r of s.eventRoles || []) if (!roleKeys.includes(r)) roleKeys.push(r);
+  const roleText = roleKeys.length
+    ? "you're " + joinWords(roleKeys.map(function(r) { return (r === 'santa' ? '' : 'the ') + EVENT_ROLE_LABELS[r]; }))
+    : '';
+
+  let subject;
+  if (tonight) {
+    subject = roleText
+      ? 'Tonight ' + roleText + ': ' + (many ? shifts.length + ' routes' : shifts[0].routeName)
+      : (many ? 'Tonight’s shifts (' + shifts.length + ')' : 'Tonight’s shift: ' + shifts[0].routeName);
+  } else {
+    subject = roleText
+      ? 'Shift reminder (' + roleText + '): ' + (many ? shifts.length + ' routes' : shifts[0].routeName)
+      : (many ? 'Shift reminders (' + shifts.length + ')' : 'Shift reminder: ' + shifts[0].routeName);
+  }
+  subject += ' 🎅';
 
   return { subject, html };
 }
