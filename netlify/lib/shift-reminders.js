@@ -10,6 +10,14 @@
 //                                capacity (see the Phase 9 migration)
 // or both. Each volunteer gets one email covering all their routes that
 // night, with any special role flagged on the route it applies to.
+//
+// Each volunteer also gets a `todo` list for the email's "Before you head
+// out" box: the briefing video if they haven't acknowledged it, and Square
+// card payments if they haven't signed up (or are still waiting for setup).
+// Guests have no portal login, so they get neither; Santa and Driver aren't
+// taking card payments, so they don't get the Square one.
+
+import { squareConfigured } from './square.js';
 
 export const EVENT_ROLE_LABELS = {
   santa: 'Santa',
@@ -17,13 +25,15 @@ export const EVENT_ROLE_LABELS = {
   safety_walker: 'Safety Walker'
 };
 
-// Returns [{ volunteerId, toEmail, shifts: [{ routeName, eventDate, role,
-// eventRoles: ['santa'|'driver'|'safety_walker'], streets: [{ name, timeRange }] }] }]
+// Returns [{ volunteerId, toEmail, todo: { briefing: bool, square: 'none'|'requested'|null },
+//   shifts: [{ routeName, eventDate, role,
+//   eventRoles: ['santa'|'driver'|'safety_walker'], streets: [{ name, timeRange }] }] }]
 // for volunteers who've opted in to reminder emails. toEmail can be null
 // (e.g. a guest volunteer with no email) -- callers skip those.
 export async function loadShiftReminders(db, date) {
   const rows = await db.sql`
-    SELECT v.id AS volunteer_id, v.email, v.preferred_email,
+    SELECT v.id AS volunteer_id, v.email, v.preferred_email, v.is_guest,
+           v.briefing_ack_at, v.square_requested_at, v.square_approved_at,
            rd.id AS route_date_id,
            to_char(rd.event_date, 'YYYY-MM-DD') AS event_date,
            CASE WHEN COALESCE(TRIM(r.internal_name), '') <> '' THEN r.name || ' — ' || TRIM(r.internal_name) ELSE r.name END AS route_name,
@@ -66,6 +76,7 @@ export async function loadShiftReminders(db, date) {
       byVolunteer.set(row.volunteer_id, {
         volunteerId: row.volunteer_id,
         toEmail: row.preferred_email || row.email || null,
+        row,
         shifts: []
       });
     }
@@ -79,5 +90,26 @@ export async function loadShiftReminders(db, date) {
       streets: streetsByDate[row.route_date_id] || []
     });
   }
-  return Array.from(byVolunteer.values());
+  const squareOn = squareConfigured();
+  return Array.from(byVolunteer.values()).map(function(v) {
+    const { row, ...rest } = v;
+    return Object.assign(rest, { todo: reminderTodo(row, v.shifts, squareOn) });
+  });
+}
+
+const NO_CARD_PAYMENT_ROLES = ['santa', 'driver'];
+
+// Exported for tests. row: the volunteer's columns from the query above.
+export function reminderTodo(row, shifts, squareOn) {
+  if (row.is_guest) return { briefing: false, square: null };
+  // Only nudge about Square if they're on at least one route tonight
+  // where they're not Santa or the Driver.
+  const takesPayments = shifts.some(function(s) {
+    return !(s.eventRoles || []).some(function(r) { return NO_CARD_PAYMENT_ROLES.includes(r); });
+  });
+  let square = null;
+  if (squareOn && takesPayments && !row.square_approved_at) {
+    square = row.square_requested_at ? 'requested' : 'none';
+  }
+  return { briefing: !row.briefing_ack_at, square };
 }

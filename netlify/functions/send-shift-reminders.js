@@ -41,9 +41,9 @@ export default async (req, context) => {
       return;
     }
 
-    for (const { toEmail, shifts } of reminders) {
+    for (const { toEmail, shifts, todo } of reminders) {
       if (!toEmail) continue; // e.g. a guest volunteer with no email on file
-      const { subject, html } = shiftReminderEmail(shifts, { portalUrl: PORTAL_URL, tonight: true });
+      const { subject, html } = shiftReminderEmail(shifts, { portalUrl: PORTAL_URL, tonight: true, todo });
       try {
         await sendEmail({ to: toEmail, subject, html });
         summary.volunteersEmailed++;

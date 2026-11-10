@@ -51,9 +51,9 @@ export default async (req, context) => {
 
     const portalUrl = siteUrls(req).volunteerLogin;
     const isToday = targetDate === londonDateString(new Date());
-    for (const { toEmail, shifts } of reminders) {
+    for (const { toEmail, shifts, todo } of reminders) {
       if (!toEmail) continue; // e.g. a guest volunteer with no email on file
-      const { subject, html } = shiftReminderEmail(shifts, { portalUrl, tonight: isToday });
+      const { subject, html } = shiftReminderEmail(shifts, { portalUrl, tonight: isToday, todo });
       try {
         await sendEmail({ to: toEmail, subject, html });
         summary.volunteersEmailed++;

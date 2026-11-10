@@ -3,6 +3,7 @@
 //   node tests/shift-reminder-email.test.mjs
 import assert from 'node:assert/strict';
 import { shiftReminderEmail } from '../netlify/lib/shift-reminder-email.js';
+import { reminderTodo } from '../netlify/lib/shift-reminders.js';
 
 let passed = 0;
 function test(name, fn) {
@@ -63,6 +64,70 @@ test('admin send for another date names the date instead of "tonight"', () => {
 test('free-text shift role still shows when there is no special role', () => {
   const { html } = shiftReminderEmail([shift({ role: 'Collector' })], opts);
   assert.ok(html.includes('Collector</span>'));
+});
+
+// ---- "Before you head out" box ----
+
+test('nothing to do: no box', () => {
+  const { html } = shiftReminderEmail([shift()], Object.assign({}, opts, { todo: { briefing: false, square: null } }));
+  assert.ok(!html.includes('Before you head out'));
+});
+
+test('briefing not watched: link to the portal', () => {
+  const { html } = shiftReminderEmail([shift()], Object.assign({}, opts, { todo: { briefing: true, square: null } }));
+  assert.ok(html.includes('Before you head out'));
+  assert.ok(html.includes('Watch the briefing'));
+  assert.ok(!html.includes('show=card-payments'));
+});
+
+test('Square not signed up: deep link opens card payments', () => {
+  const { html } = shiftReminderEmail([shift()], Object.assign({}, opts, { todo: { briefing: false, square: 'none' } }));
+  assert.ok(html.includes('Sign up for card payments'));
+  assert.ok(html.includes('volunteer.html?login=1&amp;show=card-payments'));
+  assert.ok(!html.includes('Watch the briefing'));
+});
+
+test('Square requested: reminder to accept the invitation', () => {
+  const { html } = shiftReminderEmail([shift()], Object.assign({}, opts, { todo: { briefing: true, square: 'requested' } }));
+  assert.ok(html.includes('Accept your Square invitation'));
+  assert.ok(html.includes('Watch the briefing'));
+  assert.ok(html.indexOf('Acacia Avenue') < html.indexOf('Before you head out'), 'box sits after the route card');
+});
+
+const baseRow = { is_guest: false, briefing_ack_at: null, square_requested_at: null, square_approved_at: null };
+const plain = [shift()];
+
+test('todo: new volunteer gets both nudges', () => {
+  assert.deepEqual(reminderTodo(baseRow, plain, true), { briefing: true, square: 'none' });
+});
+
+test('todo: briefing watched and Square approved gets nothing', () => {
+  const row = Object.assign({}, baseRow, { briefing_ack_at: new Date(), square_requested_at: new Date(), square_approved_at: new Date() });
+  assert.deepEqual(reminderTodo(row, plain, true), { briefing: false, square: null });
+});
+
+test('todo: Square requested but not approved', () => {
+  const row = Object.assign({}, baseRow, { square_requested_at: new Date() });
+  assert.equal(reminderTodo(row, plain, true).square, 'requested');
+});
+
+test('todo: guests get nothing', () => {
+  assert.deepEqual(reminderTodo(Object.assign({}, baseRow, { is_guest: true }), plain, true), { briefing: false, square: null });
+});
+
+test('todo: no Square nudge when Square is switched off', () => {
+  assert.equal(reminderTodo(baseRow, plain, false).square, null);
+});
+
+test('todo: Santa and Driver skip Square, Safety Walker does not', () => {
+  assert.equal(reminderTodo(baseRow, [shift({ eventRoles: ['santa'] })], true).square, null);
+  assert.equal(reminderTodo(baseRow, [shift({ eventRoles: ['driver'] })], true).square, null);
+  assert.equal(reminderTodo(baseRow, [shift({ eventRoles: ['safety_walker'] })], true).square, 'none');
+  assert.equal(reminderTodo(baseRow, [shift({ eventRoles: ['santa'] })], true).briefing, true);
+});
+
+test('todo: Santa on one route but general volunteer on another still gets Square', () => {
+  assert.equal(reminderTodo(baseRow, [shift({ eventRoles: ['santa'] }), shift({ routeName: 'Route 4' })], true).square, 'none');
 });
 
 console.log(passed + ' passed');

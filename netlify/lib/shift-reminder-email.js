@@ -6,6 +6,11 @@
 // Volunteers holding a special role (Santa / Driver / Safety Walker, from
 // event_role_assignments) get a highlighted banner at the very top of the
 // email, the role in the subject line, and a role pill on that route's card.
+//
+// options.todo ({ briefing, square } from lib/shift-reminders.js) adds a
+// "Before you head out" box after the route cards for anything they still
+// need to do: watch the briefing video, or sign up for / finish setting up
+// Square card payments. Nothing shows when there's nothing to do.
 
 import { brandedEmailHtml, escapeHtml } from './email.js';
 import { EVENT_ROLE_LABELS } from './shift-reminders.js';
@@ -85,9 +90,52 @@ function roleBannerHtml(shifts, tonight) {
   );
 }
 
+function withShow(url, show) {
+  return url + (url.includes('?') ? '&' : '?') + 'show=' + encodeURIComponent(show);
+}
+
+function todoItemHtml(icon, title, text, linkLabel, url) {
+  return (
+    '<div style="padding:12px 0; border-top:1px solid #E7E2D9;">' +
+      '<div style="font-size:16px; font-weight:bold; color:#24272E;">' + icon + '&nbsp; ' + escapeHtml(title) + '</div>' +
+      '<div style="font-size:14px; line-height:1.5; color:#5B6169; margin:4px 0 6px;">' + text + '</div>' +
+      '<a href="' + escapeHtml(url) + '" style="font-size:15px; font-weight:bold; color:#1E5B45;">' + escapeHtml(linkLabel) + ' →</a>' +
+    '</div>'
+  );
+}
+
+function todoBoxHtml(todo, portalUrl) {
+  if (!todo) return '';
+  const items = [];
+  if (todo.briefing) {
+    items.push(todoItemHtml('🎬', 'Watch the volunteer briefing',
+      "You haven't watched the 2-minute volunteer briefing yet. Please watch it in the portal before you head out.",
+      'Watch the briefing', portalUrl));
+  }
+  if (todo.square === 'none') {
+    items.push(todoItemHtml('💳', 'Take card donations on your phone',
+      'Sign up in the portal to take card donations with the free Square app. ' +
+      'One of the team has to finish setting you up, so it may not be ready in time for tonight.',
+      'Sign up for card payments', withShow(portalUrl, 'card-payments')));
+  } else if (todo.square === 'requested') {
+    items.push(todoItemHtml('💳', 'Accept your Square invitation',
+      'You\'ve asked to take card donations. Once you\'re set up, Square emails you an invitation to join our team: accept it, then sign in to the Square Point of Sale app with that login. ' +
+      'Don\'t create a new Square account.',
+      'Check your card payments status', withShow(portalUrl, 'card-payments')));
+  }
+  if (!items.length) return '';
+  return (
+    '<div style="margin:0 0 8px; padding:14px 16px 4px; background:#F6F4F0; border-radius:12px;">' +
+      '<div style="font-size:17px; font-weight:bold; color:#1E5B45; margin-bottom:10px;">Before you head out</div>' +
+      items.join('') +
+    '</div>'
+  );
+}
+
 // shifts: [{ routeName, eventDate, role, eventRoles, streets: [{ name, timeRange }] }]
 // options.tonight: true for the 7am same-day reminder.
-export function shiftReminderEmail(shifts, { portalUrl, tonight }) {
+// options.todo: { briefing, square } -- see todoBoxHtml.
+export function shiftReminderEmail(shifts, { portalUrl, tonight, todo }) {
   const many = shifts.length > 1;
   const heading = tonight
     ? (many ? "Your Santa Sleigh shifts tonight" : "Your Santa Sleigh shift tonight")
@@ -99,7 +147,7 @@ export function shiftReminderEmail(shifts, { portalUrl, tonight }) {
   const html = brandedEmailHtml({
     heading,
     paragraphs: [intro],
-    bodyHtml: roleBannerHtml(shifts, tonight) + shifts.map(shiftCardHtml).join(''),
+    bodyHtml: roleBannerHtml(shifts, tonight) + shifts.map(shiftCardHtml).join('') + todoBoxHtml(todo, portalUrl),
     button: { label: 'Open the volunteer portal', url: portalUrl },
     footnote: "Meeting point, gathering time and the route map are in the volunteer portal. " +
       "You're getting this because you're signed up to help Santa Super Sleigh Salford; you can turn these reminders off from the portal at any time."

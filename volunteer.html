@@ -2008,7 +2008,27 @@
             // Called once the profile has loaded and again whenever the
             // 18+ / safety / briefing prompts close, so the tour never stacks on top
             // of them. Offered at most once per page load.
+            // ?show=card-payments (from the daily shift reminder email) opens
+            // Take Card Payments once logged in, after the 18+ / safety /
+            // briefing prompts, in place of the tour for this visit.
+            var pendingShow = new URLSearchParams(location.search).get('show');
+            function maybeOpenFromLink() {
+                if (pendingShow !== 'card-payments' || !currentProfile) return false;
+                if (dashboardCard.classList.contains('not-approved')) { pendingShow = null; return false; }
+                if (adultModalOverlay.classList.contains('visible') || riskModalOverlay.classList.contains('visible') || briefingModalOverlay.classList.contains('visible')) return true;
+                pendingShow = null;
+                try {
+                    var url = new URL(location.href);
+                    url.searchParams.delete('show');
+                    history.replaceState(null, '', url.pathname + url.search + url.hash);
+                } catch (e) {}
+                tourCheckedThisLoad = true;
+                cardPayBtn.click();
+                return true;
+            }
+
             function maybeShowTour() {
+                if (maybeOpenFromLink()) return;
                 if (tourCheckedThisLoad || !currentProfile) return;
                 if (dashboardCard.classList.contains('not-approved')) return;
                 if ((currentProfile.portalTourVersion || 0) >= TOUR_VERSION) { tourCheckedThisLoad = true; return; }
