@@ -44,10 +44,10 @@ function meetingHtml(shift) {
   const bits = [];
   if (shift.gatheringTime) bits.push('⏰ Gather at ' + escapeHtml(shift.gatheringTime));
   if (shift.what3words) {
-    bits.push('📍 <a href="https://w3w.co/' + encodeURIComponent(shift.what3words) + '" style="color:#1E5B45; font-weight:bold;">///' + escapeHtml(shift.what3words) + '</a>');
+    bits.push('📍 Meet at <a href="https://w3w.co/' + encodeURIComponent(shift.what3words) + '" style="color:#1E5B45; font-weight:bold;">///' + escapeHtml(shift.what3words) + '</a>');
   }
   const meet = bits.length
-    ? '<div style="font-size:15px; color:#24272E; margin-top:8px; line-height:1.6;">' + bits.join(' &nbsp;·&nbsp; ') + '</div>'
+    ? '<div style="font-size:15px; color:#24272E; margin-top:8px; line-height:1.6;">' + bits.join('<br>') + '</div>'
     : '';
   const notes = shift.notes
     ? '<div style="font-size:14px; color:#24272E; margin-top:8px; padding:8px 10px; background:#F6F4F0; border-radius:8px; line-height:1.5;">📝 ' + escapeHtml(shift.notes).replace(/\r?\n/g, '<br>') + '</div>'
