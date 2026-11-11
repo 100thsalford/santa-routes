@@ -816,6 +816,28 @@
         .vol-menu button:disabled { color: #aaa; cursor: default; }
         .vol-menu button.danger { color: var(--santa-red); }
         .vol-menu hr { border: none; border-top: 1px solid var(--border-subtle); margin: 0.25rem 0; }
+        /* Volunteers tab: role coverage grid (2026-11-11) */
+        .cov-toolbar { display: flex; flex-wrap: wrap; gap: 0.4rem 1rem; align-items: center; justify-content: space-between; margin: 0.5rem 0; font-size: 0.85rem; color: var(--ink-soft); }
+        .cov-toolbar label { display: flex; gap: 0.35rem; align-items: center; cursor: pointer; }
+        .cov-gaps { color: var(--santa-red); font-weight: 600; }
+        .cov-table { width: 100%; border-collapse: collapse; font-size: 0.92rem; }
+        .cov-table th { padding: 0.35rem 0.4rem; border-bottom: 1px solid var(--border-subtle); color: var(--ink-soft); font-weight: 600; }
+        .cov-table th.cov-night-h { text-align: left; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.04em; }
+        .cov-table th.cov-role-h { width: 3.6rem; text-align: center; }
+        .cov-role-icon { display: block; font-size: 1.5rem; line-height: 1.1; }
+        .cov-role-label { display: block; font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.03em; }
+        .cov-table td { padding: 0.45rem 0.4rem; border-bottom: 1px solid var(--border-subtle); vertical-align: middle; }
+        .cov-table tr:last-child td { border-bottom: none; }
+        .cov-night { background: none; border: none; padding: 0; font: inherit; text-align: left; cursor: pointer; color: var(--text-dark); }
+        .cov-night:hover .cov-night-main { color: var(--santa-green); text-decoration: underline; }
+        .cov-night-main { display: block; font-weight: 600; }
+        .cov-night-date { white-space: nowrap; }
+        .cov-night-sub { display: block; color: var(--ink-soft); font-size: 0.78rem; }
+        .cov-cell { text-align: center; font-weight: 700; letter-spacing: 0.02em; white-space: nowrap; }
+        .cov-initials { display: inline-block; min-width: 2.2rem; padding: 0.15rem 0.35rem; border-radius: var(--radius-sm); background: var(--surface-muted); }
+        .cov-missing { color: var(--santa-red); font-size: 1.15rem; }
+        .cov-table tr.cov-past td { opacity: 0.5; }
+        .cov-table tr.cov-today td { background: #FFF8E1; }
         .import-modal-card.vol-modal-card { width: min(32rem, 100%); }
         .vol-modal-body { overflow-y: auto; padding: 0 1.25rem 0.5rem; flex: 1; }
         .vol-modal-body .vol-field { display: block; margin-bottom: 0.75rem; font-size: 0.85rem; color: var(--ink-soft); }
@@ -1253,6 +1275,13 @@
                     <div id="rejectedContent"></div>
                 </details>
                 <div class="admin-status" id="approvalsStatus"></div>
+
+                <!-- Role coverage: who's Driver / Santa / Safety Walker on each
+                     night, as initials (red ✕ = not assigned). Read-only view of
+                     date.roleAssignments from admin-data.js; tap a night to jump
+                     to it on the Routes tab to change the assignments. -->
+                <div class="dashboard-section-title">🗓️ Role coverage</div>
+                <div id="roleCoverageContent"><p class="admin-loading">Loading...</p></div>
 
                 <div class="reminders-panel">
                     <h3>✉️ Send tonight's shift reminders now</h3>
@@ -3448,8 +3477,178 @@
                 return body;
             }
 
+            // ---- Role coverage (Volunteers tab) ----
+            // One row per night (date + route), one column per key role, in
+            // the order Driver / Santa / Safety Walker. Assigned volunteer's
+            // initials, or a red ✕ when the slot is empty.
+            var COVERAGE_ROLES = [
+                ['driver', '🚗', 'Driver'],
+                ['santa', '🎅', 'Santa'],
+                ['safetyWalker', '🦺', 'Safety Walker']
+            ];
+            var coverageShowPast = false;
+
+            function nameInitials(name) {
+                var words = String(name || '').replace(/@.*$/, '').split(/[\s._-]+/).filter(Boolean);
+                if (!words.length) return '?';
+                if (words.length === 1) return words[0].slice(0, 2).toUpperCase();
+                return (words[0].charAt(0) + words[words.length - 1].charAt(0)).toUpperCase();
+            }
+
+            // Initials for every volunteer; where two people share initials,
+            // lengthen with the first name's 2nd letter (e.g. JoS / JaS).
+            function volunteerInitialsMap() {
+                var vols = adminData.volunteers || [];
+                var base = {}, counts = {};
+                vols.forEach(function(v) {
+                    base[v.id] = nameInitials(volunteerDisplayName(v));
+                    counts[base[v.id]] = (counts[base[v.id]] || 0) + 1;
+                });
+                var out = {};
+                vols.forEach(function(v) {
+                    var ini = base[v.id];
+                    if (counts[ini] > 1) {
+                        var first = String(volunteerDisplayName(v)).trim().split(/\s+/)[0] || '';
+                        if (first.length > 1) ini = ini.charAt(0) + first.charAt(1).toLowerCase() + ini.slice(1);
+                    }
+                    out[v.id] = ini;
+                });
+                return out;
+            }
+
+            function renderRoleCoverage() {
+                var container = document.getElementById('roleCoverageContent');
+                if (!container) return;
+                container.innerHTML = '';
+
+                // Current season = the latest year with any nights.
+                var nights = [];
+                var latestYear = null;
+                adminData.routes.forEach(function(route) {
+                    route.dates.forEach(function(d) {
+                        if (latestYear == null || d.year > latestYear) latestYear = d.year;
+                    });
+                });
+                adminData.routes.forEach(function(route) {
+                    route.dates.forEach(function(d) {
+                        if (d.year === latestYear) nights.push({ route: route, date: d });
+                    });
+                });
+                if (!nights.length) {
+                    container.innerHTML = '<p class="vol-role-none">No nights set up yet.</p>';
+                    return;
+                }
+                nights.sort(function(a, b) {
+                    if (a.date.eventDate !== b.date.eventDate) return a.date.eventDate < b.date.eventDate ? -1 : 1;
+                    return (a.route.displayOrder || 0) - (b.route.displayOrder || 0);
+                });
+
+                var today = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/London' });
+                var pastCount = nights.filter(function(n) { return n.date.eventDate < today; }).length;
+                var shown = coverageShowPast ? nights : nights.filter(function(n) { return n.date.eventDate >= today; });
+
+                var gaps = 0, nightsWithGaps = 0;
+                nights.forEach(function(n) {
+                    if (n.date.eventDate < today) return;
+                    var missing = COVERAGE_ROLES.filter(function(r) {
+                        return !(n.date.roleAssignments && n.date.roleAssignments[r[0]]);
+                    }).length;
+                    gaps += missing;
+                    if (missing) nightsWithGaps++;
+                });
+
+                var toolbar = document.createElement('div');
+                toolbar.className = 'cov-toolbar';
+                var summary = document.createElement('span');
+                if (gaps) {
+                    summary.innerHTML = '<span class="cov-gaps">' + gaps + ' unfilled role' + (gaps === 1 ? '' : 's') +
+                        '</span> across ' + nightsWithGaps + ' upcoming night' + (nightsWithGaps === 1 ? '' : 's');
+                } else {
+                    summary.textContent = '✅ All upcoming nights have a Driver, Santa and Safety Walker';
+                }
+                toolbar.appendChild(summary);
+                if (pastCount) {
+                    var lbl = document.createElement('label');
+                    var cb = document.createElement('input');
+                    cb.type = 'checkbox';
+                    cb.checked = coverageShowPast;
+                    cb.onchange = function() { coverageShowPast = cb.checked; renderRoleCoverage(); };
+                    lbl.appendChild(cb);
+                    lbl.appendChild(document.createTextNode('Show past nights (' + pastCount + ')'));
+                    toolbar.appendChild(lbl);
+                }
+                container.appendChild(toolbar);
+
+                if (!shown.length) {
+                    var none = document.createElement('p');
+                    none.className = 'vol-role-none';
+                    none.textContent = 'No upcoming nights this season.';
+                    container.appendChild(none);
+                    return;
+                }
+
+                var initialsById = volunteerInitialsMap();
+                var table = document.createElement('table');
+                table.className = 'cov-table';
+                var head = '<thead><tr><th class="cov-night-h">Night</th>';
+                COVERAGE_ROLES.forEach(function(r) {
+                    head += '<th class="cov-role-h" title="' + r[2] + '"><span class="cov-role-icon" aria-hidden="true">' + r[1] +
+                        '</span><span class="cov-role-label">' + r[2] + '</span></th>';
+                });
+                table.innerHTML = head + '</tr></thead>';
+                var tbody = document.createElement('tbody');
+
+                shown.forEach(function(n) {
+                    var d = n.date;
+                    var tr = document.createElement('tr');
+                    if (d.eventDate < today) tr.className = 'cov-past';
+                    else if (d.eventDate === today) tr.className = 'cov-today';
+
+                    var nightTd = document.createElement('td');
+                    var btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.className = 'cov-night';
+                    btn.title = 'Open this night on the Routes tab to change assignments';
+                    var dateLabel = new Date(d.eventDate + 'T00:00:00').toLocaleDateString('en-GB', {
+                        weekday: 'short', day: 'numeric', month: 'short'
+                    });
+                    btn.innerHTML = '<span class="cov-night-main"><span class="cov-night-date">' + escapeHtml(dateLabel) +
+                        '</span> · ' + escapeHtml(n.route.name) + '</span>' +
+                        (n.route.internalName ? '<span class="cov-night-sub">' + escapeHtml(n.route.internalName) + '</span>' : '');
+                    btn.onclick = function() { goToNight(n.route.id, d.id); };
+                    nightTd.appendChild(btn);
+                    tr.appendChild(nightTd);
+
+                    COVERAGE_ROLES.forEach(function(r) {
+                        var td = document.createElement('td');
+                        td.className = 'cov-cell';
+                        var a = d.roleAssignments && d.roleAssignments[r[0]];
+                        if (a) {
+                            var span = document.createElement('span');
+                            span.className = 'cov-initials';
+                            span.textContent = initialsById[a.volunteerId] || nameInitials(a.name);
+                            span.title = r[2] + ': ' + a.name;
+                            span.setAttribute('aria-label', r[2] + ': ' + a.name);
+                            td.appendChild(span);
+                        } else {
+                            var x = document.createElement('span');
+                            x.className = 'cov-missing';
+                            x.textContent = '✕';
+                            x.title = 'No ' + r[2] + ' assigned';
+                            x.setAttribute('aria-label', 'No ' + r[2] + ' assigned');
+                            td.appendChild(x);
+                        }
+                        tr.appendChild(td);
+                    });
+                    tbody.appendChild(tr);
+                });
+                table.appendChild(tbody);
+                container.appendChild(table);
+            }
+
             function renderVolunteers() {
                 document.getElementById('volunteersLoading').classList.add('admin-hidden');
+                renderRoleCoverage();
                 renderInactiveVolunteers();
                 closeVolunteerMenu();
                 var container = document.getElementById('volunteersContent');
