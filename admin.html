@@ -3495,10 +3495,12 @@
                 return (words[0].charAt(0) + words[words.length - 1].charAt(0)).toUpperCase();
             }
 
-            // Initials for every volunteer; where two people share initials,
-            // lengthen with the first name's 2nd letter (e.g. JoS / JaS).
-            function volunteerInitialsMap() {
-                var vols = adminData.volunteers || [];
+            // Initials for the volunteers in onlyIds (those visible in the
+            // grid); where two of them share initials, lengthen with the first
+            // name's 2nd letter (e.g. JoS / JaS). People not in the grid don't
+            // count as a clash.
+            function volunteerInitialsMap(onlyIds) {
+                var vols = (adminData.volunteers || []).filter(function(v) { return onlyIds[v.id]; });
                 var base = {}, counts = {};
                 vols.forEach(function(v) {
                     base[v.id] = nameInitials(volunteerDisplayName(v));
@@ -3587,7 +3589,14 @@
                     return;
                 }
 
-                var initialsById = volunteerInitialsMap();
+                var visibleIds = {};
+                shown.forEach(function(n) {
+                    COVERAGE_ROLES.forEach(function(r) {
+                        var a = n.date.roleAssignments && n.date.roleAssignments[r[0]];
+                        if (a) visibleIds[a.volunteerId] = true;
+                    });
+                });
+                var initialsById = volunteerInitialsMap(visibleIds);
                 var table = document.createElement('table');
                 table.className = 'cov-table';
                 var head = '<thead><tr><th class="cov-night-h">Night</th>';
