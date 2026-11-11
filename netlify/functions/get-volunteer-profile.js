@@ -108,6 +108,38 @@ export default async (req, context) => {
       });
     }
 
+    // "Additional Info" on My Schedule: who else is on each of this
+    // volunteer's nights (first names only) and who holds the Santa /
+    // Safety Lead / Driver slots. Names only, never contact details --
+    // same rule as get-shift-openings.js.
+    const routeDateIds = shiftRows.map((s) => s.route_date_id);
+    const crewByDate = {};
+    const rolesByDate = {};
+    if (routeDateIds.length > 0) {
+      const crewRows = await db.sql`
+        SELECT sa.route_date_id, v.full_name
+        FROM shift_assignments sa
+        JOIN volunteers v ON v.id = sa.volunteer_id
+        WHERE sa.route_date_id = ANY(${routeDateIds}) AND sa.volunteer_id <> ${profile.id}
+        ORDER BY v.full_name NULLS LAST
+      `;
+      for (const c of crewRows) {
+        const first = String(c.full_name || '').trim().split(/\s+/)[0] || 'Volunteer';
+        (crewByDate[c.route_date_id] = crewByDate[c.route_date_id] || []).push(first);
+      }
+
+      const roleRows = await db.sql`
+        SELECT era.route_date_id, era.role, era.volunteer_id, v.full_name
+        FROM event_role_assignments era
+        JOIN volunteers v ON v.id = era.volunteer_id
+        WHERE era.route_date_id = ANY(${routeDateIds})
+      `;
+      for (const r of roleRows) {
+        const name = r.volunteer_id === profile.id ? 'You' : (r.full_name || 'Volunteer');
+        (rolesByDate[r.route_date_id] = rolesByDate[r.route_date_id] || {})[r.role] = name;
+      }
+    }
+
     const shifts = shiftRows.map((s) => ({
       routeDateId: s.route_date_id,
       routeName: s.route_name,
@@ -118,7 +150,9 @@ export default async (req, context) => {
       gatheringTime: s.gathering_time,
       hasRouteMap: !!s.route_map_filename,
       hasRouteTrack: !!s.has_route_track,
-      flags: flagsByDate[s.route_date_id] || []
+      flags: flagsByDate[s.route_date_id] || [],
+      crewFirstNames: crewByDate[s.route_date_id] || [],
+      roles: rolesByDate[s.route_date_id] || {}
     }));
 
     // "Take card payments" button state (volunteer-square-access.js).

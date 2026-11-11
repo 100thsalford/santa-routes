@@ -151,6 +151,25 @@
             margin-top: 0.35rem;
         }
 
+        .shift-extra-info {
+            margin-top: 0.5rem;
+            border-top: 1px solid rgba(0, 0, 0, 0.08);
+            padding-top: 0.4rem;
+        }
+
+        .shift-extra-info > summary {
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: bold;
+            color: var(--santa-green);
+            padding: 0.2rem 0;
+            list-style: none;
+        }
+
+        .shift-extra-info > summary::-webkit-details-marker { display: none; }
+        .shift-extra-info > summary::after { content: ' ▾'; }
+        .shift-extra-info[open] > summary::after { content: ' ▴'; }
+
         .risk-banner {
             display: none;
             align-items: center;
@@ -2544,6 +2563,33 @@
                                 warning.textContent = '⚠️ Please don\'t share the route map outside the volunteer group.';
                                 row.appendChild(warning);
                             }
+
+                            // Collapsed "Additional Info": who's on the night with you.
+                            var extra = document.createElement('details');
+                            extra.className = 'shift-extra-info';
+                            var extraSummary = document.createElement('summary');
+                            extraSummary.textContent = 'Additional Info';
+                            extra.appendChild(extraSummary);
+
+                            var roles = shift.roles || {};
+                            [
+                                ['🎅 Santa', roles.santa],
+                                ['🦺 Safety Lead', roles.safety_walker],
+                                ['🚗 Driver', roles.driver]
+                            ].forEach(function(pair) {
+                                var roleLine = document.createElement('span');
+                                roleLine.className = 'shift-detail';
+                                roleLine.textContent = pair[0] + ': ' + (pair[1] || 'Not assigned yet');
+                                extra.appendChild(roleLine);
+                            });
+
+                            var crew = shift.crewFirstNames || [];
+                            var crewLine = document.createElement('span');
+                            crewLine.className = 'shift-detail';
+                            crewLine.textContent = '🙋 Also signed up: ' + (crew.length ? crew.join(', ') : 'Nobody else yet');
+                            extra.appendChild(crewLine);
+
+                            row.appendChild(extra);
 
                             shiftsContent.appendChild(row);
                         });
