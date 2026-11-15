@@ -942,30 +942,32 @@
         @media (max-width: 600px) {
             .section-switch { display: block; }
             .admin-tabs.tab-buttons { display: none; }
-
-            /* QR Signs table -> one card per sign */
-            table.admin-table.qr-cards { table-layout: auto; }
-            table.admin-table.qr-cards, table.admin-table.qr-cards tbody { display: block; width: 100%; }
-            table.admin-table.qr-cards thead { display: none; }
-            table.admin-table.qr-cards tr.qr-row {
-                display: grid; grid-template-columns: 3rem 1fr auto auto; gap: 0.3rem 0.5rem;
-                align-items: center; padding: 0.65rem 0; border-bottom: 1px solid var(--border-subtle);
-            }
-            table.admin-table.qr-cards tr.qr-row td { display: block; padding: 0 !important; border: 0; width: auto !important; min-width: 0; }
-            .qr-cards td.qr-c-sign { grid-row: 1; grid-column: 1; }
-            .qr-cards td.qr-c-status { grid-row: 1; grid-column: 2; }
-            .qr-cards td.qr-c-visits { grid-row: 1; grid-column: 3 / 5; text-align: right; }
-            .qr-cards td.qr-c-visits::after { content: " visits"; font-size: 0.8rem; color: var(--ink-soft); }
-            .qr-cards td.qr-c-loc { grid-row: 2; grid-column: 2 / 5; }
-            .qr-cards td.qr-c-last { grid-row: 3; grid-column: 2; font-size: 0.8rem; color: var(--ink-soft); }
-            .qr-cards td.qr-c-last::before { content: "Last: "; }
-            .qr-cards td.qr-c-rate { grid-row: 3; grid-column: 3; font-size: 0.8rem; color: var(--ink-soft); white-space: nowrap; }
-            .qr-cards td.qr-c-rate::after { content: "/day"; }
-            .qr-cards td.qr-c-rate.empty { visibility: hidden; }
-            .qr-cards td.qr-c-edit { grid-row: 3; grid-column: 4; }
-            table.admin-table.qr-cards tr.qr-edit-row { display: block; border-bottom: 1px solid var(--border-subtle); }
-            table.admin-table.qr-cards tr.qr-edit-row td { display: block; padding: 0 0 0.75rem !important; border: 0; }
         }
+
+        /* QR Signs table: one card per sign at every width -- the admin
+           column is too narrow on desktop too for seven fixed-width
+           columns (Location ended up with no room). Edit sits on the left. */
+        table.admin-table.qr-cards { table-layout: auto; }
+        table.admin-table.qr-cards, table.admin-table.qr-cards tbody { display: block; width: 100%; }
+        table.admin-table.qr-cards thead { display: none; }
+        table.admin-table.qr-cards tr.qr-row {
+            display: grid; grid-template-columns: 3.75rem 1fr auto; gap: 0.3rem 0.5rem;
+            align-items: center; padding: 0.65rem 0; border-bottom: 1px solid var(--border-subtle);
+        }
+        table.admin-table.qr-cards tr.qr-row td { display: block; padding: 0 !important; border: 0; width: auto !important; min-width: 0; }
+        .qr-cards td.qr-c-sign { grid-row: 1; grid-column: 1; }
+        .qr-cards td.qr-c-status { grid-row: 1; grid-column: 2; }
+        .qr-cards td.qr-c-visits { grid-row: 1; grid-column: 3; text-align: right; }
+        .qr-cards td.qr-c-visits::after { content: " visits"; font-size: 0.8rem; color: var(--ink-soft); }
+        .qr-cards td.qr-c-loc { grid-row: 2; grid-column: 2 / 4; }
+        .qr-cards td.qr-c-last { grid-row: 3; grid-column: 2; font-size: 0.8rem; color: var(--ink-soft); }
+        .qr-cards td.qr-c-last::before { content: "Last: "; }
+        .qr-cards td.qr-c-rate { grid-row: 3; grid-column: 3; text-align: right; font-size: 0.8rem; color: var(--ink-soft); white-space: nowrap; }
+        .qr-cards td.qr-c-rate::after { content: "/day"; }
+        .qr-cards td.qr-c-rate.empty { visibility: hidden; }
+        .qr-cards td.qr-c-edit { grid-row: 2 / 4; grid-column: 1; align-self: end; }
+        table.admin-table.qr-cards tr.qr-edit-row { display: block; border-bottom: 1px solid var(--border-subtle); }
+        table.admin-table.qr-cards tr.qr-edit-row td { display: block; padding: 0 0 0.75rem !important; border: 0; }
 
         /* Netlify Identity widget (login/signup modal): our own sticky
            .header has z-index:100, one higher than the widget's own
@@ -4741,21 +4743,21 @@
                 var table = document.createElement('table');
                 table.className = 'admin-table qr-cards';
                 table.innerHTML = '<thead><tr>' +
-                    '<th class="qr-col-sign">Sign</th><th>Location</th><th class="qr-col-status">Status</th>' +
+                    '<th class="qr-col-edit"></th><th class="qr-col-sign">Sign</th><th>Location</th><th class="qr-col-status">Status</th>' +
                     '<th class="qr-col-num">Visits</th><th class="qr-col-last">Last visit</th>' +
-                    '<th class="qr-col-num">Per day up</th><th class="qr-col-edit"></th></tr></thead>';
+                    '<th class="qr-col-num">Per day up</th></tr></thead>';
                 var tbody = document.createElement('tbody');
                 sorted.forEach(function(s) {
                     var tr = document.createElement('tr');
                     tr.className = 'qr-row';
                     tr.innerHTML =
+                        '<td class="qr-c-edit"><button type="button" class="admin-btn small" data-qr-edit="' + escapeHtml(s.signId) + '">Edit</button></td>' +
                         '<td class="qr-c-sign"><button type="button" class="qr-sign-link" data-qr-sign="' + escapeHtml(s.signId) + '">' + escapeHtml(s.signId) + '</button></td>' +
                         '<td class="qr-c-loc">' + (s.locationLabel ? escapeHtml(s.locationLabel) : '<span class="qr-muted">Location not set</span>') + '</td>' +
                         '<td class="qr-c-status"><span class="qr-status ' + escapeHtml(s.status) + '">' + escapeHtml(QR_STATUS_LABELS[s.status] || s.status) + '</span></td>' +
                         '<td class="qr-c-visits"><strong>' + s.visits + '</strong></td>' +
                         '<td class="qr-c-last">' + escapeHtml(qrFormatVisitTime(s.lastVisit)) + '</td>' +
-                        '<td class="qr-c-rate' + (s.visitsPerDayInstalled == null ? ' empty' : '') + '">' + (s.visitsPerDayInstalled == null ? '\u2014' : escapeHtml(s.visitsPerDayInstalled)) + '</td>' +
-                        '<td class="qr-c-edit"><button type="button" class="admin-btn small" data-qr-edit="' + escapeHtml(s.signId) + '">Edit</button></td>';
+                        '<td class="qr-c-rate' + (s.visitsPerDayInstalled == null ? ' empty' : '') + '">' + (s.visitsPerDayInstalled == null ? '\u2014' : escapeHtml(s.visitsPerDayInstalled)) + '</td>';
                     tbody.appendChild(tr);
                     if (qrState.editing === s.signId) tbody.appendChild(qrEditRow(s));
                 });
