@@ -165,6 +165,18 @@
             margin-top: 1.5rem;
         }
 
+        /* Admin preview (track.html?preview=1) -- admins only */
+        .preview-banner {
+            background: #fff4e0;
+            border: 1px solid #f0c36d;
+            color: #6b4600;
+            border-radius: 10px;
+            padding: 0.6rem 0.85rem;
+            margin-bottom: 0.75rem;
+            font-size: 0.9rem;
+        }
+        .preview-banner[hidden] { display: none; }
+
         @media (max-width: 480px) {
             .track-header h1 { font-size: 1.35rem; }
             #trackMap { height: 50vh; }
@@ -181,6 +193,8 @@
             <h1><span aria-hidden="true">🎅</span> Track Santa Live</h1>
             <p>Follow the sleigh's GPS live around tonight's route.</p>
         </div>
+
+        <div class="preview-banner" id="previewBanner" hidden></div>
 
         <!-- role="status": screen readers announce changes (Santa's set off,
              finished for tonight...). Only rewritten when the message
@@ -457,14 +471,76 @@
                 }
             }
 
+            // ---- Admin preview (track.html?preview=1) ----
+            // Signs in with the admin's Netlify Identity session (same one
+            // admin.html uses) so an "On -- admin preview only" override
+            // from the Dashboard shows here. The server re-checks the admin
+            // role; anyone else just gets the public view.
+            var PREVIEW = new URLSearchParams(location.search).get('preview') === '1';
+            var previewBanner = document.getElementById('previewBanner');
+            var identityReady = null;
+
+            function getIdentityUser() {
+                if (identityReady) return identityReady;
+                identityReady = new Promise(function(resolve) {
+                    var s = document.createElement('script');
+                    s.src = 'https://identity.netlify.com/v1/netlify-identity-widget.js';
+                    s.onload = function() {
+                        var id = window.netlifyIdentity;
+                        if (!id) return resolve(null);
+                        var done = false;
+                        function finish(u) { if (!done) { done = true; resolve(u || null); } }
+                        id.on('init', finish);
+                        if (id.currentUser()) return finish(id.currentUser());
+                        try { id.init(); } catch (e) { /* already initialised */ }
+                        setTimeout(function() { finish(id.currentUser()); }, 4000);
+                    };
+                    s.onerror = function() { resolve(null); };
+                    document.head.appendChild(s);
+                });
+                return identityReady;
+            }
+
+            function fmtTime(iso) {
+                if (!iso) return '';
+                return new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/London', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date(iso));
+            }
+
+            function renderPreviewBanner(data) {
+                if (!PREVIEW) return;
+                var text;
+                if (!data || !data.preview) {
+                    text = '🔒 Admin preview isn’t available — log in on the admin page first. Showing the public view.';
+                } else {
+                    var o = data.override;
+                    if (o && o.mode === 'on' && o.visibility === 'admin') text = '🔒 Admin preview — tracker forced ON for admins only until ' + fmtTime(o.until) + '. The public can’t see this.';
+                    else if (o && o.mode === 'on') text = '🔒 Admin preview — tracker forced ON for everyone until ' + fmtTime(o.until) + '.';
+                    else if (o && o.mode === 'off') text = '🔒 Admin preview — tracker forced OFF' + (o.until ? ' until ' + fmtTime(o.until) : ' until switched back to Auto') + '.';
+                    else text = '🔒 Admin preview — no override (Auto). You’re seeing exactly what the public sees.';
+                }
+                previewBanner.textContent = text;
+                previewBanner.hidden = false;
+            }
+
+            async function fetchTracking() {
+                if (!PREVIEW) return fetch('/.netlify/functions/get-tracking-data');
+                var user = await getIdentityUser();
+                var opts = {};
+                if (user) {
+                    try { opts.headers = { 'Authorization': 'Bearer ' + await user.jwt() }; } catch (e) { /* fall back to public view */ }
+                }
+                return fetch('/.netlify/functions/get-tracking-data?preview=1&t=' + Date.now(), opts);
+            }
+
             var lastPollAt = 0;
             var pollTimer = null;
 
             async function poll() {
                 lastPollAt = Date.now();
                 try {
-                    var res = await fetch('/.netlify/functions/get-tracking-data');
+                    var res = await fetchTracking();
                     var data = await res.json();
+                    renderPreviewBanner(data);
                     render(data);
                 } catch (err) {
                     console.error('Error fetching tracking data:', err);

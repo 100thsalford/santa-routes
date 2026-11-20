@@ -1,8 +1,9 @@
 // Public endpoint powering track.html's live sleigh map -- replaces the
 // old Glympse-based "Track Santa Live" button. Determines whether tonight
 // is a route night and whether we're inside the live-tracking window (see
-// trackingWindow() below: its own admin settings, an optional per-night
-// end time, and an admin "stop now" switch), and -- only while that
+// trackingWindow() in lib/tracking-window.js: its own admin settings, an
+// optional per-night end time, and the admin Auto/On/Off override), and
+// -- only while that
 // window is open -- fetches the sleigh's current GPS position from TruTrak (the
 // FMT200 device fitted to the sleigh) plus a breadcrumb trail of where
 // it's actually been tonight (via TTAssetsTrail), shown alongside the
@@ -35,7 +36,9 @@
 import { getDatabase } from '@netlify/database';
 import { getStore } from '@netlify/blobs';
 import { parseStringPromise } from 'xml2js';
+import { getUser } from '@netlify/identity';
 import { cdnCacheHeaders, CACHE_TAGS } from '../lib/cdn-cache.js';
+import { trackingWindow, londonDateString, londonLocalStamp } from '../lib/tracking-window.js';
 
 const headers = {
   'Access-Control-Allow-Origin': '*',
@@ -43,34 +46,22 @@ const headers = {
   'Cache-Control': 'no-store'
 };
 
-const TIME_ZONE = 'Europe/London';
 const TT_BASE = 'https://ttapi.trutrakpro.co.uk/WSDataProvider.asmx';
 const LOCATION_CACHE_TTL_MS = 60000; // TruTrak's own stated limit is 1 call every 30s minimum, "preferably" 1/min -- we default to their preferred cadence rather than the bare minimum
 const POSITION_STALE_MS = 10 * 60 * 1000; // if a fresh TruTrak read fails or comes back empty (e.g. the sleigh is parked/stationary between GPS pings), keep showing the last known position for up to 10 minutes rather than flipping straight to "no signal"
-
-function londonDateString(date) {
-  return new Intl.DateTimeFormat('en-CA', {
-    timeZone: TIME_ZONE, year: 'numeric', month: '2-digit', day: '2-digit'
-  }).format(date);
-}
-
-function londonTimeString(date) {
-  return new Intl.DateTimeFormat('en-GB', {
-    timeZone: TIME_ZONE, hour: '2-digit', minute: '2-digit', hourCycle: 'h23'
-  }).format(date);
-}
 
 // Every open track.html polls this every 30s, and on a route night that
 // can be hundreds of tabs. The CDN shares one answer between them for 15s
 // (well inside the 60s the TruTrak position itself is cached for, so the
 // map is no less live). No stale-while-revalidate, so once the window
-// closes no position is served for more than 15s; admin "Stop live
-// tracking now" purges it straight away (admin-settings.js). Errors are
-// never cached.
+// closes no position is served for more than 15s; admin override changes
+// purge it straight away (admin-settings.js). Errors are never cached, and
+// neither are admin previews (?preview=1), which may show a position the
+// public must not see.
 const cacheHeaders = cdnCacheHeaders({ maxAge: 15, tags: [CACHE_TAGS.tracking] });
 
-function json(body, status = 200) {
-  const h = status === 200 ? { ...headers, ...cacheHeaders } : headers;
+function json(body, status = 200, { cache = true } = {}) {
+  const h = status === 200 && cache ? { ...headers, ...cacheHeaders } : headers;
   return new Response(JSON.stringify(body), { status, headers: h });
 }
 
@@ -176,8 +167,10 @@ async function getCachedPosition(store, registration) {
   }
 }
 
-async function getAssetTrail(store, registration, todayDate, windowStart, windowEnd) {
-  const cacheKey = `trail-${todayDate}`;
+// dateStart/dateEnd are TruTrak local stamps ("2026-12-01T17:00:00");
+// cacheKey must start "trail-<London date>" (purge-old-logs.js keeps
+// today's and yesterday's by that prefix).
+async function getAssetTrail(store, registration, cacheKey, dateStart, dateEnd) {
   const cached = await store.get(cacheKey, { type: 'json' });
   if (cached && Date.now() - cached.fetchedAt < LOCATION_CACHE_TTL_MS) {
     return cached.points;
@@ -186,10 +179,9 @@ async function getAssetTrail(store, registration, todayDate, windowStart, window
   try {
     const token = await getValidToken(store);
     const assetId = await getAssetId(store, token, registration);
-    const dateStart = `${todayDate}T${windowStart}:00`;
-    // Capped at the window end so the trail can never reveal where the
-    // sleigh went after tracking stopped (e.g. where it's parked).
-    const dateEnd = `${todayDate}T${windowEnd}:00`;
+    // dateEnd is capped at the window end / override expiry so the trail
+    // can never reveal where the sleigh went after tracking stopped (e.g.
+    // where it's parked).
     const root = await ttRequest('TTAssetsTrail', {
       Token: token,
       asset_ID: String(assetId),
@@ -215,26 +207,8 @@ async function getAssetTrail(store, registration, todayDate, windowStart, window
   }
 }
 
-// Live-tracking window for tonight. Kept in sync by hand with the copy in
-// get-site-status.js (this codebase's self-contained-helpers convention).
-//   start: settings.tracking_window_start (falls back to the sightings start)
-//   end:   tonight's route_dates.tracking_end_time if set, else
-//          settings.tracking_window_end (falls back to the sightings end)
-//   settings.tracking_stopped_date === today -> admin hit "Stop live
-//          tracking now"; off for the rest of tonight, back to normal on
-//          the next route night automatically.
-const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
-function trackingWindow(settings, todayRoute, todayDate, nowTime) {
-  const pick = (...vals) => vals.find((v) => v && TIME_RE.test(String(v).trim()));
-  const start = pick(settings.tracking_window_start, settings.sightings_window_start) || '17:00';
-  const end = pick(todayRoute && todayRoute.tracking_end_time, settings.tracking_window_end, settings.sightings_window_end) || '22:00';
-  let state;
-  if (!todayRoute) state = 'not-a-route-day';
-  else if (settings.tracking_stopped_date === todayDate) state = 'stopped';
-  else if (nowTime < start) state = 'before-window';
-  else if (nowTime >= end) state = 'after-window';
-  else state = 'active';
-  return { start, end, state, active: state === 'active' };
+function isAdmin(user) {
+  return !!(user && user.roles && user.roles.includes('admin'));
 }
 
 export default async (req, context) => {
@@ -246,7 +220,16 @@ export default async (req, context) => {
     const db = getDatabase();
     const now = new Date();
     const todayDate = londonDateString(now);
-    const nowTime = londonTimeString(now);
+
+    // Admin preview (track.html?preview=1, sent with the admin's Identity
+    // token): lets an admin-only "On" override apply. Never CDN-cached.
+    const wantsPreview = new URL(req.url).searchParams.get('preview') === '1';
+    let preview = false;
+    if (wantsPreview) {
+      try { preview = isAdmin(await getUser()); } catch (e) { preview = false; }
+    }
+    let win;
+    const reply = (body) => json(preview ? { ...body, preview: true, override: win.override } : body, 200, { cache: !wantsPreview });
 
     const [settingsRows, todayRouteRows] = await Promise.all([
       db.sql`SELECT key, value FROM settings`,
@@ -264,9 +247,8 @@ export default async (req, context) => {
     for (const row of settingsRows) settings[row.key] = row.value;
 
     const todayRoute = todayRouteRows[0] || null;
-    const win = trackingWindow(settings, todayRoute, todayDate, nowTime);
+    win = trackingWindow(settings, todayRoute, now, { viewerIsAdmin: preview });
     const windowStart = win.start;
-    const windowEnd = win.end;
     const registration = (settings.trutrak_asset_registration || '').trim();
 
     const base = {
@@ -279,23 +261,36 @@ export default async (req, context) => {
     // returned at all -- no position and no trail -- so a bookmarked
     // track.html shows nothing once tracking has stopped for the night.
     if (win.state === 'not-a-route-day') {
-      return json({ ...base, active: false, state: 'not-a-route-day' });
+      return reply({ ...base, active: false, state: 'not-a-route-day' });
     }
     if (win.state === 'before-window') {
-      return json({ ...base, active: false, state: 'before-window', windowStart });
+      return reply({ ...base, active: false, state: 'before-window', windowStart });
     }
     if (win.state === 'after-window' || win.state === 'stopped') {
-      return json({ ...base, active: false, state: win.state });
+      return reply({ ...base, active: false, state: win.state });
     }
 
+    // Trail: tonight's window on a scheduled night; from the moment the
+    // override was switched on (never earlier) when forced on.
+    let trailKey, trailStart, trailEnd;
+    if (win.forced) {
+      const from = new Date(win.override.from || now);
+      trailKey = `trail-${todayDate}-ov${from.getTime()}`;
+      trailStart = londonLocalStamp(from);
+      trailEnd = londonLocalStamp(new Date(win.override.until));
+    } else {
+      trailKey = `trail-${todayDate}`;
+      trailStart = `${todayDate}T${win.start}:00`;
+      trailEnd = `${todayDate}T${win.end}:00`;
+    }
+    const live = { ...base, active: true, state: 'active', forced: win.forced, windowEnd: win.end };
+
     const store = getStore('trutrak');
-    const trail = registration ? await getAssetTrail(store, registration, todayDate, windowStart, windowEnd) : [];
+    const trail = registration ? await getAssetTrail(store, registration, trailKey, trailStart, trailEnd) : [];
 
     if (!registration) {
-      return json({
-        ...base,
-        active: true,
-        state: 'active',
+      return reply({
+        ...live,
         position: null,
         trail,
         positionError: "Live tracking isn't set up yet -- add the sleigh's TruTrak registration in Season Settings."
@@ -304,13 +299,11 @@ export default async (req, context) => {
 
     try {
       const position = await getCachedPosition(store, registration);
-      return json({ ...base, active: true, state: 'active', position, trail });
+      return reply({ ...live, position, trail });
     } catch (err) {
       console.error('TruTrak fetch failed:', err);
-      return json({
-        ...base,
-        active: true,
-        state: 'active',
+      return reply({
+        ...live,
         position: null,
         trail,
         positionError: "Waiting for a GPS signal from the sleigh..."

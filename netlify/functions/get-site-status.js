@@ -10,6 +10,7 @@
 
 import { getDatabase } from '@netlify/database';
 import { cdnCacheHeaders, CACHE_TAGS } from '../lib/cdn-cache.js';
+import { trackingWindow } from '../lib/tracking-window.js';
 
 const headers = {
   'Access-Control-Allow-Origin': '*',
@@ -55,28 +56,6 @@ function addDays(dateString, days) {
   const d = new Date(dateString + 'T00:00:00Z');
   d.setUTCDate(d.getUTCDate() + days);
   return d.toISOString().slice(0, 10);
-}
-
-// Live-tracking window for tonight. Kept in sync by hand with the copy in
-// get-site-status.js (this codebase's self-contained-helpers convention).
-//   start: settings.tracking_window_start (falls back to the sightings start)
-//   end:   tonight's route_dates.tracking_end_time if set, else
-//          settings.tracking_window_end (falls back to the sightings end)
-//   settings.tracking_stopped_date === today -> admin hit "Stop live
-//          tracking now"; off for the rest of tonight, back to normal on
-//          the next route night automatically.
-const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
-function trackingWindow(settings, todayRoute, todayDate, nowTime) {
-  const pick = (...vals) => vals.find((v) => v && TIME_RE.test(String(v).trim()));
-  const start = pick(settings.tracking_window_start, settings.sightings_window_start) || '17:00';
-  const end = pick(todayRoute && todayRoute.tracking_end_time, settings.tracking_window_end, settings.sightings_window_end) || '22:00';
-  let state;
-  if (!todayRoute) state = 'not-a-route-day';
-  else if (settings.tracking_stopped_date === todayDate) state = 'stopped';
-  else if (nowTime < start) state = 'before-window';
-  else if (nowTime >= end) state = 'after-window';
-  else state = 'active';
-  return { start, end, state, active: state === 'active' };
 }
 
 export default async (req, context) => {
@@ -159,7 +138,8 @@ export default async (req, context) => {
     }
 
     const todayRoute = routeDateRows.find((r) => r.date === todayDate) || null;
-    const tracking = trackingWindow(settings, todayRoute, todayDate, nowTime);
+    // Public view only: an admin-preview "On" override never shows here.
+    const tracking = trackingWindow(settings, todayRoute, now);
 
     const totalRaisedRow = totalRaisedRows[0];
     const totalRaised = totalRaisedRow ? Number(totalRaisedRow.total) : 0;
@@ -182,7 +162,8 @@ export default async (req, context) => {
           active: tracking.active,
           state: tracking.state,
           windowStart: tracking.start,
-          windowEnd: tracking.end
+          windowEnd: tracking.end,
+          forced: tracking.forced
         },
         totalRaised,
         totalRaisedYear

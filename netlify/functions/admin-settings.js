@@ -7,6 +7,7 @@
 import { getUser } from '@netlify/identity';
 import { getDatabase } from '@netlify/database';
 import { purgePublicCache, CACHE_TAGS } from '../lib/cdn-cache.js';
+import { londonMidnightAfter } from '../lib/tracking-window.js';
 
 const headers = { 'Content-Type': 'application/json' };
 
@@ -27,17 +28,14 @@ const ALLOWED_KEYS = [
 const TIME_KEYS = ['sightings_window_start', 'sightings_window_end', 'tracking_window_start', 'tracking_window_end'];
 const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
 
-function londonToday() {
-  return new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'Europe/London', year: 'numeric', month: '2-digit', day: '2-digit'
-  }).format(new Date());
-}
+// Live-tracking override durations offered on the Dashboard.
+const ON_DURATIONS_MS = { '1h': 3600000, '2h': 7200000, '4h': 14400000 };
 
 function requireAdmin(user) {
   return !!(user && user.roles && user.roles.includes('admin'));
 }
 
-// Any saved setting (windows, season days, "stop tracking now") changes what
+// Any saved setting (windows, season days, tracking override) changes what
 // the public site-status and tracking endpoints return, so clear their CDN
 // copies before replying -- the change is live as soon as the admin sees it.
 export default async (req, context) => {
@@ -47,6 +45,10 @@ export default async (req, context) => {
   }
   return res;
 };
+
+function badRequest(message) {
+  return new Response(JSON.stringify({ error: message }), { status: 400, headers });
+}
 
 async function handle(req, context) {
   if (req.method !== 'POST') {
@@ -62,17 +64,49 @@ async function handle(req, context) {
     const body = await req.json();
     const db = getDatabase();
 
-    // Live-tracking kill switch: "stop" records today's (London) date --
-    // get-tracking-data.js / get-site-status.js treat tracking as off for
-    // the rest of that date, so it comes back by itself on the next route
-    // night. "resume" clears it (e.g. pressed by mistake).
-    if (body.op === 'stop-tracking' || body.op === 'resume-tracking') {
-      const value = body.op === 'stop-tracking' ? londonToday() : '';
-      await db.sql`
-        INSERT INTO settings (key, value, updated_at) VALUES ('tracking_stopped_date', ${value}, NOW())
-        ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = NOW()
-      `;
-      return new Response(JSON.stringify({ success: true, trackingStoppedDate: value }), { status: 200, headers });
+    // Live-tracking override (Dashboard Auto / On / Off) -- see
+    // lib/tracking-window.js for how it's applied.
+    //   auto: back to the route-night schedule
+    //   on:   visibility 'public' | 'admin'; duration '1h'|'2h'|'4h'|'midnight'
+    //         (always expires, so the sleigh's parked spot can't be left public)
+    //   off:  duration 'midnight' (rest of today) | 'indefinite'
+    if (body.op === 'set-tracking-override') {
+      const now = new Date();
+      const mode = body.mode;
+      let values;
+      if (mode === 'auto') {
+        values = { mode: '', visibility: '', from: '', until: '' };
+      } else if (mode === 'on') {
+        const visibility = body.visibility === 'admin' ? 'admin' : body.visibility === 'public' ? 'public' : null;
+        if (!visibility) return badRequest('Choose who can see the tracker');
+        let until;
+        if (body.duration === 'midnight') until = londonMidnightAfter(now);
+        else if (ON_DURATIONS_MS[body.duration]) until = new Date(now.getTime() + ON_DURATIONS_MS[body.duration]);
+        else return badRequest('Choose how long to switch tracking on for');
+        values = { mode: 'on', visibility, from: now.toISOString(), until: until.toISOString() };
+      } else if (mode === 'off') {
+        let until;
+        if (body.duration === 'midnight') until = londonMidnightAfter(now).toISOString();
+        else if (body.duration === 'indefinite') until = '';
+        else return badRequest('Choose how long to switch tracking off for');
+        values = { mode: 'off', visibility: '', from: now.toISOString(), until };
+      } else {
+        return badRequest('Unknown tracking mode');
+      }
+      const rows = [
+        ['tracking_override_mode', values.mode],
+        ['tracking_override_visibility', values.visibility],
+        ['tracking_override_from', values.from],
+        ['tracking_override_until', values.until],
+        ['tracking_stopped_date', ''] // retired "stop now" switch
+      ];
+      for (const [key, value] of rows) {
+        await db.sql`
+          INSERT INTO settings (key, value, updated_at) VALUES (${key}, ${value}, NOW())
+          ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = NOW()
+        `;
+      }
+      return new Response(JSON.stringify({ success: true, override: values }), { status: 200, headers });
     }
 
     for (const key of TIME_KEYS) {

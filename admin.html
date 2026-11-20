@@ -571,9 +571,20 @@
         .tracking-pill.stopped { background: #fff4e0; color: #8a5a00; }
         .tracking-panel-detail { margin: 0.4rem 0 0; font-size: 0.9rem; color: var(--ink-soft); }
         .tracking-panel-detail:empty { display: none; }
-        .tracking-panel-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.6rem; }
-        .tracking-panel-actions button[hidden] { display: none; }
-        .tracking-panel-actions:not(:has(button:not([hidden]))) { display: none; }
+        .tracking-pill.forced { background: #e3f2fd; color: #0d47a1; }
+        .tracking-override-line { margin: 0.4rem 0 0; font-size: 0.85rem; color: var(--ink-soft); }
+        .tracking-override-line:empty { display: none; }
+        .override-switch { display: inline-flex; margin-top: 0.6rem; border: 1px solid var(--border-subtle); border-radius: 999px; overflow: hidden; }
+        .override-seg { border: 0; background: var(--surface); padding: 0.4rem 1rem; font: inherit; font-size: 0.9rem; cursor: pointer; color: var(--ink-soft); min-width: 3.5rem; }
+        .override-seg + .override-seg { border-left: 1px solid var(--border-subtle); }
+        .override-seg[aria-pressed="true"] { background: var(--santa-green); color: #fff; font-weight: 600; }
+        .override-seg[data-mode="off"][aria-pressed="true"] { background: #c62828; }
+        .override-seg:disabled { opacity: 0.6; cursor: default; }
+        .override-options { margin-top: 0.6rem; padding: 0.6rem 0.75rem; border-radius: var(--radius-sm); background: rgba(0,0,0,0.03); display: grid; gap: 0.5rem; }
+        .override-options[hidden] { display: none; }
+        .override-options label { font-size: 0.85rem; color: var(--ink-soft); display: grid; gap: 0.2rem; }
+        .override-options select { padding: 0.45rem 0.5rem; border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); font: inherit; font-size: 0.95rem; background: var(--surface); }
+        .override-options-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
 
         .route-internal-name { color: var(--ink-soft); font-weight: normal; }
         .internal-name-row { margin: 0 0 0.75rem; }
@@ -1147,9 +1158,43 @@
                         <span class="tracking-pill" id="trackingPill">Checking&hellip;</span>
                     </div>
                     <p class="tracking-panel-detail" id="trackingDetail"></p>
-                    <div class="tracking-panel-actions">
-                        <button type="button" class="admin-btn small danger" id="stopTrackingBtn" hidden>⛔ Stop live tracking now</button>
-                        <button type="button" class="admin-btn small" id="resumeTrackingBtn" hidden>Resume live tracking tonight</button>
+                    <p class="tracking-override-line" id="trackingOverrideLine"></p>
+                    <div class="override-switch" role="group" aria-label="Live tracking override">
+                        <button type="button" class="override-seg" data-mode="auto" aria-pressed="true">Auto</button>
+                        <button type="button" class="override-seg" data-mode="on" aria-pressed="false">On</button>
+                        <button type="button" class="override-seg" data-mode="off" aria-pressed="false">Off</button>
+                    </div>
+                    <div class="override-options" id="overrideOnOptions" hidden>
+                        <label>Who can see it
+                            <select id="overrideVisibility">
+                                <option value="admin">Admin preview only (public unaffected)</option>
+                                <option value="public">Public (Track Santa Live button + map)</option>
+                            </select>
+                        </label>
+                        <label>For
+                            <select id="overrideOnDuration">
+                                <option value="1h">1 hour</option>
+                                <option value="2h">2 hours</option>
+                                <option value="4h">4 hours</option>
+                                <option value="midnight">Until midnight</option>
+                            </select>
+                        </label>
+                        <div class="override-options-actions">
+                            <button type="button" class="admin-btn small" id="overrideOnApply">Switch on</button>
+                            <button type="button" class="admin-btn small secondary" data-override-cancel>Cancel</button>
+                        </div>
+                    </div>
+                    <div class="override-options" id="overrideOffOptions" hidden>
+                        <label>For
+                            <select id="overrideOffDuration">
+                                <option value="midnight">Rest of today</option>
+                                <option value="indefinite">Until I switch back to Auto</option>
+                            </select>
+                        </label>
+                        <div class="override-options-actions">
+                            <button type="button" class="admin-btn small danger" id="overrideOffApply">Switch off</button>
+                            <button type="button" class="admin-btn small secondary" data-override-cancel>Cancel</button>
+                        </div>
                     </div>
                 </div>
                 <div class="pending-alert admin-hidden" id="pendingDashboardAlert">
@@ -2855,84 +2900,158 @@
 
             document.getElementById('geocodeStreetsBtn').addEventListener('click', runGeocodeStreets);
 
-            // ---- Live tracking status + kill switch (Dashboard) ----
-            // State comes from the public get-site-status.js (same
-            // trackingWindow() logic get-tracking-data.js enforces), so
-            // what this panel says is what the public tracking page does.
+            // ---- Live tracking status + Auto/On/Off override (Dashboard) ----
+            // Public state comes from get-site-status.js (same
+            // trackingWindow() in lib/tracking-window.js that
+            // get-tracking-data.js enforces), so the pill shows what the
+            // public tracking page does. The override itself (which may be
+            // admin-only) comes from adminData.settings.
+
+            function fmtLondonTime(iso) {
+                return new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/London', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date(iso));
+            }
+
+            // Mirrors activeOverride() in lib/tracking-window.js.
+            function currentOverride() {
+                var st = (adminData && adminData.settings) || {};
+                var mode = st.tracking_override_mode || '';
+                if (mode !== 'on' && mode !== 'off') return null;
+                var until = st.tracking_override_until ? Date.parse(st.tracking_override_until) : NaN;
+                if (isFinite(until) && Date.now() >= until) return null;
+                if (mode === 'on' && !isFinite(until)) return null;
+                return {
+                    mode: mode,
+                    visibility: mode === 'on' && st.tracking_override_visibility === 'admin' ? 'admin' : 'public',
+                    until: isFinite(until) ? new Date(until).toISOString() : null
+                };
+            }
+
+            function renderOverrideControls() {
+                var o = currentOverride();
+                var mode = o ? o.mode : 'auto';
+                document.querySelectorAll('.override-seg').forEach(function(b) {
+                    b.setAttribute('aria-pressed', b.dataset.mode === mode ? 'true' : 'false');
+                });
+                var line = document.getElementById('trackingOverrideLine');
+                line.textContent = '';
+                if (!o) {
+                    line.textContent = 'Override: Auto — follows the route-night schedule.';
+                } else if (o.mode === 'on') {
+                    line.append('Override: ON for ' + (o.visibility === 'admin' ? 'admins only' : 'everyone') + ' until ' + fmtLondonTime(o.until) + ' · ');
+                    var a = document.createElement('a');
+                    a.href = 'track.html?preview=1';
+                    a.target = '_blank';
+                    a.rel = 'noopener';
+                    a.textContent = 'Open admin preview ↗';
+                    line.append(a);
+                } else {
+                    line.textContent = 'Override: OFF ' + (o.until ? 'until ' + fmtLondonTime(o.until) : 'until switched back to Auto') + ' — nothing is shown to anyone.';
+                }
+            }
 
             async function loadTrackingStatus() {
                 var pill = document.getElementById('trackingPill');
                 var detail = document.getElementById('trackingDetail');
-                var stopBtn = document.getElementById('stopTrackingBtn');
-                var resumeBtn = document.getElementById('resumeTrackingBtn');
+                renderOverrideControls();
                 try {
                     var res = await fetch('/.netlify/functions/get-site-status?t=' + Date.now(), { cache: 'no-store' });
                     var data = await res.json();
                     var t = data.tracking || {};
                     pill.className = 'tracking-pill';
-                    stopBtn.hidden = true;
-                    resumeBtn.hidden = true;
-                    if (t.state === 'active') {
+                    if (t.state === 'active' && t.forced) {
+                        pill.textContent = '● Live (override)';
+                        pill.classList.add('live', 'forced');
+                        detail.textContent = 'Forced on — the sleigh’s position is public until ' + t.windowEnd + '.';
+                    } else if (t.state === 'active') {
                         pill.textContent = '● Live now';
                         pill.classList.add('live');
-                        detail.textContent = 'The sleigh\u2019s position is public until ' + t.windowEnd + ' tonight.';
-                        stopBtn.hidden = false;
+                        detail.textContent = 'The sleigh’s position is public until ' + t.windowEnd + ' tonight.';
                     } else if (t.state === 'stopped') {
-                        pill.textContent = 'Stopped for tonight';
+                        pill.textContent = 'Off (override)';
                         pill.classList.add('stopped');
-                        detail.textContent = 'No position or trail is being shown. Tracking comes back on automatically for the next route night.';
-                        resumeBtn.hidden = false;
+                        detail.textContent = 'No position or trail is being shown to the public.';
                     } else if (t.state === 'before-window') {
                         pill.textContent = 'Starts ' + t.windowStart;
-                        detail.textContent = 'Tonight is a route night \u2014 live from ' + t.windowStart + ' to ' + t.windowEnd + '.';
-                        stopBtn.hidden = false;
-                        stopBtn.textContent = '⛔ Don\u2019t track tonight';
+                        detail.textContent = 'Tonight is a route night — live from ' + t.windowStart + ' to ' + t.windowEnd + '.';
                     } else if (t.state === 'after-window') {
                         pill.textContent = 'Finished';
-                        detail.textContent = 'Tonight\u2019s tracking ended at ' + t.windowEnd + '. Nothing is being shown.';
+                        detail.textContent = 'Tonight’s tracking ended at ' + t.windowEnd + '. Nothing is being shown.';
                     } else if (t.state === 'not-a-route-day') {
                         pill.textContent = 'Off';
-                        detail.textContent = 'Not a route night.';
+                        detail.textContent = 'Not a route night — the public can’t see the sleigh.';
                     } else {
                         pill.textContent = 'Unknown';
-                        detail.textContent = 'Couldn\u2019t check the tracking status.';
+                        detail.textContent = 'Couldn’t check the tracking status.';
                     }
-                    if (t.state === 'active') stopBtn.textContent = '⛔ Stop live tracking now';
                 } catch (err) {
                     console.error('Error loading tracking status:', err);
                     pill.textContent = 'Unknown';
-                    detail.textContent = 'Couldn\u2019t check the tracking status.';
+                    detail.textContent = 'Couldn’t check the tracking status.';
                 }
             }
 
-            document.getElementById('stopTrackingBtn').addEventListener('click', async function() {
-                if (!confirm('Stop showing the sleigh\u2019s live location for the rest of tonight?\n\nIt will switch back on automatically for the next route night.')) return;
-                this.disabled = true;
+            function showOverrideOptions(which) {
+                document.getElementById('overrideOnOptions').hidden = which !== 'on';
+                document.getElementById('overrideOffOptions').hidden = which !== 'off';
+            }
+
+            async function setTrackingOverride(body, okMessage) {
+                var segs = document.querySelectorAll('.override-seg, #overrideOnApply, #overrideOffApply');
+                segs.forEach(function(b) { b.disabled = true; });
                 try {
-                    await postOp('/.netlify/functions/admin-settings', { op: 'stop-tracking' });
-                    showToast('Live tracking stopped for tonight.', 'success');
+                    var data = await postOp('/.netlify/functions/admin-settings', Object.assign({ op: 'set-tracking-override' }, body));
+                    var v = data.override || {};
+                    adminData.settings.tracking_override_mode = v.mode || '';
+                    adminData.settings.tracking_override_visibility = v.visibility || '';
+                    adminData.settings.tracking_override_from = v.from || '';
+                    adminData.settings.tracking_override_until = v.until || '';
+                    showOverrideOptions(null);
+                    showToast(okMessage, 'success');
                 } catch (err) {
-                    showToast("Couldn't stop tracking: " + err.message, 'error');
+                    showToast("Couldn't change live tracking: " + err.message, 'error');
                 }
-                this.disabled = false;
+                segs.forEach(function(b) { b.disabled = false; });
                 loadTrackingStatus();
+            }
+
+            document.querySelectorAll('.override-seg').forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    var mode = btn.dataset.mode;
+                    if (mode === 'auto') {
+                        showOverrideOptions(null);
+                        if (!currentOverride()) return;
+                        setTrackingOverride({ mode: 'auto' }, 'Live tracking back on Auto (route-night schedule).');
+                    } else {
+                        showOverrideOptions(mode);
+                    }
+                });
             });
 
-            document.getElementById('resumeTrackingBtn').addEventListener('click', async function() {
-                this.disabled = true;
-                try {
-                    await postOp('/.netlify/functions/admin-settings', { op: 'resume-tracking' });
-                    showToast('Live tracking resumed for tonight.', 'success');
-                } catch (err) {
-                    showToast("Couldn't resume tracking: " + err.message, 'error');
-                }
-                this.disabled = false;
-                loadTrackingStatus();
+            document.querySelectorAll('[data-override-cancel]').forEach(function(btn) {
+                btn.addEventListener('click', function() { showOverrideOptions(null); });
             });
 
+            document.getElementById('overrideOnApply').addEventListener('click', function() {
+                var visibility = document.getElementById('overrideVisibility').value;
+                var duration = document.getElementById('overrideOnDuration').value;
+                var durationText = document.getElementById('overrideOnDuration').selectedOptions[0].textContent.toLowerCase();
+                if (visibility === 'public' && !confirm('Show the sleigh’s live location to the PUBLIC for ' + durationText + '?\n\nIt switches back to Auto by itself afterwards.')) return;
+                setTrackingOverride({ mode: 'on', visibility: visibility, duration: duration },
+                    visibility === 'public' ? 'Live tracking is ON for everyone.' : 'Live tracking is ON for admins — use “Open admin preview”.');
+            });
+
+            document.getElementById('overrideOffApply').addEventListener('click', function() {
+                var duration = document.getElementById('overrideOffDuration').value;
+                if (!confirm(duration === 'indefinite'
+                    ? 'Switch live tracking OFF until you set it back to Auto?\n\nRoute nights will NOT show the sleigh until then.'
+                    : 'Switch live tracking OFF for the rest of today?\n\nIt goes back to Auto at midnight.')) return;
+                setTrackingOverride({ mode: 'off', duration: duration }, 'Live tracking is OFF.');
+            });
+
+            // Re-check every 30s so the pill and an expiring override stay current.
             setInterval(function() {
                 if (adminData) loadTrackingStatus();
-            }, 60000);
+            }, 30000);
 
             // ---- Season Settings ----
 

@@ -30,11 +30,13 @@ function londonDate(offsetDays) {
 
 async function purgeOldTrails() {
   const store = getStore('trutrak');
-  const keep = new Set(['trail-' + londonDate(0), 'trail-' + londonDate(-1)]);
+  // Keys are "trail-<date>" (scheduled night) or "trail-<date>-ov<ms>"
+  // (admin "On" override) -- keep today's and yesterday's of either kind.
+  const keep = ['trail-' + londonDate(0), 'trail-' + londonDate(-1)];
   const { blobs } = await store.list({ prefix: 'trail-' });
   let deleted = 0;
   for (const b of blobs) {
-    if (!keep.has(b.key)) { await store.delete(b.key); deleted++; }
+    if (!keep.some((k) => b.key === k || b.key.startsWith(k + '-'))) { await store.delete(b.key); deleted++; }
   }
   return deleted;
 }
