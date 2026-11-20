@@ -14,7 +14,7 @@
 import { getUser } from '@netlify/identity';
 import { getDatabase } from '@netlify/database';
 import { getVolunteerAccess, notApprovedResponse } from '../lib/volunteer-access.js';
-import { brandedEmailHtml, escapeHtml, sendEmail, siteUrls, REPLY_TO } from '../lib/email.js';
+import { actionStepsHtml, brandedEmailHtml, escapeHtml, sendEmail, siteUrls, warningBoxHtml, REPLY_TO } from '../lib/email.js';
 import {
   findOrCreateTeamMember, squareAccessState, squareConfigured,
   SQUARE_TEAM_DASHBOARD_URL, SQUARE_APP_LINKS
@@ -52,20 +52,28 @@ async function emailVolunteer(req, v, squareEmail) {
   const urls = siteUrls(req);
   const html = brandedEmailHtml({
     status: { tone: 'pending', label: 'Pending review' },
-    heading: "We've got your card payments request",
+    heading: 'Download the Square app, but don\'t sign up',
     paragraphs: [
       first ? 'Hi ' + first + ',' : 'Hi,',
-      'Thanks for offering to take card donations on the Sleigh. Your request is now <strong>Pending review</strong>. One of the team will set you up in our Square account shortly.',
-      '<strong>While you wait, download the free Square Point of Sale app:</strong><br>' +
-        '📱 iPhone: <a href="' + SQUARE_APP_LINKS.ios + '" style="color:#1E5B45;">App Store</a><br>' +
-        '🤖 Android: <a href="' + SQUARE_APP_LINKS.android + '" style="color:#1E5B45;">Google Play</a>',
-      'When you\'re approved, <strong>Square</strong> will email <strong>' + escapeHtml(squareEmail) + '</strong> an invitation to join our team. Accept it to set up your Square login, then sign in to the app with it. Don\'t create a new Square business account.',
-      'Before your first night, turn on Tap to Pay in the app (<em>More › Settings</em>) and check you have mobile data.'
+      'Thanks for offering to take card donations on the Sleigh. Your request is with the team and we\'ll set you up in our Square account shortly. There\'s just <strong>one thing to do for now</strong>:'
     ],
+    bodyHtml:
+      actionStepsHtml('Do this now', [
+        {
+          title: 'Download the free Square Point of Sale app',
+          html: '📱 iPhone: <a href="' + SQUARE_APP_LINKS.ios + '" style="color:#1E5B45;">App Store</a><br>' +
+            '🤖 Android: <a href="' + SQUARE_APP_LINKS.android + '" style="color:#1E5B45;">Google Play</a>'
+        }
+      ]) +
+      warningBoxHtml(
+        'Don\'t create a Square account',
+        'When the app opens, <strong>don\'t tap "Sign up" or "Create account"</strong>. Just close it. A new account won\'t be linked to our team and can\'t take donations for the Sleigh. We\'ll create your login for you.'
+      ) +
+      '<p style="margin:0 0 16px; font-size:16px; line-height:1.6; color:#24272E;"><strong>What happens next:</strong> once you\'re approved, Square will email <strong>' + escapeHtml(squareEmail) + '</strong> an invitation to join our team, and we\'ll send you a second email explaining exactly what to do with it.</p>',
     button: { label: 'Open the volunteer portal', url: urls.volunteerLogin },
     footnote: 'Phone needs: iPhone XS or newer on the latest iOS, or Android 9+ with NFC turned on. Didn\'t ask for this? Just reply to this email.'
   });
-  await sendEmail({ to: squareEmail, subject: 'Pending review: Santa Sleigh card payments', html });
+  await sendEmail({ to: squareEmail, subject: 'Pending: download the Square app (but don\'t sign up yet)', html });
 }
 
 export default async (req) => {

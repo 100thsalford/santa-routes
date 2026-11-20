@@ -10,7 +10,7 @@
 
 import { getUser } from '@netlify/identity';
 import { getDatabase } from '@netlify/database';
-import { brandedEmailHtml, escapeHtml, sendEmail, siteUrls } from '../lib/email.js';
+import { actionStepsHtml, brandedEmailHtml, escapeHtml, sendEmail, siteUrls, warningBoxHtml } from '../lib/email.js';
 import { setTeamMemberStatus, SQUARE_APP_LINKS } from '../lib/square.js';
 
 const headers = { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' };
@@ -67,18 +67,33 @@ export default async (req) => {
     try {
       await sendEmail({
         to,
-        subject: 'Approved: Santa Sleigh card payments ✅',
+        subject: 'Approved ✅ Accept your Square invite, then sign in to the app',
         html: brandedEmailHtml({
           status: { tone: 'approved', label: 'Approved' },
-          heading: "You're set up to take card payments",
+          heading: 'Accept your Square invite, then sign in',
           paragraphs: [
             first ? 'Hi ' + first + ',' : 'Hi,',
-            'You\'ve been added to our Square account. Look out for an email from <strong>Square</strong> to <strong>' + escapeHtml(to) + '</strong> inviting you to join our team (check spam too) and accept it to set up your login.',
-            'Then sign in to the <strong>Square Point of Sale</strong> app with that login (' +
-              '<a href="' + SQUARE_APP_LINKS.ios + '" style="color:#1E5B45;">iPhone</a> / ' +
-              '<a href="' + SQUARE_APP_LINKS.android + '" style="color:#1E5B45;">Android</a>) and turn on Tap to Pay under <em>More › Settings</em>.',
-            'Please only take donations while you\'re out with the Sleigh, and keep your phone locked when it\'s not in use.'
+            'You\'ve been added to our Square account. <strong>Square has already sent you a separate invitation email</strong>, and you need it to get your login. Follow these steps in order:'
           ],
+          bodyHtml:
+            actionStepsHtml('Do these two things', [
+              {
+                title: 'Accept the invitation email from Square',
+                html: 'It\'s from <strong>Square</strong> (not us), sent to <strong>' + escapeHtml(to) + '</strong>, and should already be in your inbox. Check spam/junk if you can\'t see it. Open it, tap the button to accept, and set a password. That email address and password are your Square login.'
+              },
+              {
+                title: 'Sign in to the Square Point of Sale app with that login',
+                html: 'Open the app (' +
+                  '<a href="' + SQUARE_APP_LINKS.ios + '" style="color:#1E5B45;">iPhone</a> / ' +
+                  '<a href="' + SQUARE_APP_LINKS.android + '" style="color:#1E5B45;">Android</a>' +
+                  '), tap <strong>Sign in</strong> and use the email and password from step 1. Then turn on Tap to Pay under <em>More › Settings</em>.'
+              }
+            ]) +
+            warningBoxHtml(
+              'Don\'t create a new Square account',
+              'Only use the login from Square\'s invitation. Tapping "Sign up" in the app makes a separate account that can\'t take donations for the Sleigh. No invitation from Square? Reply to this email and we\'ll resend it.'
+            ) +
+            '<p style="margin:0 0 16px; font-size:16px; line-height:1.6; color:#24272E;">Please only take donations while you\'re out with the Sleigh, and keep your phone locked when it\'s not in use.</p>',
           button: { label: 'Open the volunteer portal', url: urls.volunteerLogin }
         })
       });

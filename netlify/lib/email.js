@@ -32,6 +32,33 @@ const STATUS_STYLES = {
   approved: { bg: '#E3F3E9', border: '#8FC9A6', color: '#1E5B45', icon: '✅', heading: '#1E5B45' }
 };
 
+// Numbered "do this" steps in a green card, for emails where the reader
+// has a specific action to take. steps: array of { title, html } (HTML
+// strings; caller escapes any user input).
+export function actionStepsHtml(label, steps) {
+  const rows = steps.map(function(s, i) {
+    return '<tr>' +
+      '<td style="vertical-align:top; width:36px; padding:0 0 ' + (i === steps.length - 1 ? '0' : '16px') + ';">' +
+        '<div style="width:28px; height:28px; line-height:28px; border-radius:50%; background:#1E5B45; color:#ffffff; font-weight:bold; font-size:15px; text-align:center;">' + (i + 1) + '</div>' +
+      '</td>' +
+      '<td style="vertical-align:top; padding:3px 0 ' + (i === steps.length - 1 ? '0' : '16px') + '; font-size:16px; line-height:1.5; color:#24272E;">' +
+        '<strong>' + s.title + '</strong>' + (s.html ? '<br>' + s.html : '') +
+      '</td>' +
+    '</tr>';
+  }).join('');
+  return '<div style="margin:0 0 20px; padding:16px; background:#F1F8F4; border:2px solid #8FC9A6; border-radius:10px;">' +
+      '<div style="margin:0 0 14px; font-size:13px; font-weight:bold; letter-spacing:0.06em; text-transform:uppercase; color:#1E5B45;">' + escapeHtml(label) + '</div>' +
+      '<table role="presentation" cellpadding="0" cellspacing="0" style="border-collapse:collapse; width:100%;">' + rows + '</table>' +
+    '</div>';
+}
+
+// Red "don't do this" callout. title/html: HTML strings.
+export function warningBoxHtml(title, html) {
+  return '<div style="margin:0 0 20px; padding:14px 16px; background:#FDECEA; border:2px solid #E3A39C; border-radius:10px; font-size:16px; line-height:1.5; color:#7A231C;">' +
+      '<strong>⛔ ' + title + '</strong>' + (html ? '<br>' + html : '') +
+    '</div>';
+}
+
 // bodyHtml: optional pre-built HTML (e.g. a shift table) placed after the
 // paragraphs and before the button.
 // afterButtonHtml: optional pre-built HTML placed after the button (e.g.
