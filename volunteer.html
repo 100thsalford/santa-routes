@@ -308,6 +308,11 @@
             border: 1px solid var(--border-subtle) !important;
         }
 
+        /* Set-up nudge pop-ups (payment app / get the app) */
+        .nudge-modal h2 { color: var(--santa-green); }
+        .nudge-pointer.is-green { background: var(--santa-green); color: #fff; border-color: var(--santa-green); }
+        .nudge-pointer { display: inline-block; background: var(--surface-muted); border: 1px solid var(--border-subtle); border-radius: 999px; padding: 0.05rem 0.55rem; font-weight: bold; white-space: nowrap; }
+
         /* Volunteer Briefing video modal */
         .risk-modal.briefing-modal { max-width: 640px; }
         .briefing-video {
@@ -1234,6 +1239,20 @@
         </div>
     </div>
 
+    <!-- "Get the payment app" / "Get the app" pop-ups: shown after the
+         safety + briefing prompts on every visit until done (see "Set-up
+         nudges" in the script). Content is filled in by showNudge(). -->
+    <div class="risk-modal-overlay" id="nudgeModalOverlay">
+        <div class="risk-modal nudge-modal" role="dialog" aria-modal="true" aria-labelledby="nudgeModalTitle">
+            <h2 id="nudgeModalTitle"></h2>
+            <div class="risk-modal-text" id="nudgeModalText"></div>
+            <div class="risk-modal-actions">
+                <button type="button" class="risk-ack-btn" id="nudgeGoBtn"></button>
+                <button type="button" class="risk-later-btn" id="nudgeLaterBtn">Remind me later</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Volunteer Briefing video: shown once after the safety guidance,
          reopenable any time from "🎬 Briefing". The video only loads when
          this opens, so it costs nothing on an ordinary portal visit. -->
@@ -1649,6 +1668,8 @@
             function closeModal(id) {
                 document.getElementById(id).classList.remove('visible');
                 if (id === 'routeTrackModalOverlay') stopLocating();
+                // Opened from a set-up pop-up: move on to the next one / the tour.
+                if (id === 'squareModalOverlay' || id === 'appModalOverlay') setTimeout(maybeShowTour, 0);
             }
 
             document.getElementById('donateUtilityBtn').addEventListener('click', function() { openModal('donateModalOverlay'); });
@@ -2128,16 +2149,107 @@
                     history.replaceState(null, '', url.pathname + url.search + url.hash);
                 } catch (e) {}
                 tourCheckedThisLoad = true;
+                nudgeShown.payment = true;
+                nudgeShown.app = true;
                 cardPayBtn.click();
                 return true;
             }
 
+
+            // ---- Set-up nudges ----
+            // After the 18+ / safety / briefing prompts, on every visit until
+            // done, back to back:
+            //   1. "Get the payment app" -- eligible for card payments, on an
+            //      upcoming night as someone who takes donations (not Santa or
+            //      Driver), and hasn't requested access yet.
+            //   2. "Get the app" -- notifications aren't on for any of their
+            //      devices (push-subscription.js counts them).
+            // "Remind me later" just closes it until the next visit. Each is
+            // shown at most once per page load; the tour comes after them.
+            var nudgeShown = { payment: false, app: false };
+            var nudgeOverlay = document.getElementById('nudgeModalOverlay');
+            var currentNudge = null;
+
+            function paymentNudgeDue() {
+                var sq = squareState();
+                return !!(sq.available && sq.status === 'none' && sq.eligible && sq.takesPayments);
+            }
+            function appNudgeDue() {
+                return appState.configured && !appState.subscribed && !(appState.devices > 0);
+            }
+
+            function blockingPromptOpen() {
+                return ['adultModalOverlay', 'riskModalOverlay', 'briefingModalOverlay', 'nudgeModalOverlay',
+                        'squareModalOverlay', 'appModalOverlay', 'tourModalOverlay'].some(function(id) {
+                    var el = document.getElementById(id);
+                    return el && el.classList.contains('visible');
+                });
+            }
+
+            var NUDGES = {
+                payment: {
+                    title: '💳 Get the payment app',
+                    html: function() {
+                        return '<p>Lots of people don\u2019t carry cash any more. With Square\u2019s free <strong>Tap to Pay</strong> app you can take card and contactless donations on your own phone while you\u2019re out with the Sleigh.</p>' +
+                            '<p>Tap the green <span class="nudge-pointer is-green">💳 Take Card Payments</span> button at the top of the portal to request access. It takes a minute, and we\u2019ll set you up in Square before your shift.</p>';
+                    },
+                    go: 'Set it up now',
+                    open: function() { cardPayBtn.click(); }
+                },
+                app: {
+                    title: '📲 Get the app',
+                    html: function() {
+                        var label = document.getElementById('appBtn').textContent;
+                        return '<p>Add the volunteer portal to your home screen and turn on notifications, so your shift reminders and any urgent on-the-night updates pop up on your phone. You\u2019ll still get the emails too.</p>' +
+                            '<p>Tap <span class="nudge-pointer">' + escapeHtml(label) + '</span> at the top of the portal (under Edit profile) to set it up.</p>';
+                    },
+                    go: 'Set it up now',
+                    open: function() { openAppModal(); }
+                }
+            };
+
+            function showNudge(key) {
+                var n = NUDGES[key];
+                currentNudge = key;
+                nudgeShown[key] = true;
+                document.getElementById('nudgeModalTitle').textContent = n.title;
+                document.getElementById('nudgeModalText').innerHTML = n.html();
+                document.getElementById('nudgeGoBtn').textContent = n.go;
+                nudgeOverlay.classList.add('visible');
+            }
+
+            document.getElementById('nudgeGoBtn').addEventListener('click', function() {
+                var n = NUDGES[currentNudge];
+                nudgeOverlay.classList.remove('visible');
+                currentNudge = null;
+                if (n) n.open();
+            });
+            document.getElementById('nudgeLaterBtn').addEventListener('click', function() {
+                nudgeOverlay.classList.remove('visible');
+                currentNudge = null;
+                maybeShowTour();
+            });
+
+            // true = a pop-up is showing (or we're still waiting to know).
+            function maybeShowNudge() {
+                if (!nudgeShown.payment && paymentNudgeDue()) { showNudge('payment'); return true; }
+                if (!nudgeShown.app) {
+                    if (!appState.loaded) return true; // loadAppState() calls back in
+                    if (appNudgeDue()) { showNudge('app'); return true; }
+                    nudgeShown.app = true;
+                }
+                return false;
+            }
+
             function maybeShowTour() {
                 if (maybeOpenFromLink()) return;
-                if (tourCheckedThisLoad || !currentProfile) return;
+                if (!currentProfile) return;
                 if (dashboardCard.classList.contains('not-approved')) return;
-                if ((currentProfile.portalTourVersion || 0) >= TOUR_VERSION) { tourCheckedThisLoad = true; return; }
                 if (adultModalOverlay.classList.contains('visible') || riskModalOverlay.classList.contains('visible') || briefingModalOverlay.classList.contains('visible')) return;
+                if (blockingPromptOpen()) return;
+                if (maybeShowNudge()) return;
+                if (tourCheckedThisLoad) return;
+                if ((currentProfile.portalTourVersion || 0) >= TOUR_VERSION) { tourCheckedThisLoad = true; return; }
                 tourCheckedThisLoad = true;
                 openTour(0);
             }
@@ -3274,7 +3386,7 @@
             // step 2 turns on push for this device (push-subscription.js).
             // sw.js shows the notifications. Emails carry on regardless.
 
-            var appState = { configured: false, publicKey: null, subscribed: false, endpoint: null, loaded: false };
+            var appState = { configured: false, publicKey: null, subscribed: false, endpoint: null, loaded: false, devices: 0 };
             var deferredInstall = null;
             var swRegPromise = null;
             var APP_BANNER_KEY = 'ssApp.bannerDismissed';
@@ -3362,6 +3474,7 @@
                     if (!res.ok) throw new Error(data.error || 'Could not check notifications');
                     appState.configured = !!(data.configured && data.publicKey);
                     appState.publicKey = data.publicKey;
+                    appState.devices = data.devices || 0;
                 } catch (err) {
                     console.error('Error checking notifications:', err);
                     appState.configured = false;
@@ -3383,6 +3496,7 @@
                 }
                 appState.loaded = true;
                 renderApp();
+                maybeShowTour(); // the "Get the app" pop-up may have been waiting for this
             }
 
             function subscriptionMatchesKey(sub) {
@@ -3411,6 +3525,7 @@
                     await saveSubscription(sub);
                     appState.subscribed = true;
                     appState.endpoint = sub.endpoint;
+                    appState.devices = Math.max(appState.devices || 0, 1);
                     showToast('Notifications are on for this device. 🔔', 'success');
                 } catch (err) {
                     console.error('Error turning on notifications:', err);
@@ -3433,6 +3548,7 @@
                     if (sub) await sub.unsubscribe();
                     appState.subscribed = false;
                     appState.endpoint = null;
+                    appState.devices = Math.max((appState.devices || 1) - 1, 0);
                     if (!quiet) showToast('Notifications are off for this device.', 'success');
                 } catch (err) {
                     console.error('Error turning off notifications:', err);
@@ -3653,6 +3769,10 @@
                 appState.configured = false;
                 appState.subscribed = false;
                 appState.loaded = false;
+                appState.devices = 0;
+                nudgeShown.payment = false;
+                nudgeShown.app = false;
+                nudgeOverlay.classList.remove('visible');
                 renderApp();
                 closeModal('appModalOverlay');
                 document.getElementById('mailboxTab').hidden = true;

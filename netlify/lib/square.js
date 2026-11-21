@@ -137,7 +137,24 @@ export async function squareAccessState(db, volunteerId) {
       ) OR EXISTS (
         SELECT 1 FROM event_role_assignments era JOIN route_dates rd ON rd.id = era.route_date_id
         WHERE era.volunteer_id = v.id AND rd.event_date >= CURRENT_DATE
-      ) AS eligible
+      ) AS eligible,
+      -- On at least one upcoming night as someone who takes donations,
+      -- i.e. not that night's Santa or Driver (same rule as the reminder
+      -- email's Square nudge in lib/shift-reminders.js). Drives the
+      -- portal's "Get the payment app" pop-up.
+      EXISTS (
+        SELECT 1 FROM (
+          SELECT route_date_id FROM shift_assignments WHERE volunteer_id = v.id
+          UNION
+          SELECT route_date_id FROM event_role_assignments WHERE volunteer_id = v.id
+        ) n JOIN route_dates rd ON rd.id = n.route_date_id
+        WHERE rd.event_date >= CURRENT_DATE
+          AND NOT EXISTS (
+            SELECT 1 FROM event_role_assignments e2
+            WHERE e2.route_date_id = n.route_date_id AND e2.volunteer_id = v.id
+              AND e2.role IN ('santa', 'driver')
+          )
+      ) AS takes_payments
     FROM volunteers v WHERE v.id = ${volunteerId}
   `;
   if (!rows.length) return { status: 'none', eligible: false };
@@ -145,6 +162,7 @@ export async function squareAccessState(db, volunteerId) {
   return {
     status: r.square_approved_at ? 'approved' : (r.square_requested_at ? 'requested' : 'none'),
     eligible: !!r.eligible,
+    takesPayments: !!r.takes_payments,
     email: r.square_email || null,
     requestedAt: r.square_requested_at,
     approvedAt: r.square_approved_at,
