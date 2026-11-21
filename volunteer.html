@@ -1615,17 +1615,17 @@
             function updateRiskUI(profile) {
                 var acknowledged = !!profile.riskAckAt;
                 riskBanner.classList.toggle('visible', !acknowledged);
-                if (!acknowledged) {
-                    var text = (profile.riskAssessment && profile.riskAssessment.text) ||
-                        'Please take a moment to review our safety guidance before your next shift.';
-                    riskModalText.innerHTML = renderGuidance(text);
-                    var url = profile.riskAssessment && profile.riskAssessment.url;
-                    if (url) {
-                        riskModalLink.href = url;
-                        riskModalLinkRow.style.display = '';
-                    } else {
-                        riskModalLinkRow.style.display = 'none';
-                    }
+                // Always fill the modal: the read-only Safety Brief button
+                // opens it for volunteers who've already acknowledged too.
+                var text = (profile.riskAssessment && profile.riskAssessment.text) ||
+                    'Please take a moment to review our safety guidance before your next shift.';
+                riskModalText.innerHTML = renderGuidance(text);
+                var url = profile.riskAssessment && profile.riskAssessment.url;
+                if (url) {
+                    riskModalLink.href = url;
+                    riskModalLinkRow.style.display = '';
+                } else {
+                    riskModalLinkRow.style.display = 'none';
                 }
             }
 
