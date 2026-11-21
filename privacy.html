@@ -154,7 +154,7 @@
             <h2>Privacy Policy</h2>
             <p><strong>Santa Sleigh Salford (Santa Super Sleigh Salford)</strong><br>
             Organised by 100th Salford (St Luke's) Scout Group<br>
-            <strong>Last updated: 6 November 2026</strong></p>
+            <strong>Last updated: 21 November 2026</strong></p>
 
             <div class="privacy-prefs-box" id="analytics-preferences">
                 <p style="margin:0 0 0.5rem;"><strong>Analytics preferences:</strong> optional usage statistics are currently <strong data-analytics-status>on</strong> in this browser.</p>
@@ -194,6 +194,7 @@
             <p>We use these details to organise collections, communicate arrangements and last-minute changes, manage safety, control access to the portal and prevent registration abuse. Our legal basis is <strong>legitimate interests</strong> in running the activity safely and efficiently and protecting those involved.</p>
             <p><strong>Only authorised administrators</strong> can access full volunteer records. Other approved, signed-in volunteers can see the <strong>names</strong> of people booked on the same shifts and in the Santa, driver and safety-walker roles, but not their email addresses or telephone numbers. The public cannot access volunteer records.</p>
             <p>The portal sends <strong>operational emails only</strong>, not marketing emails for future campaigns. Our email delivery service is <strong>Resend</strong>. A volunteer may separately choose to join the event WhatsApp group; joining is optional, and other group members may see their phone number or profile details according to WhatsApp's settings. The volunteer portal does <strong>not</strong> collect personal information about children accompanying adult volunteers.</p>
+            <p>Volunteers can choose to turn on <strong>push notifications</strong> on their phone or computer (from "Get the app" in the portal) to receive the same shift reminders and urgent updates. If they do, we store a notification address for that device, provided by the device's own push service (<strong>Apple</strong>, <strong>Google</strong> or <strong>Mozilla</strong>, depending on the device and browser), together with the encryption keys needed to send to it and a basic device type (for example "Android app"). The message content is encrypted so that the push service can deliver it but not read it. Notifications can be turned off at any time in the portal or in the device's settings, and logging out of the portal turns them off for that device.</p>
 
             <h4 id="signs">Residents offering to host street signs</h4>
             <p>If you offer to host a promotional street sign, we collect the details you enter in our <strong>Microsoft Form</strong>: typically name, email address, telephone number, house number/street, postcode and any practical installation notes. This information is held in <strong>Microsoft Forms/Excel</strong> and is accessed by the <strong>Group Lead Volunteer</strong>, who arranges and carries out installation and collection.</p>
@@ -241,6 +242,7 @@
                     <tr><td>Enquiries, privacy requests and complaints</td><td>For as long as needed to respond and maintain any necessary record of the matter</td></tr>
                     <tr><td>Emails in the hello@ mailbox</td><td>Reviewed after each campaign; deleted once no longer needed to answer the enquiry or keep a necessary record. Resend also applies its own retention terms</td></tr>
                     <tr><td>Record of which volunteer sent each email from the hello@ mailbox</td><td>Up to <strong>13 months</strong>, then automatically deleted</td></tr>
+                    <tr><td>Push notification device addresses</td><td>Until notifications are turned off on that device, the volunteer logs out there, the push service reports the address has expired, or the volunteer account is deleted; and automatically deleted if the portal hasn't been opened on that device for <strong>13 months</strong></td></tr>
                 </tbody>
             </table>
             </div>
@@ -251,6 +253,7 @@
             <ul>
                 <li><strong>Your analytics preference</strong> — a small local-storage value, only if you change the setting, so we can remember it.</li>
                 <li><strong>Volunteer login</strong> — when you sign in to the volunteer or admin pages, Netlify Identity stores an essential login cookie and login details in your browser so you stay signed in.</li>
+                <li><strong>Volunteer app and notifications</strong> — the volunteer portal registers a small background script (a "service worker") that is used only to show push notifications a volunteer has turned on. It does not store copies of pages or track browsing. If a volunteer chooses "Not now" on the notifications prompt, that choice is remembered in local storage on that device.</li>
             </ul>
             <p>Map pages use <strong>OpenStreetMap</strong> map tiles. Loading tiles means the map provider receives your IP address and technical request details, as with other external website resources. Map pages also load the Leaflet map software from <strong>unpkg</strong>, and the volunteer portal loads a donation QR image from <strong>api.qrserver.com</strong> when that feature is opened. These requests are needed to provide the relevant map or QR feature, not to profile you, and they are not affected by your analytics preference. Using external services can involve processing under those providers' privacy notices.</p>
             <p>Links from our website to <strong>Square</strong>, <strong>Facebook/Meta</strong>, WhatsApp and other external services take you to their own systems, which have their own privacy information and controls. We do not embed Facebook content on our pages.</p>
@@ -265,6 +268,7 @@
                 <li><strong>Microsoft</strong> — street-sign registration data in Forms and Excel.</li>
                 <li><strong>Square</strong> — online and in-person donations and payment administration. <a href="https://squareup.com/gb/en/legal/general/privacy" target="_blank" rel="noopener noreferrer">Privacy policy</a></li>
                 <li><strong>TruTrak</strong> — the Sleigh's GPS positions and journey history.</li>
+                <li><strong>Apple, Google and Mozilla push services</strong> — delivering push notifications to volunteers who have turned them on (the content is encrypted end to end).</li>
                 <li><strong>OpenStreetMap (map tiles and Nominatim) and postcodes.io</strong> — maps and address/postcode lookups.</li>
                 <li><strong>unpkg and the QR-code image service</strong> — supporting browser resources for the maps and the donation QR feature.</li>
                 <li><strong>Google</strong> — older Santa sighting reports collected through a Google Form before 24 October 2026, while those records are being deleted.</li>

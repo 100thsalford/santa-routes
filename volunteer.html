@@ -6,6 +6,13 @@
     <meta name="robots" content="noindex">
     <meta name="description" content="Volunteer portal for Santa Super Sleigh Salford helpers.">
     <title>Volunteer Portal | Santa Super Sleigh Salford</title>
+    <!-- Installable as an app (Home Screen) for push notifications: see sw.js -->
+    <link rel="manifest" href="/volunteer.webmanifest">
+    <meta name="theme-color" content="#FFFFFF">
+    <link rel="apple-touch-icon" href="/media/app/apple-touch-icon.png">
+    <meta name="apple-mobile-web-app-title" content="Santa Sleigh">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
     <link rel="stylesheet" href="styles.css?v=20261021b">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
     <style>
@@ -592,6 +599,29 @@
         .edit-profile-btn[hidden] { display: none; }
         .welcome-actions { display: flex; flex-direction: column; align-items: stretch; gap: 0.35rem; flex-shrink: 0; }
 
+        /* Get the app / notifications (appModalOverlay, appBanner) */
+        .app-banner { background: #E9F4EE; border-color: #8FC9A6; }
+        .app-banner span { color: #1E5B45; }
+        .app-banner-actions { display: inline-flex; gap: 0.4rem; align-items: center; }
+        .risk-banner .app-banner-dismiss { background: none; color: #1E5B45; border: 1px solid #8FC9A6; }
+        .app-intro { color: var(--ink-soft); font-size: 0.9rem; line-height: 1.5; margin: 0 0 1rem; }
+        .app-step { border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 0.85rem 0.95rem; margin-bottom: 0.75rem; font-size: 0.92rem; line-height: 1.5; }
+        .app-step.is-done { background: #F1F8F4; border-color: #8FC9A6; }
+        .app-step-head { font-weight: bold; color: var(--text-dark); margin-bottom: 0.45rem; display: flex; align-items: center; gap: 0.5rem; }
+        .app-step-num { width: 1.5rem; height: 1.5rem; border-radius: 50%; background: var(--santa-green); color: #fff; font-size: 0.8rem; display: inline-flex; align-items: center; justify-content: center; flex: none; }
+        .app-step.is-done .app-step-num { font-size: 0; }
+        .app-step.is-done .app-step-num::after { content: '✓'; font-size: 0.85rem; }
+        .app-step ol { margin: 0.3rem 0 0.4rem 1.2rem; padding: 0; }
+        .app-step li { margin-bottom: 0.3rem; }
+        .app-step p { margin: 0 0 0.5rem; }
+        .app-share-icon { display: inline-block; width: 1.05em; height: 1.05em; vertical-align: -0.15em; }
+        .app-note { color: var(--ink-soft); font-size: 0.82rem; }
+        .app-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.4rem; }
+        .app-actions .square-primary-btn { margin-top: 0; }
+        .app-secondary-btn { flex: 1; background: none; border: 1px solid var(--border-subtle); color: var(--santa-green); border-radius: 999px; padding: 0.6rem 1rem; font-size: 0.9rem; font-weight: bold; cursor: pointer; }
+        .app-secondary-btn:disabled { opacity: 0.5; cursor: wait; }
+        #pushPrefRow[hidden] { display: none; }
+
         /* Welcome tour (first login, or the "🧭 Tour" button). Step cards
            in an info-modal; content lives in TOUR_STEPS in the script. */
         .tour-modal { text-align: center; padding-top: 2rem; }
@@ -1081,6 +1111,8 @@
                     <p id="welcomeText" class="volunteer-loading">Loading your profile...</p>
                     <div class="welcome-actions">
                         <button type="button" class="edit-profile-btn" id="editProfileBtn" hidden>✏️ Edit profile</button>
+                        <!-- "📲 Get the app" until installed / notifications on, then "🔔 Alerts" -->
+                        <button type="button" class="edit-profile-btn" id="appBtn" hidden>📲 Get the app</button>
                         <button type="button" class="edit-profile-btn" id="tourReplayBtn" hidden>🧭 Tour</button>
                     </div>
                 </div>
@@ -1098,6 +1130,16 @@
                 <div class="risk-banner" id="briefingBanner">
                     <span>🎬 Please watch the 2-minute volunteer briefing before your next shift.</span>
                     <button type="button" id="briefingBannerBtn">Watch briefing</button>
+                </div>
+
+                <!-- Offered until notifications are on for this device, or
+                     "Not now" (remembered on this device only). -->
+                <div class="risk-banner app-banner" id="appBanner">
+                    <span id="appBannerText">🔔 Get your shift reminders and urgent updates as phone notifications.</span>
+                    <span class="app-banner-actions">
+                        <button type="button" id="appBannerBtn">Set up</button>
+                        <button type="button" class="app-banner-dismiss" id="appBannerDismiss">Not now</button>
+                    </span>
                 </div>
 
                 <!-- Phase 9: WhatsApp / Donate / Safety Brief / FAQs as small
@@ -1156,6 +1198,14 @@
                         </label>
                     </div>
                     <div class="volunteer-save-status" id="saveStatus"></div>
+
+                    <div class="preference-row" id="pushPrefRow" hidden>
+                        <span class="preference-label">
+                            🔔 Phone notifications
+                            <span class="preference-hint" id="pushPrefHint">Get your reminder and urgent updates on your phone too.</span>
+                        </span>
+                        <button type="button" class="edit-profile-btn" id="pushPrefBtn">Set up</button>
+                    </div>
                 </div>
             </div>
 
@@ -1219,6 +1269,30 @@
             <div class="risk-modal-actions">
                 <button type="button" class="risk-ack-btn" id="adultConfirmBtn" disabled>Confirm</button>
             </div>
+        </div>
+    </div>
+
+
+    <!-- Get the app + push notifications for this device (see the
+         "App & notifications" script section; sw.js; push-subscription.js). -->
+    <div class="info-modal-overlay" id="appModalOverlay">
+        <div class="info-modal app-modal" role="dialog" aria-modal="true" aria-labelledby="appModalTitle">
+            <button type="button" class="info-modal-x-close" data-close-modal="appModalOverlay" aria-label="Close">&times;</button>
+            <h2 id="appModalTitle">📲 Get the app</h2>
+            <p class="app-intro">Add the portal to your home screen so it opens like an app, and get your shift reminders and urgent updates as notifications. You'll still get the emails too.</p>
+
+            <div class="app-step" id="appStepInstall">
+                <div class="app-step-head"><span class="app-step-num">1</span> Add to your home screen</div>
+                <div id="appInstallBody"></div>
+            </div>
+
+            <div class="app-step" id="appStepNotify">
+                <div class="app-step-head"><span class="app-step-num">2</span> Turn on notifications</div>
+                <div id="appNotifyBody"></div>
+                <div class="square-error" id="appError" role="alert"></div>
+            </div>
+
+            <button type="button" class="info-modal-close-btn" data-close-modal="appModalOverlay">Close</button>
         </div>
     </div>
 
@@ -2031,7 +2105,19 @@
             // Take Card Payments once logged in, after the 18+ / safety /
             // briefing prompts, in place of the tour for this visit.
             var pendingShow = new URLSearchParams(location.search).get('show');
+            // ?show=schedule (tapping the daily reminder notification) just
+            // opens the My Schedule tab, and the tour etc. carry on as usual.
             function maybeOpenFromLink() {
+                if (pendingShow === 'schedule' && currentProfile && !dashboardCard.classList.contains('not-approved')) {
+                    pendingShow = null;
+                    switchTab('myschedule');
+                    try {
+                        var schedUrl = new URL(location.href);
+                        schedUrl.searchParams.delete('show');
+                        history.replaceState(null, '', schedUrl.pathname + schedUrl.search + schedUrl.hash);
+                    } catch (e) {}
+                    return false;
+                }
                 if (pendingShow !== 'card-payments' || !currentProfile) return false;
                 if (dashboardCard.classList.contains('not-approved')) { pendingShow = null; return false; }
                 if (adultModalOverlay.classList.contains('visible') || riskModalOverlay.classList.contains('visible') || briefingModalOverlay.classList.contains('visible')) return true;
@@ -2469,6 +2555,8 @@
                     welcomeText.classList.remove('volunteer-loading');
                     document.getElementById('editProfileBtn').hidden = false;
                     document.getElementById('tourReplayBtn').hidden = false;
+                    renderApp();
+                    loadAppState();
 
                     reminderToggle.checked = !!profile.reminderEmailOptIn;
                     renderContactEmail();
@@ -3177,6 +3265,332 @@
                 openContactEmailForm();
             });
 
+            // ---- App & notifications ----
+            // "📲 Get the app" (between Edit profile and Tour), the green
+            // banner, and the My Schedule row all open appModalOverlay:
+            // step 1 adds the portal to the home screen (Android: the
+            // browser's own install prompt; iPhone: Share > Add to Home
+            // Screen, which iOS requires before it allows notifications),
+            // step 2 turns on push for this device (push-subscription.js).
+            // sw.js shows the notifications. Emails carry on regardless.
+
+            var appState = { configured: false, publicKey: null, subscribed: false, endpoint: null, loaded: false };
+            var deferredInstall = null;
+            var swRegPromise = null;
+            var APP_BANNER_KEY = 'ssApp.bannerDismissed';
+            var appUa = navigator.userAgent || '';
+            var isIOS = /iPad|iPhone|iPod/.test(appUa) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+            var isAndroid = /Android/i.test(appUa);
+            var SHARE_ICON = '<svg class="app-share-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-label="Share"><path d="M12 3v12"/><path d="M8 7l4-4 4 4"/><path d="M6 11H5a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-8a1 1 0 0 0-1-1h-1"/></svg>';
+
+            function isStandalone() {
+                return (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true;
+            }
+            function pushSupported() {
+                return 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+            }
+            function bannerDismissed() {
+                try { return localStorage.getItem(APP_BANNER_KEY) === '1'; } catch (e) { return false; }
+            }
+
+            if ('serviceWorker' in navigator) {
+                swRegPromise = navigator.serviceWorker.register('/sw.js').catch(function(err) {
+                    console.error('Service worker registration failed:', err);
+                    return null;
+                });
+            }
+            function getReg() {
+                if (!swRegPromise) return Promise.reject(new Error("this browser can't do notifications"));
+                return swRegPromise.then(function(reg) {
+                    if (!reg) throw new Error('the notification service didn’t start — try reloading the page');
+                    return Promise.race([
+                        navigator.serviceWorker.ready,
+                        new Promise(function(_, reject) { setTimeout(function() { reject(new Error('timed out — try reloading the page')); }, 8000); })
+                    ]);
+                });
+            }
+
+            window.addEventListener('beforeinstallprompt', function(e) {
+                e.preventDefault();
+                deferredInstall = e;
+                renderApp();
+            });
+            window.addEventListener('appinstalled', function() {
+                deferredInstall = null;
+                showToast('Installed! Open Santa Sleigh from your home screen.', 'success');
+                renderApp();
+            });
+
+            function b64urlToBytes(str) {
+                var pad = '='.repeat((4 - str.length % 4) % 4);
+                var raw = atob((str + pad).replace(/-/g, '+').replace(/_/g, '/'));
+                var out = new Uint8Array(raw.length);
+                for (var i = 0; i < raw.length; i++) out[i] = raw.charCodeAt(i);
+                return out;
+            }
+            function bytesToB64url(buf) {
+                var bytes = new Uint8Array(buf), s = '';
+                for (var i = 0; i < bytes.length; i++) s += String.fromCharCode(bytes[i]);
+                return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+            }
+            function deviceLabel() {
+                return (isIOS ? 'iPhone/iPad' : isAndroid ? 'Android' : 'Computer') + (isStandalone() ? ' app' : ' browser');
+            }
+
+            async function pushApi(body) {
+                var res = await authedFetch('/.netlify/functions/push-subscription', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                });
+                var data = await res.json().catch(function() { return {}; });
+                if (!res.ok) throw new Error(data.error || 'Something went wrong');
+                return data;
+            }
+
+            function saveSubscription(sub) {
+                return pushApi({ action: 'subscribe', subscription: sub.toJSON(), deviceLabel: deviceLabel() });
+            }
+
+            // After an approved profile loads: is push set up on the site,
+            // and is it on for this device? Re-saves an existing subscription
+            // so the server knows it's still in use (and who's logged in).
+            async function loadAppState() {
+                try {
+                    var res = await authedFetch('/.netlify/functions/push-subscription');
+                    var data = await res.json();
+                    if (!res.ok) throw new Error(data.error || 'Could not check notifications');
+                    appState.configured = !!(data.configured && data.publicKey);
+                    appState.publicKey = data.publicKey;
+                } catch (err) {
+                    console.error('Error checking notifications:', err);
+                    appState.configured = false;
+                }
+                appState.subscribed = false;
+                appState.endpoint = null;
+                if (appState.configured && pushSupported() && Notification.permission === 'granted') {
+                    try {
+                        var reg = await getReg();
+                        var sub = await reg.pushManager.getSubscription();
+                        if (sub && subscriptionMatchesKey(sub)) {
+                            await saveSubscription(sub);
+                            appState.subscribed = true;
+                            appState.endpoint = sub.endpoint;
+                        }
+                    } catch (err) {
+                        console.error('Error refreshing notifications:', err);
+                    }
+                }
+                appState.loaded = true;
+                renderApp();
+            }
+
+            function subscriptionMatchesKey(sub) {
+                var key = sub.options && sub.options.applicationServerKey;
+                if (!key) return true; // older browsers don't expose it
+                return bytesToB64url(key) === appState.publicKey.replace(/=+$/, '');
+            }
+
+            async function enableNotifications(btn) {
+                setAppError('');
+                if (btn) btn.disabled = true;
+                try {
+                    // Asked first, straight from the tap: iOS only shows the
+                    // permission prompt in direct response to a tap.
+                    var permission = await Notification.requestPermission();
+                    if (permission !== 'granted') return;
+                    var reg = await getReg();
+                    var sub = await reg.pushManager.getSubscription();
+                    if (sub && !subscriptionMatchesKey(sub)) { await sub.unsubscribe(); sub = null; }
+                    if (!sub) {
+                        sub = await reg.pushManager.subscribe({
+                            userVisibleOnly: true,
+                            applicationServerKey: b64urlToBytes(appState.publicKey)
+                        });
+                    }
+                    await saveSubscription(sub);
+                    appState.subscribed = true;
+                    appState.endpoint = sub.endpoint;
+                    showToast('Notifications are on for this device. 🔔', 'success');
+                } catch (err) {
+                    console.error('Error turning on notifications:', err);
+                    setAppError("Couldn't turn on notifications: " + err.message);
+                } finally {
+                    if (btn) btn.disabled = false;
+                    renderApp();
+                }
+            }
+
+            // quiet: used on log out -- no toast, never throws.
+            async function disableNotifications(btn, quiet) {
+                setAppError('');
+                if (btn) btn.disabled = true;
+                try {
+                    var reg = await getReg();
+                    var sub = await reg.pushManager.getSubscription();
+                    var endpoint = (sub && sub.endpoint) || appState.endpoint;
+                    if (endpoint) await pushApi({ action: 'unsubscribe', endpoint: endpoint });
+                    if (sub) await sub.unsubscribe();
+                    appState.subscribed = false;
+                    appState.endpoint = null;
+                    if (!quiet) showToast('Notifications are off for this device.', 'success');
+                } catch (err) {
+                    console.error('Error turning off notifications:', err);
+                    if (!quiet) setAppError("Couldn't turn off notifications: " + err.message);
+                } finally {
+                    if (btn) btn.disabled = false;
+                    renderApp();
+                }
+            }
+
+            async function sendTestNotification(btn) {
+                setAppError('');
+                btn.disabled = true;
+                try {
+                    await pushApi({ action: 'test', endpoint: appState.endpoint });
+                    showToast('Test sent — it should pop up in a few seconds.', 'success');
+                } catch (err) {
+                    setAppError(err.message);
+                    if (/expired|aren't on/.test(err.message)) { appState.subscribed = false; renderApp(); }
+                } finally {
+                    btn.disabled = false;
+                }
+            }
+
+            function setAppError(msg) { document.getElementById('appError').textContent = msg || ''; }
+
+            function appButton(label, cls, onClick) {
+                var b = document.createElement('button');
+                b.type = 'button';
+                b.className = cls;
+                b.textContent = label;
+                b.addEventListener('click', function() { onClick(b); });
+                return b;
+            }
+
+            function renderInstallStep() {
+                var step = document.getElementById('appStepInstall');
+                var body = document.getElementById('appInstallBody');
+                var done = isStandalone();
+                step.classList.toggle('is-done', done);
+                body.innerHTML = '';
+                if (done) {
+                    body.innerHTML = '<p>You’re using the app. 🎉</p>';
+                } else if (deferredInstall) {
+                    body.innerHTML = '<p>Adds a Santa Sleigh icon to your home screen that opens straight into the portal.</p>';
+                    var actions = document.createElement('div');
+                    actions.className = 'app-actions';
+                    actions.appendChild(appButton('📲 Install the app', 'square-primary-btn', async function(b) {
+                        b.disabled = true;
+                        try {
+                            deferredInstall.prompt();
+                            await deferredInstall.userChoice;
+                        } catch (e) { /* dismissed */ }
+                        deferredInstall = null;
+                        renderApp();
+                    }));
+                    body.appendChild(actions);
+                } else if (isIOS) {
+                    body.innerHTML =
+                        '<ol>' +
+                        '<li>Tap the <strong>Share</strong> button ' + SHARE_ICON + ' (bottom of the screen in Safari, or in the address bar in Chrome).</li>' +
+                        '<li>Scroll down and tap <strong>Add to Home Screen</strong>. If you can’t see it, tap <strong>View More</strong> or <strong>Edit Actions</strong> first.</li>' +
+                        '<li>Tap <strong>Add</strong>, then open <strong>Santa Sleigh</strong> from your home screen and log in again.</li>' +
+                        '</ol>' +
+                        '<p class="app-note">Notifications need iOS 16.4 or newer (Settings › General › About).</p>';
+                } else if (isAndroid) {
+                    body.innerHTML =
+                        '<p>Open your browser’s <strong>⋮</strong> menu and choose <strong>Add to Home screen</strong> or <strong>Install app</strong>, then open <strong>Santa Sleigh</strong> from your home screen.</p>' +
+                        '<p class="app-note">Already installed? Just open it from your home screen. You can also turn on notifications right here in the browser.</p>';
+                } else {
+                    body.innerHTML = '<p>Optional on a computer — notifications work in the browser. For notifications on your phone, open this page on your phone and log in.</p>';
+                }
+            }
+
+            function renderNotifyStep() {
+                var step = document.getElementById('appStepNotify');
+                var body = document.getElementById('appNotifyBody');
+                step.classList.toggle('is-done', appState.subscribed);
+                body.innerHTML = '';
+                if (!appState.configured) {
+                    body.innerHTML = '<p class="app-note">' + (appState.loaded ? 'Notifications aren’t switched on for the portal yet — you’ll still get all the emails.' : 'Checking…') + '</p>';
+                    return;
+                }
+                if (isIOS && !isStandalone()) {
+                    body.innerHTML = '<p>iPhones only allow notifications for apps on the home screen. Once you’ve done step 1, open <strong>Santa Sleigh</strong> from your home screen, log in, then tap <strong>🔔 Alerts</strong> (next to Edit profile) and turn them on there.</p>';
+                    return;
+                }
+                if (!pushSupported()) {
+                    body.innerHTML = '<p>This browser can’t show notifications. Try Chrome or Safari — you’ll still get the emails.</p>';
+                    return;
+                }
+                if (Notification.permission === 'denied') {
+                    body.innerHTML = '<p>Notifications are blocked for this site. Allow them in your settings, then come back here:</p>' +
+                        '<p class="app-note">iPhone: Settings › Notifications › Santa Sleigh.<br>Android: long-press the Santa Sleigh icon › App info › Notifications (or in Chrome: ⋮ › Settings › Site settings › Notifications).</p>';
+                    return;
+                }
+                var actions = document.createElement('div');
+                actions.className = 'app-actions';
+                if (appState.subscribed) {
+                    body.innerHTML = '<p>✅ Notifications are on for this device. You’ll get your shift reminder on the morning of each shift, plus any urgent updates.</p>';
+                    actions.appendChild(appButton('Send me a test', 'app-secondary-btn', sendTestNotification));
+                    actions.appendChild(appButton('Turn off', 'app-secondary-btn', function(b) { disableNotifications(b, false); }));
+                } else {
+                    body.innerHTML = '<p>Your phone will ask if Santa Sleigh can send notifications — tap <strong>Allow</strong>.</p>';
+                    actions.appendChild(appButton('🔔 Turn on notifications', 'square-primary-btn', enableNotifications));
+                }
+                body.appendChild(actions);
+            }
+
+            function renderApp() {
+                var approved = !!currentProfile && !dashboardCard.classList.contains('not-approved');
+                var appBtn = document.getElementById('appBtn');
+                var settled = isStandalone() || appState.subscribed;
+                appBtn.textContent = settled ? '🔔 Alerts' : '📲 Get the app';
+                appBtn.hidden = !approved;
+
+                // iOS Safari has no Notification object until the app is on the home screen.
+                var permission = window.Notification ? window.Notification.permission : 'default';
+                var canNotify = appState.configured && (pushSupported() || isIOS) && permission !== 'denied';
+                var showBanner = approved && appState.loaded && canNotify && !appState.subscribed && !bannerDismissed();
+                document.getElementById('appBanner').classList.toggle('visible', showBanner);
+                var readyHere = pushSupported() && !(isIOS && !isStandalone());
+                document.getElementById('appBannerText').textContent = readyHere
+                    ? '🔔 Turn on notifications to get your shift reminders and urgent updates on this device.'
+                    : '🔔 Get the app for shift reminders and urgent updates as phone notifications.';
+                document.getElementById('appBannerBtn').textContent = readyHere ? 'Turn on' : 'Set up';
+
+                var prefRow = document.getElementById('pushPrefRow');
+                prefRow.hidden = !(approved && appState.configured);
+                document.getElementById('pushPrefHint').textContent = appState.subscribed
+                    ? 'On for this device.'
+                    : 'Get your reminder and urgent updates on your phone too.';
+                document.getElementById('pushPrefBtn').textContent = appState.subscribed ? 'Manage' : 'Set up';
+
+                document.getElementById('appModalTitle').textContent = isStandalone() ? '🔔 Notifications' : '📲 Get the app';
+                renderInstallStep();
+                renderNotifyStep();
+            }
+
+            function openAppModal() {
+                setAppError('');
+                renderApp();
+                openModal('appModalOverlay');
+            }
+
+            document.getElementById('appBtn').addEventListener('click', openAppModal);
+            document.getElementById('pushPrefBtn').addEventListener('click', openAppModal);
+            document.getElementById('appBannerBtn').addEventListener('click', openAppModal);
+            document.getElementById('appBannerDismiss').addEventListener('click', function() {
+                try { localStorage.setItem(APP_BANNER_KEY, '1'); } catch (e) {}
+                renderApp();
+                showToast('No problem — you can set it up any time from “📲 Get the app”.', 'success');
+            });
+            if (window.matchMedia) {
+                var standaloneMq = window.matchMedia('(display-mode: standalone)');
+                if (standaloneMq.addEventListener) standaloneMq.addEventListener('change', renderApp);
+            }
+
             document.getElementById('editProfileBtn').addEventListener('click', function() {
                 closeDetailsForm();
                 closeContactEmailForm();
@@ -3189,7 +3603,18 @@
                 netlifyIdentity.open('login');
             });
 
-            document.getElementById('logoutBtn').addEventListener('click', function() {
+            // Logging out turns notifications off for this device first, so a
+            // shared phone doesn't keep getting someone else's reminders.
+            document.getElementById('logoutBtn').addEventListener('click', async function() {
+                var btn = this;
+                if (appState.subscribed) {
+                    btn.disabled = true;
+                    await Promise.race([
+                        disableNotifications(null, true),
+                        new Promise(function(resolve) { setTimeout(resolve, 4000); })
+                    ]);
+                    btn.disabled = false;
+                }
                 netlifyIdentity.logout();
             });
 
@@ -3225,6 +3650,11 @@
 
             netlifyIdentity.on('logout', function() {
                 currentProfile = null;
+                appState.configured = false;
+                appState.subscribed = false;
+                appState.loaded = false;
+                renderApp();
+                closeModal('appModalOverlay');
                 document.getElementById('mailboxTab').hidden = true;
                 tourCheckedThisLoad = false;
                 briefingCheckedThisLoad = false;

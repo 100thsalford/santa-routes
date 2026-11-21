@@ -280,6 +280,16 @@
             resize: vertical;
         }
 
+        .push-count {
+            font-weight: normal;
+            color: #888;
+            font-size: 0.8rem;
+        }
+
+        .push-count.over {
+            color: #A8382F;
+        }
+
         .admin-status {
             font-size: 0.85rem;
             color: var(--santa-green);
@@ -1340,6 +1350,36 @@
                     <div class="admin-status" id="remindersStatus"></div>
                 </div>
 
+                <!-- Push-only urgent message (admin-send-push.js) to volunteers
+                     who've turned on notifications in the portal app. -->
+                <div class="dashboard-section-title">🔔 Send a push notification now</div>
+                <p style="color:#666; font-size:0.9rem; margin-top:0;">For urgent, on-the-night updates — meeting point moved, running late, weather cancellation. Goes straight to the phones of volunteers who've turned on notifications; it isn't emailed.</p>
+                <form class="broadcast-form" id="pushNowForm">
+                    <div>
+                        <label for="pushNowScope">Send to</label>
+                        <select id="pushNowScope">
+                            <option value="tonight">Everyone on tonight</option>
+                            <option value="event">Volunteers on one date</option>
+                            <option value="all">All volunteers</option>
+                        </select>
+                    </div>
+                    <div id="pushNowEventRow" class="admin-hidden">
+                        <label for="pushNowEvent">Which date</label>
+                        <select id="pushNowEvent"></select>
+                    </div>
+                    <p class="broadcast-audience" id="pushNowAudience" aria-live="polite"></p>
+                    <div>
+                        <label for="pushNowTitle">Title <span class="push-count" id="pushNowTitleCount"></span></label>
+                        <input type="text" id="pushNowTitle" maxlength="60" placeholder="e.g. ⚠️ Meeting point moved" required>
+                    </div>
+                    <div>
+                        <label for="pushNowMessage">Message <span class="push-count" id="pushNowMessageCount"></span></label>
+                        <textarea id="pushNowMessage" rows="3" maxlength="180" placeholder="e.g. Tonight we're meeting at the church car park instead, same time." required></textarea>
+                    </div>
+                    <button type="submit" class="admin-btn" id="pushNowBtn">🔔 Send push now</button>
+                </form>
+                <div class="admin-status" id="pushNowStatus"></div>
+
                 <div class="dashboard-section-title">📣 Send a broadcast email</div>
                 <p style="color:#666; font-size:0.9rem; margin-top:0;">A one-off email — a schedule change, a weather cancellation, anything outside the automatic nightly shift reminder.</p>
                 <form class="broadcast-form" id="broadcastForm">
@@ -1350,6 +1390,11 @@
                     <div>
                         <label for="broadcastMessage">Message</label>
                         <textarea id="broadcastMessage" rows="6" required></textarea>
+                    </div>
+                    <div>
+                        <label for="broadcastPushText">🔔 Push notification text (optional) <span class="push-count" id="broadcastPushCount"></span></label>
+                        <textarea id="broadcastPushText" rows="2" maxlength="180" placeholder="A short version for phones, e.g. Tuesday's route is cancelled due to weather — see your email."></textarea>
+                        <p class="broadcast-audience">Also sends a notification (the subject as its title) to anyone who's turned on notifications in the portal app. Leave blank for email only.</p>
                     </div>
                     <div>
                         <label for="broadcastScope">Send to</label>
@@ -1532,6 +1577,8 @@
                     renderSquareAccess();
                     renderInvites();
                     renderBroadcast();
+                    renderPushNowDates();
+                    showPushAudience();
                 } catch (err) {
                     console.error('Error loading admin data:', err);
                     document.getElementById('routesLoading').textContent = "Couldn't load data — please try refreshing.";
@@ -3157,13 +3204,131 @@
                     } else {
                         statusEl.textContent = 'Sent to ' + result.volunteersEmailed + ' volunteer(s) for ' + result.date +
                             (result.roleHoldersEmailed ? ', including ' + result.roleHoldersEmailed + ' Santa/Driver/Safety Walker' : '') +
-                            (result.errors && result.errors.length ? ' (' + result.errors.length + ' failed)' : '.');
+                            (result.errors && result.errors.length ? ' (' + result.errors.length + ' failed)' : '.') +
+                            pushSummary(result.push);
                         showToast('Reminders sent to ' + result.volunteersEmailed + ' volunteer(s) for ' + result.date + '.', 'success');
                     }
                 } catch (err) {
                     console.error('Error sending reminders:', err);
                     statusEl.textContent = "Couldn't send: " + err.message;
                     showToast("Couldn't send reminders: " + err.message, 'error');
+                } finally {
+                    btn.disabled = false;
+                }
+            });
+
+
+            // ---- Push notifications (admin-send-push.js + broadcast push text) ----
+
+            // " Push: 5 people (7 devices)." for a lib/push.js summary, or ''.
+            function pushSummary(push) {
+                if (!push) return '';
+                if (push.error) return ' Push failed: ' + push.error;
+                if (!push.devicesSent && !push.devicesFailed) return ' No push (nobody in this group has notifications on).';
+                return ' Push: ' + push.volunteersReached + ' volunteer(s), ' + push.devicesSent + ' device(s)' +
+                    (push.devicesRemoved ? ', ' + push.devicesRemoved + ' expired device(s) removed' : '') + '.';
+            }
+
+            function setCount(el, value, max) {
+                el.textContent = value.length + '/' + max;
+                el.classList.toggle('over', value.length > max);
+            }
+            function updatePushCounts() {
+                setCount(document.getElementById('broadcastPushCount'), document.getElementById('broadcastPushText').value, 180);
+                setCount(document.getElementById('pushNowTitleCount'), document.getElementById('pushNowTitle').value, 60);
+                setCount(document.getElementById('pushNowMessageCount'), document.getElementById('pushNowMessage').value, 180);
+            }
+            ['broadcastPushText', 'pushNowTitle', 'pushNowMessage'].forEach(function(id) {
+                document.getElementById(id).addEventListener('input', updatePushCounts);
+            });
+            updatePushCounts();
+
+            function renderPushNowDates() {
+                var select = document.getElementById('pushNowEvent');
+                var current = select.value;
+                select.innerHTML = '';
+                flattenRouteDates().forEach(function(rd) {
+                    var opt = document.createElement('option');
+                    opt.value = rd.id;
+                    opt.textContent = rd.label;
+                    select.appendChild(opt);
+                });
+                if (current) select.value = current;
+            }
+
+            function pushNowBody() {
+                var scope = document.getElementById('pushNowScope').value;
+                var body = { scope: scope };
+                if (scope === 'event') body.routeDateId = document.getElementById('pushNowEvent').value;
+                return body;
+            }
+
+            // Sends nothing: how many of this audience have notifications on.
+            var pushAudienceSeq = 0;
+            async function showPushAudience() {
+                var el = document.getElementById('pushNowAudience');
+                var body = pushNowBody();
+                if (body.scope === 'event' && !body.routeDateId) { el.textContent = ''; return; }
+                var seq = ++pushAudienceSeq;
+                el.textContent = 'Checking who has notifications on...';
+                try {
+                    var result = await postOp('/.netlify/functions/admin-send-push', Object.assign(body, { preview: true }));
+                    if (seq !== pushAudienceSeq) return;
+                    if (!result.configured) {
+                        el.textContent = "⚠️ Push notifications aren't set up yet (VAPID keys missing in Netlify).";
+                        return;
+                    }
+                    if (result.audienceCount === 0) {
+                        el.textContent = body.scope === 'tonight' ? 'Nobody is on a route tonight.' : 'Nobody is in this group.';
+                        return;
+                    }
+                    var text = result.pushCount + ' of ' + result.audienceCount + ' volunteer' + (result.audienceCount === 1 ? '' : 's') +
+                        ' will get this (' + result.deviceCount + ' device' + (result.deviceCount === 1 ? '' : 's') + ').';
+                    if (result.withoutPush.length && result.withoutPush.length <= 15) {
+                        text += ' Notifications off: ' + result.withoutPush.join(', ') + '.';
+                    } else if (result.withoutPush.length) {
+                        text += ' ' + result.withoutPush.length + ' have notifications off.';
+                    }
+                    el.textContent = text;
+                } catch (err) {
+                    if (seq !== pushAudienceSeq) return;
+                    console.error('Error checking push audience:', err);
+                    el.textContent = "Couldn't check who this will go to.";
+                }
+            }
+
+            document.getElementById('pushNowScope').addEventListener('change', function() {
+                document.getElementById('pushNowEventRow').classList.toggle('admin-hidden', this.value !== 'event');
+                showPushAudience();
+            });
+            document.getElementById('pushNowEvent').addEventListener('change', showPushAudience);
+
+            document.getElementById('pushNowForm').addEventListener('submit', async function(e) {
+                e.preventDefault();
+                var statusEl = document.getElementById('pushNowStatus');
+                var btn = document.getElementById('pushNowBtn');
+                var body = pushNowBody();
+                body.title = document.getElementById('pushNowTitle').value;
+                body.message = document.getElementById('pushNowMessage').value;
+                btn.disabled = true;
+                statusEl.textContent = 'Sending...';
+                try {
+                    var result = await postOp('/.netlify/functions/admin-send-push', body);
+                    var summary = result.devicesSent
+                        ? 'Sent to ' + result.volunteersReached + ' volunteer(s) on ' + result.devicesSent + ' device(s).' +
+                          (result.devicesFailed ? ' ' + result.devicesFailed + ' device(s) failed' + (result.devicesRemoved ? ' (' + result.devicesRemoved + ' expired, removed)' : '') + '.' : '')
+                        : 'Nobody in this group has notifications on — nothing sent.';
+                    statusEl.textContent = summary;
+                    showToast(summary, result.devicesSent ? 'success' : 'error');
+                    if (result.devicesSent) {
+                        document.getElementById('pushNowTitle').value = '';
+                        document.getElementById('pushNowMessage').value = '';
+                        updatePushCounts();
+                    }
+                } catch (err) {
+                    console.error('Error sending push:', err);
+                    statusEl.textContent = "Couldn't send: " + err.message;
+                    showToast("Couldn't send push: " + err.message, 'error');
                 } finally {
                     btn.disabled = false;
                 }
@@ -3215,6 +3380,7 @@
                 var body = {
                     subject: document.getElementById('broadcastSubject').value,
                     message: document.getElementById('broadcastMessage').value,
+                    pushText: document.getElementById('broadcastPushText').value,
                     scope: scope
                 };
                 if (scope === 'event') {
@@ -3224,11 +3390,13 @@
                 try {
                     var result = await postOp('/.netlify/functions/admin-broadcast-email', body);
                     var summary = 'Sent to ' + result.sent + ' of ' + result.recipientCount + ' volunteer(s).' +
-                        (result.errors && result.errors.length ? ' (' + result.errors.length + ' failed)' : '');
+                        (result.errors && result.errors.length ? ' (' + result.errors.length + ' failed)' : '') +
+                        pushSummary(result.push);
                     statusEl.textContent = summary;
                     showToast(summary, 'success');
                     if (result.sent > 0) {
                         document.getElementById('broadcastForm').reset();
+                        updatePushCounts();
                         document.getElementById('broadcastEventRow').classList.add('admin-hidden');
                         document.getElementById('broadcastAudience').classList.add('admin-hidden');
                     }

@@ -4,6 +4,8 @@
 // (Europe/London) a reminder with their route's full street list, via
 // Resend. Santa / Driver / Safety Walker role holders are included too
 // (see lib/shift-reminders.js) and get their role highlighted. Respects each volunteer's reminder_email_opt_in flag.
+// Also sends a short push notification (lib/push.js) to every device of
+// anyone on tonight who has notifications on -- alongside the email.
 //
 // Scheduled functions only fire automatically on the site's production
 // deploy (not branch deploys/deploy previews), and don't return a response
@@ -16,6 +18,7 @@ import { getDatabase } from '@netlify/database';
 import { sendEmail } from '../lib/email.js';
 import { shiftReminderEmail } from '../lib/shift-reminder-email.js';
 import { loadShiftReminders } from '../lib/shift-reminders.js';
+import { sendReminderPushes } from '../lib/push.js';
 
 const TIME_ZONE = 'Europe/London';
 const PORTAL_URL = 'https://santasleighsalford.co.uk/volunteer.html?login=1';
@@ -41,8 +44,8 @@ export default async (req, context) => {
       return;
     }
 
-    for (const { toEmail, shifts, todo } of reminders) {
-      if (!toEmail) continue; // e.g. a guest volunteer with no email on file
+    for (const { toEmail, emailOptIn, shifts, todo } of reminders) {
+      if (!toEmail || !emailOptIn) continue; // opted out, or e.g. a guest with no email on file
       const { subject, html } = shiftReminderEmail(shifts, { portalUrl: PORTAL_URL, tonight: true, todo });
       try {
         await sendEmail({ to: toEmail, subject, html });
@@ -53,6 +56,8 @@ export default async (req, context) => {
         summary.errors.push({ email: toEmail, error: err.message });
       }
     }
+
+    summary.push = await sendReminderPushes(db, reminders, true);
 
     console.log('send-shift-reminders summary:', JSON.stringify(summary));
   } catch (error) {

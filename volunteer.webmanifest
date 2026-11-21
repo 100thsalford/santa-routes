@@ -1,0 +1,17 @@
+{
+  "id": "/volunteer",
+  "name": "Santa Sleigh Volunteers",
+  "short_name": "Santa Sleigh",
+  "description": "Volunteer portal for Santa Super Sleigh Salford: your shifts, routes, maps and reminders.",
+  "start_url": "/volunteer.html?source=app",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#FBF7F0",
+  "theme_color": "#FFFFFF",
+  "icons": [
+    { "src": "/media/app/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/media/app/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/media/app/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

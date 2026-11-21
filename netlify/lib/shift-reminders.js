@@ -25,14 +25,17 @@ export const EVENT_ROLE_LABELS = {
   safety_walker: 'Safety Walker'
 };
 
-// Returns [{ volunteerId, toEmail, todo: { briefing: bool, square: 'none'|'requested'|null },
+// Returns [{ volunteerId, toEmail, emailOptIn, todo: { briefing: bool, square: 'none'|'requested'|null },
 //   shifts: [{ routeName, eventDate, role, gatheringTime, what3words, notes,
 //   eventRoles: ['santa'|'driver'|'safety_walker'], streets: [{ name, timeRange }] }] }]
-// for volunteers who've opted in to reminder emails. toEmail can be null
-// (e.g. a guest volunteer with no email) -- callers skip those.
+// for everyone on that night. emailOptIn is their reminder_email_opt_in
+// flag: callers email only those who've opted in, but send the push
+// notification (lib/push.js) to anyone with notifications on, since turning
+// those on is its own opt-in. toEmail can be null (e.g. a guest volunteer
+// with no email) -- callers skip the email for those.
 export async function loadShiftReminders(db, date) {
   const rows = await db.sql`
-    SELECT v.id AS volunteer_id, v.email, v.preferred_email, v.is_guest,
+    SELECT v.id AS volunteer_id, v.email, v.preferred_email, v.is_guest, v.reminder_email_opt_in,
            v.briefing_ack_at, v.square_requested_at, v.square_approved_at,
            rd.id AS route_date_id, rd.what3words, rd.gathering_time, rd.notes,
            to_char(rd.event_date, 'YYYY-MM-DD') AS event_date,
@@ -52,7 +55,7 @@ export async function loadShiftReminders(db, date) {
     JOIN volunteers v ON v.id = who.volunteer_id
     LEFT JOIN shift_assignments sa
       ON sa.route_date_id = who.route_date_id AND sa.volunteer_id = who.volunteer_id
-    WHERE rd.event_date = ${date} AND v.reminder_email_opt_in = TRUE
+    WHERE rd.event_date = ${date}
     ORDER BY v.id, rd.id
   `;
   if (rows.length === 0) return [];
@@ -76,6 +79,7 @@ export async function loadShiftReminders(db, date) {
       byVolunteer.set(row.volunteer_id, {
         volunteerId: row.volunteer_id,
         toEmail: row.preferred_email || row.email || null,
+        emailOptIn: !!row.reminder_email_opt_in,
         row,
         shifts: []
       });

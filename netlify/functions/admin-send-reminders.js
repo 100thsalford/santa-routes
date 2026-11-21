@@ -14,6 +14,7 @@ import { getDatabase } from '@netlify/database';
 import { sendEmail, siteUrls } from '../lib/email.js';
 import { shiftReminderEmail } from '../lib/shift-reminder-email.js';
 import { loadShiftReminders } from '../lib/shift-reminders.js';
+import { sendReminderPushes } from '../lib/push.js';
 
 const headers = { 'Content-Type': 'application/json' };
 const TIME_ZONE = 'Europe/London';
@@ -51,8 +52,8 @@ export default async (req, context) => {
 
     const portalUrl = siteUrls(req).volunteerLogin;
     const isToday = targetDate === londonDateString(new Date());
-    for (const { toEmail, shifts, todo } of reminders) {
-      if (!toEmail) continue; // e.g. a guest volunteer with no email on file
+    for (const { toEmail, emailOptIn, shifts, todo } of reminders) {
+      if (!toEmail || !emailOptIn) continue; // opted out, or e.g. a guest with no email on file
       const { subject, html } = shiftReminderEmail(shifts, { portalUrl, tonight: isToday, todo });
       try {
         await sendEmail({ to: toEmail, subject, html });
@@ -63,6 +64,8 @@ export default async (req, context) => {
         summary.errors.push({ email: toEmail, error: err.message });
       }
     }
+
+    summary.push = await sendReminderPushes(db, reminders, isToday);
 
     return new Response(JSON.stringify(Object.assign({ success: true }, summary)), { status: 200, headers });
   } catch (error) {

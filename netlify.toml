@@ -28,6 +28,20 @@
   [headers.values]
     Cache-Control = "public, max-age=604800, must-revalidate"
 
+# Volunteer portal app (volunteer.webmanifest + sw.js, push notifications
+# only). The service worker must never be cached, or a fix to it could take
+# a day to reach phones; it caches nothing itself.
+[[headers]]
+  for = "/sw.js"
+  [headers.values]
+    Cache-Control = "no-cache"
+
+[[headers]]
+  for = "/volunteer.webmanifest"
+  [headers.values]
+    Content-Type = "application/manifest+json"
+    Cache-Control = "public, max-age=3600, must-revalidate"
+
 # Volunteer Briefing video: a plain file, kept out of search results.
 [[headers]]
   for = "/media/volunteer-briefing.mp4"

@@ -6,6 +6,7 @@
 //   - registration-attempt (anti-abuse) records, which hold an IP address:
 //     24 hours
 //   - mailbox "sent by" records (mailbox_sent_log): 13 months
+//   - push notification devices (push_subscriptions) not seen for 13 months
 //   - cached TruTrak trails for past route nights (Blobs store 'trutrak'):
 //     deleted once the night is over (kept for today and yesterday only)
 // It also FLAGS volunteers with no login/volunteering activity for 3 years:
@@ -74,6 +75,13 @@ export default async () => {
       DELETE FROM mailbox_sent_log WHERE created_at < now() - interval '13 months' RETURNING id
     `;
     summary.mailboxSentLogDeleted = oldSentLog.length;
+
+    // Push notification devices where the portal hasn't been opened for
+    // 13 months (it refreshes last_seen_at on every load).
+    const oldPush = await db.sql`
+      DELETE FROM push_subscriptions WHERE last_seen_at < now() - interval '13 months' RETURNING id
+    `;
+    summary.pushSubscriptionsDeleted = oldPush.length;
 
     try {
       summary.trailsDeleted = await purgeOldTrails();
