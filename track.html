@@ -273,14 +273,13 @@
 
             function setLocation(position) {
                 var place = position ? [position.street, position.town].filter(function(x) { return x && String(x).trim(); }).join(', ') : '';
-                var m = position && position.updatedAt ? String(position.updatedAt).match(/T(\d{2}):(\d{2})/) : null;
-                var when = m ? (m[1] + ':' + m[2]) : '';
+                var when = position ? formatGpsWhen(position.updatedAt) : '';
                 if (!place && !when) {
                     locationEl.hidden = true;
                     locationEl.textContent = '';
                     return;
                 }
-                locationEl.textContent = (place ? 'Last seen near ' + place : 'Last GPS update') + (when ? (place ? ' at ' : ': ') + when : '');
+                locationEl.textContent = (place ? 'Last seen near ' + place : 'Last GPS update') + (when ? (place ? ' on ' : ': ') + when : '');
                 locationEl.hidden = false;
             }
             var routeNameEl = document.getElementById('trackRouteName');
@@ -405,12 +404,30 @@
                 }
             }
 
-            function formatUpdatedAt(iso) {
+            // TruTrak's datetimeLocal has no offset -- treat it as a plain UK
+            // wall-clock string and format it from its parts, e.g.
+            // "2026-12-05T18:42:10" -> "Sat 5 Dec, 18:42". Parsing it with
+            // Date in the viewer's timezone could shift it, so only the
+            // weekday is worked out (via UTC, which can't drift).
+            function formatGpsWhen(iso) {
                 if (!iso) return '';
-                // TruTrak's datetimeLocal has no offset -- treat as a plain
-                // UK wall-clock time string for display purposes.
-                var m = String(iso).match(/T(\d{2}):(\d{2})/);
-                return m ? ('Last GPS update: ' + m[1] + ':' + m[2]) : '';
+                var s = String(iso);
+                var t = s.match(/T(\d{2}):(\d{2})/);
+                if (!t) return '';
+                var time = t[1] + ':' + t[2];
+                var d = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+                if (!d) return time;
+                var y = +d[1], mo = +d[2], day = +d[3];
+                var days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+                var months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                if (mo < 1 || mo > 12) return time;
+                var wd = days[new Date(Date.UTC(y, mo - 1, day)).getUTCDay()];
+                return wd + ' ' + day + ' ' + months[mo - 1] + ', ' + time;
+            }
+
+            function formatUpdatedAt(iso) {
+                var when = formatGpsWhen(iso);
+                return when ? ('Last GPS update: ' + when) : '';
             }
 
             function showMapOverlay(detail) {
