@@ -837,6 +837,60 @@
         .vol-menu button:disabled { color: #aaa; cursor: default; }
         .vol-menu button.danger { color: var(--santa-red); }
         .vol-menu hr { border: none; border-top: 1px solid var(--border-subtle); margin: 0.25rem 0; }
+        /* Volunteers tab sub-sections + phone-first list (2026-11-23) */
+        .vol-subtabs { display: flex; gap: 0.25rem; padding: 0.25rem; margin: 0 0 1.25rem; background: var(--surface-muted); border-radius: var(--radius-md); }
+        .vol-subtab { flex: 1 1 0; display: inline-flex; align-items: center; justify-content: center; gap: 0.35rem; min-height: 2.75rem; padding: 0.5rem; border: 0; border-radius: var(--radius-sm); background: none; font: inherit; font-weight: 600; font-size: 0.95rem; color: var(--ink-soft); cursor: pointer; }
+        .vol-subtab.active { background: var(--surface); color: var(--santa-red); box-shadow: 0 1px 3px rgba(0,0,0,0.12); }
+        .vol-subtab:focus-visible { outline: 3px solid #EBC96B; outline-offset: 1px; }
+        .vol-subtab .tab-badge { background: var(--santa-red); color: #fff; }
+        .vol-subtab-count { font-weight: normal; font-size: 0.8rem; color: var(--ink-soft); }
+        .vol-all-clear { margin: 0 0 0.5rem; padding: 0.65rem 0.85rem; border-radius: var(--radius-sm); background: #e8f5e9; color: #2e7d32; font-weight: 600; font-size: 0.92rem; }
+        #volPane-overview > .dashboard-section-title:first-child, #volPane-overview > div:first-of-type:not(.admin-hidden) > .dashboard-section-title { margin-top: 0; }
+        .vol-pane-intro { color: var(--ink-soft); font-size: 0.9rem; margin: 0 0 0.75rem; }
+        .vol-msg-card { border: 1px solid var(--border-subtle); border-radius: var(--radius-md); margin-bottom: 0.75rem; background: var(--surface); }
+        .vol-msg-card > summary { display: flex; align-items: center; gap: 0.75rem; padding: 0.85rem 1rem; cursor: pointer; list-style: none; min-height: 2.75rem; }
+        .vol-msg-card > summary::-webkit-details-marker { display: none; }
+        .vol-msg-card > summary::after { content: '▾'; margin-left: auto; color: var(--ink-soft); transition: transform 0.15s; }
+        .vol-msg-card[open] > summary::after { transform: rotate(180deg); }
+        .vol-msg-card[open] > summary { border-bottom: 1px solid var(--border-subtle); }
+        .vol-msg-icon { font-size: 1.4rem; line-height: 1; }
+        .vol-msg-text { display: flex; flex-direction: column; min-width: 0; }
+        .vol-msg-text strong { color: var(--text-dark); }
+        .vol-msg-text small { color: var(--ink-soft); font-size: 0.8rem; }
+        .vol-msg-body { padding: 1rem; }
+        .vol-msg-body.reminders-panel { border-top: 0; margin-top: 0; max-width: none; }
+        .vol-msg-help { color: var(--ink-soft); font-size: 0.88rem; margin: 0 0 0.85rem; }
+        .vol-people-head { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; margin-bottom: 0.5rem; }
+        .vol-people-head .vol-count { margin: 0; font-weight: 600; color: var(--text-dark); }
+        .vol-people-head .admin-btn { min-height: 2.5rem; }
+        #invitesDetails { margin: 0.25rem 0 0.5rem; }
+        #invitesStatus:empty { min-height: 0; margin: 0; }
+        .vol-toolbar { display: block; position: sticky; top: var(--sticky-header-h, 0px); z-index: 5; background: var(--surface, #fff); padding: 0.5rem 0; margin: 0.25rem 0 0.25rem; border-bottom: 1px solid var(--border-subtle); }
+        .vol-toolbar-row { display: flex; gap: 0.5rem; }
+        .vol-toolbar-row input[type="search"] { flex: 1 1 0; width: 0; min-width: 0; }
+        .vol-toolbar-row select { flex: 0 0 auto; width: auto; }
+        .vol-chips { display: flex; gap: 0.4rem; margin-top: 0.5rem; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+        .vol-chips::-webkit-scrollbar { display: none; }
+        .vol-chip { flex: 0 0 auto; padding: 0.4rem 0.8rem; min-height: 2.25rem; border: 1px solid var(--border-subtle); border-radius: 999px; background: var(--surface); font: inherit; font-size: 0.85rem; color: var(--text-dark); cursor: pointer; white-space: nowrap; }
+        .vol-chip[aria-pressed="true"] { background: var(--santa-green); border-color: var(--santa-green); color: #fff; font-weight: 600; }
+        .vol-chip:focus-visible { outline: 3px solid #EBC96B; outline-offset: 1px; }
+        .vol-row { cursor: pointer; }
+        .vol-row:hover td { background: var(--surface-muted); }
+        .vol-name-line { display: flex; align-items: center; flex-wrap: wrap; gap: 0.2rem 0.4rem; }
+        .vol-name-line .vol-guest { margin-left: 0; }
+        .vol-name-line .vol-role-icons { font-size: 0.95rem; letter-spacing: 0.05rem; }
+        .vol-table .col-actions .vol-menu-btn { width: 2.75rem; height: 2.75rem; }
+        .add-vol-choice { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin: 0.25rem 0 1rem; }
+        .add-vol-choice label { display: flex; gap: 0.5rem; align-items: flex-start; padding: 0.65rem 0.75rem; border: 1px solid var(--border-subtle); border-radius: var(--radius-md); cursor: pointer; font-size: 0.9rem; }
+        .add-vol-choice label:has(input:checked) { border-color: var(--santa-green); background: #e8f5e9; }
+        .add-vol-choice input { margin-top: 0.2rem; }
+        .add-vol-choice span { display: flex; flex-direction: column; }
+        .add-vol-choice small { color: var(--ink-soft); font-size: 0.78rem; }
+        .add-vol-form { display: grid; gap: 0.1rem; padding-bottom: 0.75rem; }
+        .add-vol-form .admin-btn { margin-top: 0.4rem; min-height: 2.75rem; }
+        .add-vol-check { display: flex; gap: 0.5rem; align-items: center; font-size: 0.9rem; margin: 0.25rem 0; }
+        .add-vol-check input { width: 1.1rem; height: 1.1rem; }
+        .cov-more { display: block; width: 100%; margin-top: 0.5rem; padding: 0.6rem; min-height: 2.75rem; border: 1px dashed var(--border-subtle); border-radius: var(--radius-sm); background: none; font: inherit; font-size: 0.88rem; color: var(--santa-green); font-weight: 600; cursor: pointer; }
         /* Volunteers tab: role coverage grid (2026-11-11) */
         .cov-toolbar { display: flex; flex-wrap: wrap; gap: 0.4rem 1rem; align-items: center; justify-content: space-between; margin: 0.5rem 0; font-size: 0.85rem; color: var(--ink-soft); }
         .cov-toolbar label { display: flex; gap: 0.35rem; align-items: center; cursor: pointer; }
@@ -942,8 +996,9 @@
         @media (max-width: 600px) {
             .import-modal { padding: 0; align-items: stretch; }
             .import-modal-card { max-height: 100vh; border-radius: 0; }
-            .import-modal:has(.vol-modal-card) { padding: 0.75rem; align-items: center; }
-            .import-modal-card.vol-modal-card { border-radius: var(--radius-lg); max-height: calc(100vh - 1.5rem); }
+            /* Volunteer dialogs slide up from the bottom on phones, within thumb reach */
+            .import-modal:has(.vol-modal-card) { padding: 0; align-items: flex-end; }
+            .import-modal-card.vol-modal-card { width: 100%; border-radius: var(--radius-lg) var(--radius-lg) 0 0; max-height: 90vh; padding-bottom: env(safe-area-inset-bottom); }
             .import-table .col-source { width: 5.5rem; }
             .import-table .col-km { display: none; }
             .import-table td:nth-child(5) { display: none; }
@@ -1120,6 +1175,42 @@
             </div>
             <div id="volunteerModalBody" class="vol-modal-body"></div>
             <div id="volunteerModalFooter" class="import-modal-footer"></div>
+        </div>
+    </div>
+
+    <!-- "+ Add volunteer" (2026-11-23): one button for both ways of adding
+         someone -- an emailed invite (they get a portal account) or a guest
+         record (no account). The two forms keep their original ids/handlers. -->
+    <div id="addVolunteerModal" class="import-modal admin-hidden" role="dialog" aria-modal="true" aria-labelledby="addVolunteerTitle">
+        <div class="import-modal-card vol-modal-card">
+            <div class="import-modal-header">
+                <h3 id="addVolunteerTitle">Add a volunteer</h3>
+                <button type="button" class="toast-close" id="addVolunteerClose" aria-label="Close">&times;</button>
+            </div>
+            <div class="vol-modal-body">
+                <div class="add-vol-choice" role="radiogroup" aria-label="How to add them">
+                    <label><input type="radio" name="addVolMode" value="invite" checked> <span><strong>Invite by email</strong><small>They get a portal account</small></span></label>
+                    <label><input type="radio" name="addVolMode" value="guest"> <span><strong>Add a guest</strong><small>No account needed</small></span></label>
+                </div>
+                <div id="addVolInvitePane">
+                    <p class="vol-msg-help">Sends a Santa Sleigh–branded email with a personal link to create their account. No sign-up code needed, and they're approved automatically. The link works once and expires after 14 days.</p>
+                    <form class="add-vol-form" id="inviteVolunteerForm">
+                        <label class="vol-field">Name<input type="text" id="inviteVolunteerName" autocomplete="off" required></label>
+                        <label class="vol-field">Email<input type="email" id="inviteVolunteerEmail" autocomplete="off" required></label>
+                        <button type="submit" class="admin-btn">Send invite</button>
+                    </form>
+                </div>
+                <div id="addVolGuestPane" class="admin-hidden">
+                    <p class="vol-msg-help">For a helper who doesn't want or need an account -- a one-off doorstep helper, a second adult just tagging along. They can still be assigned to shifts and to the Santa/Safety Walker/Driver roles (via the ⋮ menu), same as anyone else.</p>
+                    <form class="add-vol-form" id="addGuestVolunteerForm">
+                        <label class="vol-field">Name<input type="text" id="guestVolunteerName" autocomplete="off" required></label>
+                        <label class="vol-field">Phone (optional)<input type="tel" id="guestVolunteerPhone" autocomplete="off"></label>
+                        <label class="vol-field">Email (optional)<input type="email" id="guestVolunteerEmail" autocomplete="off"></label>
+                        <label class="add-vol-check"><input type="checkbox" id="guestVolunteerAdult" required> I've checked they're 18 or over</label>
+                        <button type="submit" class="admin-btn">+ Add guest</button>
+                    </form>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -1308,134 +1399,160 @@
                  9 restructure), since both are things you do in the course
                  of managing volunteers, not standalone destinations. -->
             <div class="admin-card admin-hidden" id="tab-volunteers">
-                <!-- Self-registrations from the helpout page wait here until
-                     approved/rejected (admin-review-volunteer.js). They're
-                     kept out of the volunteer list and shift/role pickers
-                     below until approved. -->
-                <!-- Volunteers asking to take card payments (volunteer-square-access.js).
-                     They're already in our Square team; assign their permission set +
-                     passcode in the Square Dashboard, then Mark approved here. -->
-                <div id="square-access">
-                    <div class="dashboard-section-title">💳 Card payment access (Square)</div>
-                    <div id="squareAccessContent"></div>
-                    <details class="rejected-details admin-hidden" id="squareApprovedDetails">
-                        <summary id="squareApprovedSummary">Set up in Square</summary>
-                        <div id="squareApprovedContent"></div>
+                <!-- Volunteers tab sub-sections (2026-11-23): Overview (things
+                     waiting on the admin + role coverage), Message (reminders,
+                     push, broadcast) and People (the list). Mostly used on a
+                     phone, so only one section is on screen at a time instead
+                     of one very long page. -->
+                <div class="vol-subtabs" role="tablist" aria-label="Volunteers sections">
+                    <button type="button" role="tab" class="vol-subtab" id="volSubtab-overview" data-vsub="overview" aria-controls="volPane-overview" aria-selected="true">Overview<span class="tab-badge admin-hidden" id="volOverviewBadge"></span></button>
+                    <button type="button" role="tab" class="vol-subtab" id="volSubtab-message" data-vsub="message" aria-controls="volPane-message" aria-selected="false" tabindex="-1">Message</button>
+                    <button type="button" role="tab" class="vol-subtab" id="volSubtab-people" data-vsub="people" aria-controls="volPane-people" aria-selected="false" tabindex="-1">People<span class="vol-subtab-count" id="volPeopleCount"></span></button>
+                </div>
+
+                <!-- ===== Overview ===== -->
+                <div class="vol-pane" id="volPane-overview" role="tabpanel" aria-labelledby="volSubtab-overview">
+                    <p class="vol-all-clear admin-hidden" id="volAllClear">✅ Nothing waiting for approval</p>
+
+                    <!-- Self-registrations from the helpout page wait here until
+                         approved/rejected (admin-review-volunteer.js). They're
+                         kept out of the volunteer list and shift/role pickers
+                         until approved. -->
+                    <div id="approvalsSection" class="admin-hidden">
+                        <div class="dashboard-section-title">🆕 New registrations to approve</div>
+                        <div id="pendingContent"><p class="admin-loading">Loading...</p></div>
+                        <details class="rejected-details admin-hidden" id="rejectedDetails">
+                            <summary id="rejectedSummary">Rejected registrations</summary>
+                            <div id="rejectedContent"></div>
+                        </details>
+                        <div class="admin-status" id="approvalsStatus"></div>
+                    </div>
+
+                    <!-- Volunteers asking to take card payments (volunteer-square-access.js).
+                         They're already in our Square team; assign their permission set +
+                         passcode in the Square Dashboard, then Mark approved here. -->
+                    <div id="square-access" class="admin-hidden">
+                        <div class="dashboard-section-title">💳 Card payment access (Square)</div>
+                        <div id="squareAccessContent"></div>
+                        <details class="rejected-details admin-hidden" id="squareApprovedDetails">
+                            <summary id="squareApprovedSummary">Set up in Square</summary>
+                            <div id="squareApprovedContent"></div>
+                        </details>
+                        <div class="admin-status" id="squareAccessStatus"></div>
+                    </div>
+
+                    <!-- Role coverage: who's Driver / Santa / Safety Walker on each
+                         night, as initials (red ✕ = not assigned). Read-only view of
+                         date.roleAssignments from admin-data.js; tap a night to jump
+                         to it on the Routes tab to change the assignments. -->
+                    <div class="dashboard-section-title">🗓️ Role coverage</div>
+                    <div id="roleCoverageContent"><p class="admin-loading">Loading...</p></div>
+                </div>
+
+                <!-- ===== Message ===== -->
+                <div class="vol-pane admin-hidden" id="volPane-message" role="tabpanel" aria-labelledby="volSubtab-message">
+                    <p class="vol-pane-intro">Pick how you want to reach volunteers.</p>
+
+                    <details class="vol-msg-card" id="msgCard-reminders">
+                        <summary><span class="vol-msg-icon" aria-hidden="true">✉️</span><span class="vol-msg-text"><strong>Send shift reminders now</strong><small>Normally automatic at 7am</small></span></summary>
+                        <div class="vol-msg-body reminders-panel">
+                            <p>Normally sent automatically at 7am every day of the event window. Use this to send early, resend, or send for a different date.</p>
+                            <div class="add-row-form">
+                                <input type="date" id="manualReminderDate" class="field-date">
+                                <button class="admin-btn small" id="sendRemindersBtn" type="button">Send Reminders</button>
+                            </div>
+                            <div class="admin-status" id="remindersStatus"></div>
+                        </div>
                     </details>
-                    <div class="admin-status" id="squareAccessStatus"></div>
+
+                    <!-- Push-only urgent message (admin-send-push.js) to volunteers
+                         who've turned on notifications in the portal app. -->
+                    <details class="vol-msg-card" id="msgCard-push">
+                        <summary><span class="vol-msg-icon" aria-hidden="true">🔔</span><span class="vol-msg-text"><strong>Send a push notification</strong><small>Urgent, on-the-night updates — not emailed</small></span></summary>
+                        <div class="vol-msg-body">
+                            <p class="vol-msg-help">For urgent, on-the-night updates — meeting point moved, running late, weather cancellation. Goes straight to the phones of volunteers who've turned on notifications; it isn't emailed.</p>
+                            <form class="broadcast-form" id="pushNowForm">
+                                <div>
+                                    <label for="pushNowScope">Send to</label>
+                                    <select id="pushNowScope">
+                                        <option value="tonight">Everyone on tonight</option>
+                                        <option value="event">Volunteers on one date</option>
+                                        <option value="all">All volunteers</option>
+                                    </select>
+                                </div>
+                                <div id="pushNowEventRow" class="admin-hidden">
+                                    <label for="pushNowEvent">Which date</label>
+                                    <select id="pushNowEvent"></select>
+                                </div>
+                                <p class="broadcast-audience" id="pushNowAudience" aria-live="polite"></p>
+                                <div>
+                                    <label for="pushNowTitle">Title <span class="push-count" id="pushNowTitleCount"></span></label>
+                                    <input type="text" id="pushNowTitle" maxlength="60" placeholder="e.g. ⚠️ Meeting point moved" required>
+                                </div>
+                                <div>
+                                    <label for="pushNowMessage">Message <span class="push-count" id="pushNowMessageCount"></span></label>
+                                    <textarea id="pushNowMessage" rows="3" maxlength="180" placeholder="e.g. Tonight we're meeting at the church car park instead, same time." required></textarea>
+                                </div>
+                                <button type="submit" class="admin-btn" id="pushNowBtn">🔔 Send push now</button>
+                            </form>
+                            <div class="admin-status" id="pushNowStatus"></div>
+                        </div>
+                    </details>
+
+                    <details class="vol-msg-card" id="msgCard-broadcast">
+                        <summary><span class="vol-msg-icon" aria-hidden="true">📣</span><span class="vol-msg-text"><strong>Send a broadcast email</strong><small>One-off email, with optional push</small></span></summary>
+                        <div class="vol-msg-body">
+                            <p class="vol-msg-help">A one-off email — a schedule change, a weather cancellation, anything outside the automatic nightly shift reminder.</p>
+                            <form class="broadcast-form" id="broadcastForm">
+                                <div>
+                                    <label for="broadcastSubject">Subject</label>
+                                    <input type="text" id="broadcastSubject" required>
+                                </div>
+                                <div>
+                                    <label for="broadcastMessage">Message</label>
+                                    <textarea id="broadcastMessage" rows="6" required></textarea>
+                                </div>
+                                <div>
+                                    <label for="broadcastPushText">🔔 Push notification text (optional) <span class="push-count" id="broadcastPushCount"></span></label>
+                                    <textarea id="broadcastPushText" rows="2" maxlength="180" placeholder="A short version for phones, e.g. Tuesday's route is cancelled due to weather — see your email."></textarea>
+                                    <p class="broadcast-audience">Also sends a notification (the subject as its title) to anyone who's turned on notifications in the portal app. Leave blank for email only.</p>
+                                </div>
+                                <div>
+                                    <label for="broadcastScope">Send to</label>
+                                    <select id="broadcastScope">
+                                        <option value="all">All volunteers</option>
+                                        <option value="event">Volunteers signed up to one date</option>
+                                        <option value="no_upcoming">Volunteers not signed up to any upcoming night</option>
+                                    </select>
+                                    <p class="broadcast-audience admin-hidden" id="broadcastAudience" aria-live="polite"></p>
+                                </div>
+                                <div id="broadcastEventRow" class="admin-hidden">
+                                    <label for="broadcastEvent">Which date</label>
+                                    <select id="broadcastEvent"></select>
+                                </div>
+                                <button type="submit" class="admin-btn">Send Broadcast</button>
+                            </form>
+                            <div class="admin-status" id="broadcastStatus"></div>
+                        </div>
+                    </details>
                 </div>
 
-                <div class="dashboard-section-title">🆕 New registrations to approve</div>
-                <div id="pendingContent"><p class="admin-loading">Loading...</p></div>
-                <details class="rejected-details admin-hidden" id="rejectedDetails">
-                    <summary id="rejectedSummary">Rejected registrations</summary>
-                    <div id="rejectedContent"></div>
-                </details>
-                <div class="admin-status" id="approvalsStatus"></div>
-
-                <!-- Role coverage: who's Driver / Santa / Safety Walker on each
-                     night, as initials (red ✕ = not assigned). Read-only view of
-                     date.roleAssignments from admin-data.js; tap a night to jump
-                     to it on the Routes tab to change the assignments. -->
-                <div class="dashboard-section-title">🗓️ Role coverage</div>
-                <div id="roleCoverageContent"><p class="admin-loading">Loading...</p></div>
-
-                <div class="reminders-panel">
-                    <h3>✉️ Send tonight's shift reminders now</h3>
-                    <p>Normally sent automatically at 7am every day of the event window. Use this to send early, resend, or send for a different date.</p>
-                    <div class="add-row-form">
-                        <input type="date" id="manualReminderDate" class="field-date">
-                        <button class="admin-btn small" id="sendRemindersBtn" type="button">Send Reminders</button>
+                <!-- ===== People ===== -->
+                <div class="vol-pane admin-hidden" id="volPane-people" role="tabpanel" aria-labelledby="volSubtab-people">
+                    <div class="vol-people-head">
+                        <span class="vol-count" id="volPeopleHeadCount"></span>
+                        <button type="button" class="admin-btn small" id="addVolunteerBtn">+ Add volunteer</button>
                     </div>
-                    <div class="admin-status" id="remindersStatus"></div>
+                    <details class="rejected-details admin-hidden" id="invitesDetails">
+                        <summary id="invitesSummary">Invited, not registered yet</summary>
+                        <div id="invitesContent"></div>
+                    </details>
+                    <div class="admin-status" id="invitesStatus"></div>
+                    <div id="inactiveVolunteersContent"></div>
+                    <p id="volunteersLoading" class="admin-loading">Loading volunteers...</p>
+                    <div id="volunteersContent"></div>
+                    <div class="admin-status" id="volunteersStatus"></div>
                 </div>
-
-                <!-- Push-only urgent message (admin-send-push.js) to volunteers
-                     who've turned on notifications in the portal app. -->
-                <div class="dashboard-section-title">🔔 Send a push notification now</div>
-                <p style="color:#666; font-size:0.9rem; margin-top:0;">For urgent, on-the-night updates — meeting point moved, running late, weather cancellation. Goes straight to the phones of volunteers who've turned on notifications; it isn't emailed.</p>
-                <form class="broadcast-form" id="pushNowForm">
-                    <div>
-                        <label for="pushNowScope">Send to</label>
-                        <select id="pushNowScope">
-                            <option value="tonight">Everyone on tonight</option>
-                            <option value="event">Volunteers on one date</option>
-                            <option value="all">All volunteers</option>
-                        </select>
-                    </div>
-                    <div id="pushNowEventRow" class="admin-hidden">
-                        <label for="pushNowEvent">Which date</label>
-                        <select id="pushNowEvent"></select>
-                    </div>
-                    <p class="broadcast-audience" id="pushNowAudience" aria-live="polite"></p>
-                    <div>
-                        <label for="pushNowTitle">Title <span class="push-count" id="pushNowTitleCount"></span></label>
-                        <input type="text" id="pushNowTitle" maxlength="60" placeholder="e.g. ⚠️ Meeting point moved" required>
-                    </div>
-                    <div>
-                        <label for="pushNowMessage">Message <span class="push-count" id="pushNowMessageCount"></span></label>
-                        <textarea id="pushNowMessage" rows="3" maxlength="180" placeholder="e.g. Tonight we're meeting at the church car park instead, same time." required></textarea>
-                    </div>
-                    <button type="submit" class="admin-btn" id="pushNowBtn">🔔 Send push now</button>
-                </form>
-                <div class="admin-status" id="pushNowStatus"></div>
-
-                <div class="dashboard-section-title">📣 Send a broadcast email</div>
-                <p style="color:#666; font-size:0.9rem; margin-top:0;">A one-off email — a schedule change, a weather cancellation, anything outside the automatic nightly shift reminder.</p>
-                <form class="broadcast-form" id="broadcastForm">
-                    <div>
-                        <label for="broadcastSubject">Subject</label>
-                        <input type="text" id="broadcastSubject" required>
-                    </div>
-                    <div>
-                        <label for="broadcastMessage">Message</label>
-                        <textarea id="broadcastMessage" rows="6" required></textarea>
-                    </div>
-                    <div>
-                        <label for="broadcastPushText">🔔 Push notification text (optional) <span class="push-count" id="broadcastPushCount"></span></label>
-                        <textarea id="broadcastPushText" rows="2" maxlength="180" placeholder="A short version for phones, e.g. Tuesday's route is cancelled due to weather — see your email."></textarea>
-                        <p class="broadcast-audience">Also sends a notification (the subject as its title) to anyone who's turned on notifications in the portal app. Leave blank for email only.</p>
-                    </div>
-                    <div>
-                        <label for="broadcastScope">Send to</label>
-                        <select id="broadcastScope">
-                            <option value="all">All volunteers</option>
-                            <option value="event">Volunteers signed up to one date</option>
-                            <option value="no_upcoming">Volunteers not signed up to any upcoming night</option>
-                        </select>
-                        <p class="broadcast-audience admin-hidden" id="broadcastAudience" aria-live="polite"></p>
-                    </div>
-                    <div id="broadcastEventRow" class="admin-hidden">
-                        <label for="broadcastEvent">Which date</label>
-                        <select id="broadcastEvent"></select>
-                    </div>
-                    <button type="submit" class="admin-btn">Send Broadcast</button>
-                </form>
-                <div class="admin-status" id="broadcastStatus"></div>
-
-                <div class="dashboard-section-title">✉️ Invite a volunteer</div>
-                <p style="color:#666; font-size:0.9rem; margin-top:0;">Sends a Santa Sleigh–branded email with a personal link to create their account. No sign-up code needed, and they're approved automatically. The link works once and expires after 14 days.</p>
-                <form class="add-row-form" id="inviteVolunteerForm">
-                    <input type="text" id="inviteVolunteerName" placeholder="Name" required>
-                    <input type="email" id="inviteVolunteerEmail" placeholder="Email" required>
-                    <button type="submit" class="admin-btn small">Send Invite</button>
-                </form>
-                <div id="invitesContent"></div>
-                <div class="admin-status" id="invitesStatus"></div>
-
-                <div class="dashboard-section-title">👥 Volunteers</div>
-                <p style="color:#666; font-size:0.9rem; margin-top:0;">Most volunteers get an account via an invite email. For a helper who doesn't want or need one -- a one-off doorstep helper, a second adult just tagging along -- add them here instead; they can still be assigned to shifts and to the Santa/Safety Walker/Driver roles (via the ⋮ menu), same as anyone else.</p>
-                <form class="add-row-form" id="addGuestVolunteerForm">
-                    <input type="text" id="guestVolunteerName" placeholder="Name" required>
-                    <input type="tel" id="guestVolunteerPhone" placeholder="Phone (optional)">
-                    <input type="email" id="guestVolunteerEmail" placeholder="Email (optional)">
-                    <label style="display:flex; gap:0.4rem; align-items:center; font-size:0.9rem;"><input type="checkbox" id="guestVolunteerAdult" required> I've checked they're 18 or over</label>
-                    <button type="submit" class="admin-btn small">+ Add Volunteer</button>
-                </form>
-                <div id="inactiveVolunteersContent"></div>
-                <p id="volunteersLoading" class="admin-loading">Loading volunteers...</p>
-                <div id="volunteersContent"></div>
-                <div class="admin-status" id="volunteersStatus"></div>
             </div>
 
             <!-- Search Activity -->
@@ -3419,6 +3536,7 @@
                 try {
                     await runOp('/.netlify/functions/admin-add-guest-volunteer', body, 'volunteersStatus', 'Volunteer added.');
                     document.getElementById('addGuestVolunteerForm').reset();
+                    closeAddVolunteerModal();
                 } catch (err) {
                     // runOp already surfaced the error via toast/status.
                 }
@@ -3498,14 +3616,12 @@
 
                 var container = document.getElementById('pendingContent');
                 container.innerHTML = '';
-                if (pending.length === 0) {
-                    var none = document.createElement('p');
-                    none.style.cssText = 'color:#666; font-size:0.9rem; margin-top:0;';
-                    none.textContent = 'No one waiting for approval.';
-                    container.appendChild(none);
-                } else {
-                    pending.forEach(function(vol) { container.appendChild(approvalRow(vol, false)); });
-                }
+                pending.forEach(function(vol) { container.appendChild(approvalRow(vol, false)); });
+                // Section only shows when there's something in it; the
+                // "Nothing waiting" line covers the empty case.
+                document.getElementById('approvalsSection').classList.toggle('admin-hidden', pending.length === 0 && rejected.length === 0);
+                volOverviewCounts.registrations = pending.length;
+                updateVolOverview();
 
                 var details = document.getElementById('rejectedDetails');
                 details.classList.toggle('admin-hidden', rejected.length === 0);
@@ -3583,12 +3699,10 @@
 
                 var container = document.getElementById('squareAccessContent');
                 container.innerHTML = '';
-                if (pending.length === 0) {
-                    var none = document.createElement('p');
-                    none.style.cssText = 'color:#666; font-size:0.9rem; margin-top:0;';
-                    none.textContent = 'No card payment requests waiting.';
-                    container.appendChild(none);
-                } else {
+                document.getElementById('square-access').classList.toggle('admin-hidden', withAccess.length === 0);
+                volOverviewCounts.square = pending.length;
+                updateVolOverview();
+                if (pending.length) {
                     var help = document.createElement('p');
                     help.style.cssText = 'color:#666; font-size:0.9rem; margin-top:0;';
                     help.textContent = 'Already added to our Square team. In Square, assign the volunteer permission set and a passcode and save (Square then emails them), then press Mark approved.';
@@ -3607,12 +3721,14 @@
                 if (!squareHashHandled && location.hash === '#square-access') {
                     squareHashHandled = true;
                     document.querySelector('.tab-btn[data-tab="volunteers"]').click();
+                    showVolPane('overview');
                     document.getElementById('square-access').scrollIntoView({ behavior: 'smooth', block: 'start' });
                 }
             }
 
             document.getElementById('pendingDashboardBtn').addEventListener('click', function() {
                 document.querySelector('.tab-btn[data-tab="volunteers"]').click();
+                showVolPane('overview');
             });
 
             // ---- Branded invites ----
@@ -3621,11 +3737,9 @@
                 var container = document.getElementById('invitesContent');
                 container.innerHTML = '';
                 var invites = adminData.invites || [];
+                document.getElementById('invitesDetails').classList.toggle('admin-hidden', invites.length === 0);
+                document.getElementById('invitesSummary').textContent = 'Invited, not registered yet (' + invites.length + ')';
                 if (invites.length === 0) return;
-                var heading = document.createElement('p');
-                heading.style.cssText = 'font-weight:bold; font-size:0.9rem; margin:0.75rem 0 0.25rem;';
-                heading.textContent = 'Invited, not registered yet';
-                container.appendChild(heading);
                 invites.forEach(function(inv) {
                     var row = document.createElement('div');
                     row.className = 'invite-row';
@@ -3673,6 +3787,7 @@
                         email: email
                     }, 'invitesStatus', 'Invite sent to ' + email + '.');
                     form.reset();
+                    closeAddVolunteerModal();
                 } catch (err) {
                     // runOp already surfaced the error via toast/status.
                 } finally {
@@ -3750,6 +3865,13 @@
             ];
             var volunteerSearch = '';
             var volunteerSort = 'name';
+            var volunteerFilter = 'all';
+            var VOLUNTEER_FILTERS = [
+                ['all', 'All', function() { return true; }],
+                ['roles', 'Has a role', function(v) { var q = v.qualifiedRoles || {}; return !!(q.santa || q.safetyWalker || q.driver || v.mailboxAccess); }],
+                ['guests', 'Guests', function(v) { return !!v.isGuest; }],
+                ['noshifts', 'No shifts', function(v) { return !v.shifts.length; }]
+            ];
             var volunteerModalState = null; // { id, mode }
             var openVolunteerMenu = null;
 
@@ -3776,6 +3898,10 @@
                 ['safetyWalker', '🦺', 'Safety Walker']
             ];
             var coverageShowPast = false;
+            // On a phone the full season is a long table, so only the next
+            // few upcoming nights show until "Show all" is tapped.
+            var coverageShowAll = false;
+            var COVERAGE_PREVIEW = 6;
 
             function nameInitials(name) {
                 var words = String(name || '').replace(/@.*$/, '').split(/[\s._-]+/).filter(Boolean);
@@ -3836,7 +3962,10 @@
 
                 var today = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/London' });
                 var pastCount = nights.filter(function(n) { return n.date.eventDate < today; }).length;
-                var shown = coverageShowPast ? nights : nights.filter(function(n) { return n.date.eventDate >= today; });
+                var upcoming = nights.filter(function(n) { return n.date.eventDate >= today; });
+                var hiddenUpcoming = coverageShowAll ? 0 : Math.max(0, upcoming.length - COVERAGE_PREVIEW);
+                var shownUpcoming = hiddenUpcoming ? upcoming.slice(0, COVERAGE_PREVIEW) : upcoming;
+                var shown = coverageShowPast ? nights.filter(function(n) { return n.date.eventDate < today; }).concat(shownUpcoming) : shownUpcoming;
 
                 var gaps = 0, nightsWithGaps = 0;
                 nights.forEach(function(n) {
@@ -3942,6 +4071,20 @@
                 });
                 table.appendChild(tbody);
                 container.appendChild(table);
+
+                if (hiddenUpcoming || (coverageShowAll && upcoming.length > COVERAGE_PREVIEW)) {
+                    var more = document.createElement('button');
+                    more.type = 'button';
+                    more.className = 'cov-more';
+                    var laterGaps = upcoming.slice(COVERAGE_PREVIEW).filter(function(n) {
+                        return COVERAGE_ROLES.some(function(r) { return !(n.date.roleAssignments && n.date.roleAssignments[r[0]]); });
+                    }).length;
+                    more.textContent = hiddenUpcoming
+                        ? 'Show all ' + upcoming.length + ' upcoming nights' + (laterGaps ? ' (' + laterGaps + ' more with gaps)' : '')
+                        : 'Show fewer nights';
+                    more.onclick = function() { coverageShowAll = !coverageShowAll; renderRoleCoverage(); };
+                    container.appendChild(more);
+                }
             }
 
             function renderVolunteers() {
@@ -3951,6 +4094,9 @@
                 closeVolunteerMenu();
                 var container = document.getElementById('volunteersContent');
                 container.innerHTML = '';
+                var total = adminData.volunteers.length;
+                document.getElementById('volPeopleCount').textContent = total ? String(total) : '';
+                document.getElementById('volPeopleHeadCount').textContent = total + ' volunteer' + (total === 1 ? '' : 's');
 
                 if (adminData.volunteers.length === 0) {
                     container.textContent = 'No volunteers yet.';
@@ -3960,38 +4106,65 @@
 
                 var toolbar = document.createElement('div');
                 toolbar.className = 'vol-toolbar';
+                var searchRow = document.createElement('div');
+                searchRow.className = 'vol-toolbar-row';
                 var search = document.createElement('input');
                 search.type = 'search';
-                search.placeholder = 'Search by name, email or phone';
+                search.placeholder = 'Search volunteers';
                 search.setAttribute('aria-label', 'Search volunteers');
                 search.value = volunteerSearch;
                 var sort = document.createElement('select');
                 sort.setAttribute('aria-label', 'Sort volunteers');
-                [['name', 'Name A–Z'], ['most', 'Most shifts'], ['fewest', 'Fewest shifts']].forEach(function(o) {
+                [['name', 'A–Z'], ['most', 'Most shifts'], ['fewest', 'Fewest shifts']].forEach(function(o) {
                     var opt = document.createElement('option');
                     opt.value = o[0];
                     opt.textContent = o[1];
                     if (o[0] === volunteerSort) opt.selected = true;
                     sort.appendChild(opt);
                 });
-                toolbar.appendChild(search);
-                toolbar.appendChild(sort);
+                searchRow.appendChild(search);
+                searchRow.appendChild(sort);
+                toolbar.appendChild(searchRow);
+
+                var chips = document.createElement('div');
+                chips.className = 'vol-chips';
+                chips.setAttribute('role', 'group');
+                chips.setAttribute('aria-label', 'Filter volunteers');
+                VOLUNTEER_FILTERS.forEach(function(f) {
+                    var chip = document.createElement('button');
+                    chip.type = 'button';
+                    chip.className = 'vol-chip';
+                    chip.dataset.filter = f[0];
+                    var n = adminData.volunteers.filter(f[2]).length;
+                    chip.textContent = f[1] + (f[0] === 'all' ? '' : ' ' + n);
+                    chip.setAttribute('aria-pressed', String(f[0] === volunteerFilter));
+                    chip.addEventListener('click', function() {
+                        volunteerFilter = f[0];
+                        chips.querySelectorAll('.vol-chip').forEach(function(c) { c.setAttribute('aria-pressed', String(c === chip)); });
+                        drawRows();
+                    });
+                    chips.appendChild(chip);
+                });
+                toolbar.appendChild(chips);
                 container.appendChild(toolbar);
 
                 var countLine = document.createElement('p');
                 countLine.className = 'vol-count';
+                countLine.setAttribute('aria-live', 'polite');
                 container.appendChild(countLine);
 
                 var table = document.createElement('table');
                 table.className = 'vol-table';
-                table.innerHTML = '<thead><tr><th>Name</th><th class="col-roles col-roles-h">Roles</th><th class="col-shifts">Shifts</th><th class="col-actions"><span class="visually-hidden">Actions</span></th></tr></thead>';
+                table.innerHTML = '<thead><tr><th>Name</th><th class="col-shifts">Shifts</th><th class="col-actions"><span class="visually-hidden">Actions</span></th></tr></thead>';
                 var tbody = document.createElement('tbody');
                 table.appendChild(tbody);
                 container.appendChild(table);
 
                 function drawRows() {
                     var term = volunteerSearch.trim().toLowerCase();
+                    var filterFn = (VOLUNTEER_FILTERS.filter(function(f) { return f[0] === volunteerFilter; })[0] || VOLUNTEER_FILTERS[0])[2];
                     var list = adminData.volunteers.filter(function(v) {
+                        if (!filterFn(v)) return false;
                         if (!term) return true;
                         return [v.fullName, v.email, v.phone].some(function(s) {
                             return s && String(s).toLowerCase().indexOf(term) !== -1;
@@ -4003,17 +4176,19 @@
                         if (volunteerSort === 'fewest') return (a.shifts.length - b.shifts.length) || byName;
                         return byName;
                     });
-                    countLine.textContent = term ?
-                        'Showing ' + list.length + ' of ' + adminData.volunteers.length + ' volunteers' :
-                        adminData.volunteers.length + ' volunteer' + (adminData.volunteers.length === 1 ? '' : 's');
+                    var filtered = term || volunteerFilter !== 'all';
+                    countLine.textContent = filtered ?
+                        'Showing ' + list.length + ' of ' + adminData.volunteers.length :
+                        '';
+                    countLine.classList.toggle('admin-hidden', !filtered);
 
                     tbody.innerHTML = '';
                     if (!list.length) {
                         var emptyRow = document.createElement('tr');
                         var emptyCell = document.createElement('td');
-                        emptyCell.colSpan = 4;
+                        emptyCell.colSpan = 3;
                         emptyCell.style.color = 'var(--ink-soft)';
-                        emptyCell.textContent = 'No volunteers match "' + volunteerSearch.trim() + '".';
+                        emptyCell.textContent = term ? 'No volunteers match "' + volunteerSearch.trim() + '".' : 'No volunteers in this filter.';
                         emptyRow.appendChild(emptyCell);
                         tbody.appendChild(emptyRow);
                         return;
@@ -4029,32 +4204,33 @@
 
             function buildVolunteerRow(vol) {
                 var tr = document.createElement('tr');
+                tr.className = 'vol-row';
+                // Whole row opens the details dialog (bigger target on a
+                // phone); the name stays a real button for keyboard users.
+                tr.addEventListener('click', function(e) {
+                    if (e.target.closest('.vol-menu-btn, .vol-name')) return;
+                    openVolunteerModal(vol.id, 'details');
+                });
 
                 var nameTd = document.createElement('td');
                 nameTd.className = 'col-name';
+                var line = document.createElement('span');
+                line.className = 'vol-name-line';
                 var nameBtn = document.createElement('button');
                 nameBtn.type = 'button';
                 nameBtn.className = 'vol-name';
                 nameBtn.textContent = volunteerDisplayName(vol);
                 nameBtn.title = 'View details';
                 nameBtn.addEventListener('click', function() { openVolunteerModal(vol.id, 'details'); });
-                nameTd.appendChild(nameBtn);
+                line.appendChild(nameBtn);
                 if (vol.isGuest) {
                     var badge = document.createElement('span');
                     badge.className = 'vol-guest';
                     badge.textContent = 'Guest';
-                    nameTd.appendChild(badge);
+                    line.appendChild(badge);
                 }
-                if (vol.fullName && vol.email) {
-                    var sub = document.createElement('span');
-                    sub.className = 'vol-sub';
-                    sub.textContent = vol.email;
-                    nameTd.appendChild(sub);
-                }
-                tr.appendChild(nameTd);
-
-                var rolesTd = document.createElement('td');
-                rolesTd.className = 'col-roles';
+                // Role icons sit beside the name (most volunteers have none,
+                // so a separate column was mostly dashes).
                 var q = vol.qualifiedRoles || {};
                 var held = VOLUNTEER_ROLES.filter(function(r) { return q[r[0]]; });
                 if (held.length || vol.mailboxAccess) {
@@ -4064,16 +4240,19 @@
                     var names = held.map(function(r) { return r[3]; }).join(', ');
                     var label = (names ? 'Can be: ' + names : '') + (vol.mailboxAccess ? (names ? '. ' : '') + 'Has mailbox access' : '');
                     icons.title = label;
+                    icons.setAttribute('role', 'img');
                     icons.setAttribute('aria-label', label);
-                    rolesTd.appendChild(icons);
-                } else {
-                    var none = document.createElement('span');
-                    none.className = 'vol-role-none';
-                    none.textContent = '–';
-                    none.setAttribute('aria-label', 'No roles');
-                    rolesTd.appendChild(none);
+                    line.appendChild(icons);
                 }
-                tr.appendChild(rolesTd);
+                nameTd.appendChild(line);
+                var subText = vol.fullName ? (vol.email || vol.phone || '') : (vol.email ? '' : vol.phone || '');
+                if (subText) {
+                    var sub = document.createElement('span');
+                    sub.className = 'vol-sub';
+                    sub.textContent = subText;
+                    nameTd.appendChild(sub);
+                }
+                tr.appendChild(nameTd);
 
                 var shiftsTd = document.createElement('td');
                 shiftsTd.className = 'col-shifts';
@@ -5526,6 +5705,114 @@
                     showToast(err.message, 'error');
                 }
             }
+
+            // ---- Volunteers tab: Overview / Message / People ----
+            // (2026-11-23) The tab had grown into one very long page that
+            // was hard work on a phone, so it's split into three sections.
+            // The last one used is remembered on this device.
+
+            var VOL_PANES = ['overview', 'message', 'people'];
+            var VOL_PANE_KEY = 'sss_admin_vol_pane';
+            var volOverviewCounts = { registrations: 0, square: 0 };
+
+            function showVolPane(name, focusTab) {
+                if (VOL_PANES.indexOf(name) === -1) name = 'overview';
+                VOL_PANES.forEach(function(p) {
+                    var on = p === name;
+                    var tab = document.getElementById('volSubtab-' + p);
+                    tab.setAttribute('aria-selected', String(on));
+                    tab.tabIndex = on ? 0 : -1;
+                    tab.classList.toggle('active', on);
+                    document.getElementById('volPane-' + p).classList.toggle('admin-hidden', !on);
+                    if (on && focusTab) tab.focus();
+                });
+                try { window.localStorage.setItem(VOL_PANE_KEY, name); } catch (e) { /* ignore */ }
+            }
+
+            function updateVolOverview() {
+                var n = volOverviewCounts.registrations + volOverviewCounts.square;
+                var badge = document.getElementById('volOverviewBadge');
+                badge.textContent = n ? String(n) : '';
+                badge.classList.toggle('admin-hidden', !n);
+                document.getElementById('volAllClear').classList.toggle('admin-hidden', n > 0);
+            }
+
+            document.querySelectorAll('.vol-subtab').forEach(function(tab) {
+                tab.addEventListener('click', function() { showVolPane(tab.dataset.vsub); });
+                tab.addEventListener('keydown', function(e) {
+                    if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+                    e.preventDefault();
+                    var i = VOL_PANES.indexOf(tab.dataset.vsub);
+                    i = e.key === 'ArrowRight' ? (i + 1) % VOL_PANES.length : (i - 1 + VOL_PANES.length) % VOL_PANES.length;
+                    showVolPane(VOL_PANES[i], true);
+                });
+            });
+            (function() {
+                var saved = null;
+                try { saved = window.localStorage.getItem(VOL_PANE_KEY); } catch (e) { /* ignore */ }
+                showVolPane(saved || 'overview');
+            })();
+
+            // Message section: three separate tools, folded so only one is
+            // open at a time.
+            document.querySelectorAll('.vol-msg-card').forEach(function(card) {
+                card.addEventListener('toggle', function() {
+                    if (!card.open) return;
+                    document.querySelectorAll('.vol-msg-card').forEach(function(other) {
+                        if (other !== card) other.open = false;
+                    });
+                });
+            });
+
+            // The page header is sticky, so the volunteer search bar sticks
+            // just below it rather than sliding underneath.
+            (function() {
+                var header = document.querySelector('.header');
+                if (!header) return;
+                function setHeaderH() {
+                    var h = getComputedStyle(header).position === 'sticky' ? header.offsetHeight : 0;
+                    document.documentElement.style.setProperty('--sticky-header-h', h + 'px');
+                }
+                setHeaderH();
+                if (window.ResizeObserver) new ResizeObserver(setHeaderH).observe(header);
+                else window.addEventListener('resize', setHeaderH);
+            })();
+
+            // "+ Add volunteer" dialog: invite by email or add a guest.
+            var addVolunteerModal = document.getElementById('addVolunteerModal');
+
+            function setAddVolMode(mode) {
+                document.getElementById('addVolInvitePane').classList.toggle('admin-hidden', mode !== 'invite');
+                document.getElementById('addVolGuestPane').classList.toggle('admin-hidden', mode !== 'guest');
+            }
+
+            function openAddVolunteerModal() {
+                var mode = (document.querySelector('input[name="addVolMode"]:checked') || {}).value || 'invite';
+                setAddVolMode(mode);
+                addVolunteerModal.classList.remove('admin-hidden');
+                document.body.classList.add('import-modal-open');
+                var first = document.querySelector(mode === 'guest' ? '#guestVolunteerName' : '#inviteVolunteerName');
+                if (first) first.focus();
+            }
+
+            function closeAddVolunteerModal() {
+                if (addVolunteerModal.classList.contains('admin-hidden')) return;
+                addVolunteerModal.classList.add('admin-hidden');
+                document.body.classList.remove('import-modal-open');
+                document.getElementById('addVolunteerBtn').focus();
+            }
+
+            document.querySelectorAll('input[name="addVolMode"]').forEach(function(r) {
+                r.addEventListener('change', function() { setAddVolMode(r.value); });
+            });
+            document.getElementById('addVolunteerBtn').addEventListener('click', openAddVolunteerModal);
+            document.getElementById('addVolunteerClose').addEventListener('click', closeAddVolunteerModal);
+            addVolunteerModal.addEventListener('click', function(e) {
+                if (e.target === e.currentTarget) closeAddVolunteerModal();
+            });
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') closeAddVolunteerModal();
+            });
 
             // ---- Tabs ----
 
