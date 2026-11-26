@@ -1,6 +1,8 @@
 // Logs a street search from index.html's "When is Santa visiting?" search
-// box into the search_logs table, so we can see which streets people look
-// for and which ones we don't cover.
+// box, so we can see which streets people look for and which ones we don't
+// cover. Searches are written to a Netlify Blobs buffer and copied into the
+// search_logs table nightly and whenever the admin opens a report, so
+// logging never wakes the database (see netlify/lib/analytics-buffer.js).
 //
 // Privacy by design: this stores NO IP address, user agent, referrer or
 // location. The typed text is minimised before it is saved (house numbers,
@@ -13,7 +15,7 @@
 // Fire-and-forget from the client (analytics.js), so failures here should
 // never surface to the visitor.
 
-import { getDatabase } from '@netlify/database';
+import { bufferContext, bufferRecord } from '../lib/analytics-buffer.js';
 
 const headers = {
   'Content-Type': 'application/json',
@@ -37,24 +39,26 @@ function minimiseSearchTerm(raw) {
   return t || '[number]';
 }
 
-export default async (req) => {
+export default async (req, context) => {
   if (req.method !== 'POST') {
     return new Response(JSON.stringify({ error: 'Method not allowed' }), { status: 405, headers });
   }
 
   try {
     const data = await req.json();
-    const db = getDatabase();
 
     const term = minimiseSearchTerm(data.searchTerm);
     const matchedStreet = data.matchedStreet ? String(data.matchedStreet).slice(0, 100) : null;
     const resultsCount = Math.max(0, Math.min(Number(data.resultsCount) || 0, 1000));
     const page = String(data.page || 'Unknown').split('?')[0].split('#')[0].slice(0, 100);
 
-    await db.sql`
-      INSERT INTO search_logs (search_term, match_found, matched_street, results_count, page)
-      VALUES (${term}, ${!!data.matchFound}, ${matchedStreet}, ${resultsCount}, ${page})
-    `;
+    await bufferRecord(bufferContext(context), 'search', {
+      searchTerm: term,
+      matchFound: !!data.matchFound,
+      matchedStreet,
+      resultsCount,
+      page
+    });
 
     return new Response(JSON.stringify({ success: true, logged: true }), { status: 200, headers });
   } catch (error) {

@@ -14,11 +14,12 @@ import { getDatabase } from '@netlify/database';
 import { cdnCacheHeaders, CACHE_TAGS } from '../lib/cdn-cache.js';
 
 // Browsers keep a copy for 5 minutes (as before); the CDN keeps one
-// durable copy for 10, purged whenever an admin changes a route or its
-// GPX track (admin-routes.js / admin-route-track.js).
+// durable copy for 6 hours (so this rarely wakes the database), purged
+// whenever an admin changes a route or its GPX track (admin-routes.js /
+// admin-route-track.js) and on every deploy.
 const headers = {
   'Content-Type': 'application/json',
-  ...cdnCacheHeaders({ maxAge: 600, tags: [CACHE_TAGS.routes] }),
+  ...cdnCacheHeaders({ maxAge: 21600, staleWhileRevalidate: 300, tags: [CACHE_TAGS.routes] }),
   'Cache-Control': 'public, max-age=300'
 };
 

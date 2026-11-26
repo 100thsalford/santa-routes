@@ -17,6 +17,7 @@
 
 import { getUser } from '@netlify/identity';
 import { getDatabase } from '@netlify/database';
+import { flushBeforeReport } from '../lib/analytics-buffer.js';
 
 const headers = { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' };
 const STATUSES = ['not_installed', 'installed', 'removed'];
@@ -266,12 +267,17 @@ async function handlePost(db, req) {
   return json({ error: 'Unknown operation' }, 400);
 }
 
-export default async (req) => {
+export default async (req, context) => {
   try {
     const user = await getUser();
     if (!requireAdmin(user)) return json({ error: 'Admin access required' }, 403);
     const db = getDatabase();
-    if (req.method === 'GET') return await handleGet(db, new URL(req.url));
+    if (req.method === 'GET') {
+      // Sign visit counts come from analytics_events: copy any buffered
+      // visits in first so the counts are up to date.
+      await flushBeforeReport(db, context);
+      return await handleGet(db, new URL(req.url));
+    }
     if (req.method === 'POST') return await handlePost(db, req);
     return json({ error: 'Method not allowed' }, 405);
   } catch (error) {

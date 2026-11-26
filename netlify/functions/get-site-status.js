@@ -11,6 +11,7 @@
 import { getDatabase } from '@netlify/database';
 import { cdnCacheHeaders, CACHE_TAGS } from '../lib/cdn-cache.js';
 import { trackingWindow } from '../lib/tracking-window.js';
+import { cacheSecondsFor } from '../lib/site-status-cache.js';
 
 const headers = {
   'Access-Control-Allow-Origin': '*',
@@ -20,16 +21,24 @@ const headers = {
 };
 
 // Polled every 60s by every open page that loads script.js, plus once per
-// index.html load -- so the CDN answers repeats. Window boundaries (e.g.
-// the 10pm cutoff) can show up to ~90s late; admin changes to settings or
-// route dates purge this straight away (see lib/cdn-cache.js). asOf stays
-// in the cache key so staging's date-override testing still works.
-const cacheHeaders = cdnCacheHeaders({
-  maxAge: 60,
-  staleWhileRevalidate: 30,
-  tags: [CACHE_TAGS.siteStatus],
-  vary: 'query=asOf'
-});
+// index.html load -- so the CDN answers repeats. The database sleeps after
+// 5 minutes without a query (and is billed while awake), so a short cache
+// here kept it awake whenever anyone had the site open. Instead the CDN
+// keeps each answer until the next moment it could change on its own --
+// midnight, or today's sightings/tracking window start or end, or an
+// admin override expiring -- capped at 15 minutes (lib/site-status-cache.js). So boundaries
+// like the 10pm cutoff still show on time (at worst one poll late, via
+// stale-while-revalidate), and admin changes to settings or route dates
+// purge it straight away (see lib/cdn-cache.js). asOf stays in the cache
+// key so staging's date-override testing still works.
+function cacheHeadersFor(maxAge) {
+  return cdnCacheHeaders({
+    maxAge,
+    staleWhileRevalidate: 60,
+    tags: [CACHE_TAGS.siteStatus],
+    vary: 'query=asOf'
+  });
+}
 
 const TIME_ZONE = 'Europe/London';
 
@@ -141,6 +150,12 @@ export default async (req, context) => {
     // Public view only: an admin-preview "On" override never shows here.
     const tracking = trackingWindow(settings, todayRoute, now);
 
+    const cacheSeconds = cacheSecondsFor(
+      now,
+      [windowStart, windowEnd, tracking.start, tracking.end],
+      [settings.tracking_override_until ? Date.parse(settings.tracking_override_until) : NaN]
+    );
+
     const totalRaisedRow = totalRaisedRows[0];
     const totalRaised = totalRaisedRow ? Number(totalRaisedRow.total) : 0;
     const totalRaisedYear = totalRaisedRow && totalRaisedRow.year != null ? Number(totalRaisedRow.year) : null;
@@ -168,7 +183,7 @@ export default async (req, context) => {
         totalRaised,
         totalRaisedYear
       }),
-      { status: 200, headers: { ...headers, ...cacheHeaders } }
+      { status: 200, headers: { ...headers, ...cacheHeadersFor(cacheSeconds) } }
     );
   } catch (error) {
     console.error('Error computing site status:', error);

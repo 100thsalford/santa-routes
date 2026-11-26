@@ -9,6 +9,9 @@
 //   - push notification devices (push_subscriptions) not seen for 13 months
 //   - cached TruTrak trails for past route nights (Blobs store 'trutrak'):
 //     deleted once the night is over (kept for today and yesterday only)
+// First, it copies the day's buffered analytics events and street searches
+// from Blobs into their tables (see lib/analytics-buffer.js) -- done here
+// because this job wakes the database once a day anyway.
 // It also FLAGS volunteers with no login/volunteering activity for 3 years:
 // on the 1st of each month, if there are any, the admin notification
 // address gets a count-only email pointing at the admin Volunteers tab,
@@ -21,6 +24,7 @@
 
 import { getDatabase } from '@netlify/database';
 import { getStore } from '@netlify/blobs';
+import { bufferContext, flushAnalyticsBuffer } from '../lib/analytics-buffer.js';
 import { findInactiveVolunteers } from '../lib/volunteer-retention.js';
 import { brandedEmailHtml, sendEmail, REPLY_TO } from '../lib/email.js';
 
@@ -42,10 +46,19 @@ async function purgeOldTrails() {
   return deleted;
 }
 
-export default async () => {
+export default async (req, context) => {
   const summary = {};
   try {
     const db = getDatabase();
+
+    try {
+      const flushed = await flushAnalyticsBuffer(db, bufferContext(context), { budgetMs: 20000 });
+      summary.bufferedEventsCopied = flushed.events;
+      summary.bufferedSearchesCopied = flushed.searches;
+      if (flushed.remaining) summary.bufferFlushIncomplete = true;
+    } catch (err) {
+      console.error('purge-old-logs: analytics buffer flush failed:', err.message || err);
+    }
     const unmatched = await db.sql`
       DELETE FROM search_logs
       WHERE match_found = FALSE AND created_at < now() - interval '90 days'

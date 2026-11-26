@@ -20,6 +20,7 @@
         try {
             fetch('/.netlify/functions/log-analytics', {
                 method: 'POST',
+                keepalive: true, // still sent if a click navigates away straight after
                 headers: {
                     'Content-Type': 'application/json',
                 },
@@ -236,34 +237,56 @@
         });
     }
 
-    // Track time on page (ping every 30 seconds). Only time with the tab
-    // visible is counted, and nothing is sent while it's hidden -- so a tab
-    // left open in the background (common on route nights) stops logging
-    // a time_on_page event every minute, and the figure reflects time
-    // actually spent looking at the page.
-    let timeOnPage = 0;
-    setInterval(function() {
-        if (document.hidden) return;
-        timeOnPage += 30;
-        if (timeOnPage % 60 === 0) { // Log every minute
-            trackEvent('time_on_page', {
-                seconds: timeOnPage
-            });
-        }
-    }, 30000);
+    // Time spent looking at the page (only time with the tab visible counts).
+    // Rather than a ping every minute -- one function call per visitor per
+    // minute -- the visible time is sent once each time the page is hidden:
+    // the visitor switches tab or app, locks the phone, navigates away or
+    // closes it. 'visibilitychange' is what mobile browsers reliably fire in
+    // all of those cases (beforeunload often doesn't fire on phones), and
+    // sendBeacon is still delivered as the page closes. Each 'visible_time'
+    // event is the visible seconds since the last one, so a visit's events
+    // add up to its total; under 10 seconds is carried over, not sent.
+    // (Before 2026-11-26 this sent 'time_on_page' every minute with a
+    // running total, plus 'page_exit' on beforeunload.)
+    let visibleSince = document.hidden ? null : Date.now();
+    let unreportedMs = 0;
 
-    // Track when user leaves (if they stay more than 10 seconds)
-    window.addEventListener('beforeunload', function() {
-        if (timeOnPage >= 10 && analyticsAllowed()) {
-            navigator.sendBeacon(
-                '/.netlify/functions/log-analytics',
-                JSON.stringify({
-                    eventType: 'page_exit',
-                    eventData: { timeOnPage },
-                    page: window.location.pathname
-                })
-            );
+    function reportVisibleTime() {
+        if (visibleSince !== null) {
+            unreportedMs += Date.now() - visibleSince;
+            visibleSince = null;
         }
+        const seconds = Math.round(unreportedMs / 1000);
+        if (seconds < 10 || !analyticsAllowed()) return;
+        unreportedMs = 0;
+        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+            console.log('DEV - Would track: visible_time', { seconds });
+            return;
+        }
+        const url = '/.netlify/functions/log-analytics';
+        const body = JSON.stringify({
+            eventType: 'visible_time',
+            eventData: { seconds },
+            page: window.location.pathname
+        });
+        let queued = false;
+        try { queued = !!(navigator.sendBeacon && navigator.sendBeacon(url, body)); } catch (e) { /* fall through */ }
+        if (!queued) {
+            try {
+                fetch(url, { method: 'POST', keepalive: true, headers: { 'Content-Type': 'application/json' }, body })
+                    .catch(function() {});
+            } catch (e) { /* silently fail */ }
+        }
+    }
+
+    document.addEventListener('visibilitychange', function() {
+        if (document.hidden) reportVisibleTime();
+        else if (visibleSince === null) visibleSince = Date.now();
+    });
+    window.addEventListener('pagehide', reportVisibleTime);
+    // Coming back to a page from the browser's back/forward cache.
+    window.addEventListener('pageshow', function() {
+        if (!document.hidden && visibleSince === null) visibleSince = Date.now();
     });
 
     // Make functions available globally for custom tracking

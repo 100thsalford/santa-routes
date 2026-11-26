@@ -20,8 +20,10 @@ const headers = {
 
 // Fetched on every home page load. Street lists only change when an admin
 // edits them, and admin-routes.js purges this tag on every write, so a
-// 10-minute CDN cache is safe.
-const cacheHeaders = cdnCacheHeaders({ maxAge: 600, tags: [CACHE_TAGS.routes] });
+// long CDN cache is safe -- 6 hours, so this rarely needs the database
+// (which is billed while awake; it sleeps after 5 idle minutes). New
+// deploys clear it too.
+const cacheHeaders = cdnCacheHeaders({ maxAge: 21600, staleWhileRevalidate: 300, tags: [CACHE_TAGS.routes] });
 
 export default async (req, context) => {
   if (req.method === 'OPTIONS') {

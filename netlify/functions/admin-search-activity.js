@@ -10,6 +10,7 @@
 
 import { getUser } from '@netlify/identity';
 import { getDatabase } from '@netlify/database';
+import { flushBeforeReport } from '../lib/analytics-buffer.js';
 
 const headers = { 'Content-Type': 'application/json' };
 const PAGE_SIZE = 50;
@@ -33,6 +34,9 @@ export default async (req, context) => {
 
     const db = getDatabase();
     const params = new URL(req.url).searchParams;
+    // Copy buffered events into the table first so the report is up to
+    // date (skipped on follow-on export chunks, already covered by the first).
+    if (!params.get('after')) await flushBeforeReport(db, context);
 
     if (params.get('export')) {
       const after = toInt(params.get('after'), 0);
